@@ -54,7 +54,9 @@ export function TreeArt({ stage, mood, watering }: { stage: number; mood: Mood; 
   const groundY = 132
   const trunkTop = groundY - trunkH
   const cy = trunkTop - crown * 0.55 + droop
-  const faceY = stage === 0 ? groundY - 14 : cy + 2
+  const faceY = stage === 0 ? groundY - 11 : cy + 2
+  // Face grows with the tree: tiny on the sprout's stem, full size on the crown.
+  const faceScale = [0.45, 0.7, 0.85, 1, 1][stage]
 
   const eyes =
     mood === "happy" ? (
@@ -126,7 +128,7 @@ export function TreeArt({ stage, mood, watering }: { stage: number; mood: Mood; 
         )}
         {/* face */}
         <g
-          transform={`translate(80 ${faceY})`}
+          transform={`translate(80 ${faceY}) scale(${faceScale})`}
           stroke="#1f2a1f"
           strokeWidth="2"
           strokeLinecap="round"
