@@ -1,0 +1,16 @@
+.git
+.gitignore
+.DS_Store
+.env
+
+workavera
+pb_data
+coverage.out
+*.test
+
+# The frontend is built on the host; only its dist output (plus the Go embed
+# stub that compiles it into the binary) enters Docker.
+frontend/**
+!frontend/embed.go
+!frontend/dist/
+!frontend/dist/**

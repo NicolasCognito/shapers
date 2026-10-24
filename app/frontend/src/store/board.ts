@@ -1,0 +1,1388 @@
+import { create } from "zustand"
+import {
+  ClientResponseError,
+  type RecordListOptions,
+  type RecordModel,
+} from "pocketbase"
+import { toast } from "sonner"
+
+import { pb } from "@/lib/pocketbase"
+
+export type Priority = "none" | "low" | "medium" | "high" | "urgent"
+export type StateCategory = "pending" | "active" | "completed"
+export type MemberRole = "admin" | "member" | "viewer"
+
+export type TemplateState = {
+  name: string
+  color: string
+  category: StateCategory
+}
+
+export type TemplateLabel = {
+  name: string
+  color: string
+}
+
+export type BoardTemplate = {
+  id: string
+  name: string
+  description?: string
+  ownerId?: string
+  states: TemplateState[]
+  labels: TemplateLabel[]
+}
+
+export type Project = {
+  id: string
+  preferenceId?: string
+  sortOrder?: number
+  name: string
+  description?: string
+  ownerId: string
+  ownerName: string
+  ownerAvatar?: string
+  archived: boolean
+  collapsed: boolean
+}
+
+export type ProjectState = {
+  id: string
+  projectId: string
+  name: string
+  color: string
+  category: StateCategory
+  sortOrder: number
+}
+
+export type Label = {
+  id: string
+  projectId: string
+  name: string
+  color: string
+}
+
+export type Member = {
+  id: string
+  projectId: string
+  userId: string
+  role: MemberRole
+  name: string
+  avatar?: string
+}
+
+export type ProjectParticipant = {
+  userId: string
+  name: string
+  avatar?: string
+  role: "owner" | MemberRole
+}
+
+export type Todo = {
+  id: string
+  projectId: string
+  stateId: string
+  title: string
+  description?: string
+  priority: Priority
+  labels: string[]
+  members: string[]
+  documents: string[]
+  startDate?: string
+  dueDate?: string
+  rank: number
+}
+
+type TodoInput = Omit<Todo, "id" | "rank">
+type StateInput = Pick<ProjectState, "name" | "color" | "category">
+type LabelInput = Pick<Label, "name" | "color">
+
+export const PROJECTS_PER_PAGE = 4
+const RECORDS_PER_REQUEST = 200
+const PROJECT_ORDER_STEP = 1024
+const PROJECT_ORDER_BASE = 1024 * 1024 * 1024
+
+type BoardState = {
+  templates: BoardTemplate[]
+  projects: Project[]
+  openedProject: Project | null
+  projectPage: number
+  projectTotalPages: number
+  projectTotalItems: number
+  states: ProjectState[]
+  todos: Todo[]
+  openedTask: Todo | null
+  labels: Label[]
+  members: Member[]
+  loading: boolean
+  initialized: boolean
+  error: string | null
+  initialize: () => Promise<void>
+  dispose: () => void
+  clearError: () => void
+  loadProjectPage: (page: number) => Promise<void>
+  openProject: (id: string) => Promise<Project | null>
+  openTask: (id: string) => Promise<Todo | null>
+  clearOpenedRecord: () => void
+  addProject: (input: {
+    name: string
+    description?: string
+    states: StateInput[]
+    labels: LabelInput[]
+    members: { userId: string; role: MemberRole }[]
+  }) => Promise<void>
+  updateProject: (
+    id: string,
+    patch: { name?: string; description?: string }
+  ) => Promise<void>
+  archiveProject: (id: string) => Promise<void>
+  removeProject: (id: string) => Promise<void>
+  moveProject: (id: string, direction: -1 | 1) => Promise<void>
+  transferProjectOwner: (id: string, ownerId: string) => Promise<void>
+  toggleProjectCollapse: (id: string) => Promise<void>
+  addState: (projectId: string, input: StateInput) => Promise<void>
+  updateState: (id: string, patch: Partial<StateInput>) => Promise<void>
+  removeState: (id: string) => Promise<void>
+  reorderState: (id: string, direction: -1 | 1) => Promise<void>
+  addLabel: (projectId: string, input: LabelInput) => Promise<void>
+  updateLabel: (id: string, patch: Partial<LabelInput>) => Promise<void>
+  removeLabel: (id: string) => Promise<void>
+  addMember: (
+    projectId: string,
+    input: { userId: string; role: MemberRole }
+  ) => Promise<void>
+  updateMember: (id: string, patch: { role: MemberRole }) => Promise<void>
+  removeMember: (id: string) => Promise<void>
+  addTodo: (todo: TodoInput) => Promise<void>
+  updateTodo: (id: string, patch: Partial<Omit<Todo, "id">>) => Promise<void>
+  archiveTodo: (id: string) => Promise<void>
+  restoreTodo: (id: string) => Promise<void>
+  removeTodo: (id: string) => Promise<void>
+  moveTodo: (id: string, toStateId: string, toIndex: number) => Promise<void>
+}
+
+type TemplateRecord = RecordModel & {
+  name: string
+  description: string
+  owner: string
+  states: TemplateState[]
+  labels: TemplateLabel[]
+}
+
+type ProjectRecord = RecordModel & {
+  name: string
+  description: string
+  owner: string
+  archived: boolean
+  expand?: { owner?: UserRecord }
+}
+
+type ProjectPreferenceRecord = RecordModel & {
+  user: string
+  project: string
+  sort_order: number
+  collapsed: boolean
+  expand?: { project?: ProjectRecord }
+}
+
+type StateRecord = RecordModel & {
+  project: string
+  name: string
+  color: string
+  category: StateCategory
+  sort_order: number
+}
+
+type LabelRecord = RecordModel & {
+  project: string
+  name: string
+  color: string
+}
+
+type UserRecord = RecordModel & {
+  name: string
+  email: string
+  avatar: string
+}
+
+type MemberRecord = RecordModel & {
+  project: string
+  user: string
+  role: MemberRole
+  expand?: { user?: UserRecord }
+}
+
+type TodoRecord = RecordModel & {
+  project: string
+  state: string
+  title: string
+  description: string
+  priority: Priority
+  labels: string[]
+  assignees: string[]
+  documents: string[]
+  start_date: string
+  due_date: string
+  rank: number
+  archived: boolean
+}
+
+const COLLECTIONS = {
+  templates: "board_templates",
+  projects: "board_projects",
+  projectPreferences: "board_project_preferences",
+  states: "board_project_states",
+  members: "board_project_members",
+  labels: "board_project_labels",
+  tasks: "board_tasks",
+} as const
+
+let realtimeUnsubscribers: Array<() => void> = []
+let connectionWanted = false
+
+function toTemplate(record: TemplateRecord): BoardTemplate {
+  return {
+    id: record.id,
+    name: record.name,
+    description: record.description || undefined,
+    ownerId: record.owner || undefined,
+    states: Array.isArray(record.states) ? record.states : [],
+    labels: Array.isArray(record.labels) ? record.labels : [],
+  }
+}
+
+function toProject(
+  record: ProjectRecord,
+  preference?: ProjectPreferenceRecord
+): Project {
+  const owner = record.expand?.owner
+  return {
+    id: record.id,
+    preferenceId: preference?.id,
+    sortOrder: preference?.sort_order,
+    name: record.name,
+    description: record.description || undefined,
+    ownerId: record.owner,
+    ownerName: owner?.name || owner?.email || "Unknown owner",
+    ownerAvatar:
+      owner?.avatar && owner ? pb.files.getURL(owner, owner.avatar) : undefined,
+    archived: record.archived,
+    collapsed: preference?.collapsed ?? false,
+  }
+}
+
+export function projectParticipants(
+  project: Project,
+  members: Member[]
+): ProjectParticipant[] {
+  const participants: ProjectParticipant[] = [
+    {
+      userId: project.ownerId,
+      name: project.ownerName,
+      avatar: project.ownerAvatar,
+      role: "owner",
+    },
+  ]
+  const seen = new Set([project.ownerId])
+  for (const member of members) {
+    if (member.projectId !== project.id || seen.has(member.userId)) continue
+    seen.add(member.userId)
+    participants.push({
+      userId: member.userId,
+      name: member.name,
+      avatar: member.avatar,
+      role: member.role,
+    })
+  }
+  return participants
+}
+
+function toState(record: StateRecord): ProjectState {
+  return {
+    id: record.id,
+    projectId: record.project,
+    name: record.name,
+    color: record.color,
+    category: record.category,
+    sortOrder: record.sort_order,
+  }
+}
+
+function toLabel(record: LabelRecord): Label {
+  return {
+    id: record.id,
+    projectId: record.project,
+    name: record.name,
+    color: record.color,
+  }
+}
+
+function toMember(record: MemberRecord): Member {
+  const user = record.expand?.user
+  return {
+    id: record.id,
+    projectId: record.project,
+    userId: record.user,
+    role: record.role,
+    name: user?.name || user?.email || "Unknown member",
+    avatar:
+      user?.avatar && user ? pb.files.getURL(user, user.avatar) : undefined,
+  }
+}
+
+function toTodo(record: TodoRecord): Todo {
+  return {
+    id: record.id,
+    projectId: record.project,
+    stateId: record.state,
+    title: record.title,
+    description: record.description || undefined,
+    priority: record.priority,
+    labels: record.labels || [],
+    members: record.assignees || [],
+    documents: record.documents || [],
+    startDate: record.start_date ? record.start_date.slice(0, 10) : undefined,
+    dueDate: record.due_date ? record.due_date.slice(0, 10) : undefined,
+    rank: record.rank,
+  }
+}
+
+function upsertById<T extends { id: string }>(items: T[], item: T) {
+  const index = items.findIndex((current) => current.id === item.id)
+  if (index === -1) return [...items, item]
+  const next = [...items]
+  next[index] = item
+  return next
+}
+
+function messageFromError(error: unknown, fallback: string) {
+  if (error instanceof ClientResponseError) {
+    return error.response?.message || fallback
+  }
+  return error instanceof Error ? error.message : fallback
+}
+
+function todoPatchToRecord(patch: Partial<Omit<Todo, "id">>) {
+  const body: Record<string, unknown> = {}
+  if (patch.projectId !== undefined) body.project = patch.projectId
+  if (patch.stateId !== undefined) body.state = patch.stateId
+  if (patch.title !== undefined) body.title = patch.title
+  if (patch.description !== undefined)
+    body.description = patch.description || ""
+  if (patch.priority !== undefined) body.priority = patch.priority
+  if (patch.labels !== undefined) body.labels = patch.labels
+  if (patch.members !== undefined) body.assignees = patch.members
+  if (patch.documents !== undefined) body.documents = patch.documents
+  if (patch.startDate !== undefined) body.start_date = patch.startDate || ""
+  if (patch.dueDate !== undefined) body.due_date = patch.dueDate || ""
+  if (patch.rank !== undefined) body.rank = patch.rank
+  return body
+}
+
+async function listAllPages<T extends RecordModel>(
+  collection: string,
+  options: RecordListOptions = {}
+) {
+  const records: T[] = []
+  let page = 1
+  while (true) {
+    const result = await pb
+      .collection(collection)
+      .getList<T>(page, RECORDS_PER_REQUEST, {
+        ...options,
+        requestKey: null,
+      })
+    records.push(...result.items)
+    if (page >= result.totalPages) return records
+    page += 1
+  }
+}
+
+function recordsFilter(field: "id" | "project", ids: string[]) {
+  const params: Record<string, string> = {}
+  const clauses = ids.map((id, index) => {
+    const key = `id${index}`
+    params[key] = id
+    return `${field} = {:${key}}`
+  })
+  return pb.filter(clauses.join(" || "), params)
+}
+
+async function loadProjectRelations(projectIds: string[]) {
+  if (projectIds.length === 0) {
+    return { states: [], todos: [], labels: [], members: [] }
+  }
+  const filter = recordsFilter("project", projectIds)
+  const [states, todos, labels, members] = await Promise.all([
+    listAllPages<StateRecord>(COLLECTIONS.states, {
+      filter,
+      sort: "sort_order",
+    }),
+    listAllPages<TodoRecord>(COLLECTIONS.tasks, {
+      filter: `(${filter}) && archived = false`,
+      sort: "rank",
+    }),
+    listAllPages<LabelRecord>(COLLECTIONS.labels, { filter, sort: "name" }),
+    listAllPages<MemberRecord>(COLLECTIONS.members, {
+      filter,
+      expand: "user",
+      sort: "created",
+    }),
+  ])
+  return {
+    states: states.map(toState),
+    todos: todos.map(toTodo),
+    labels: labels.map(toLabel),
+    members: members.map(toMember),
+  }
+}
+
+async function loadBoardPage(
+  page: number,
+  existingTemplates?: BoardTemplate[]
+) {
+  const userId = pb.authStore.record?.id
+  if (!userId) throw new Error("Authentication is required")
+  const orderFilter = pb.filter(
+    "user = {:user} && project.archived = false",
+    { user: userId }
+  )
+  const [templates, orderResult] = await Promise.all([
+    existingTemplates
+      ? Promise.resolve(existingTemplates)
+      : listAllPages<TemplateRecord>(COLLECTIONS.templates, {
+          sort: "name",
+        }).then((records) => records.map(toTemplate)),
+    pb
+      .collection(COLLECTIONS.projectPreferences)
+      .getList<ProjectPreferenceRecord>(page + 1, PROJECTS_PER_PAGE, {
+        filter: orderFilter,
+        sort: "sort_order,id",
+        expand: "project,project.owner",
+        requestKey: null,
+      }),
+  ])
+  const orderedProjects = orderResult.items.flatMap((order) => {
+    const project = order.expand?.project
+    return project ? [toProject(project, order)] : []
+  })
+  const relations = await loadProjectRelations(
+    orderedProjects.map((project) => project.id)
+  )
+
+  return {
+    templates,
+    projects: orderedProjects,
+    projectPage: page,
+    projectTotalPages: orderResult.totalPages,
+    projectTotalItems: orderResult.totalItems,
+    ...relations,
+  }
+}
+
+async function normalizeProjectPreferences(userId: string) {
+  const filter = pb.filter(
+    "user = {:user} && project.archived = false",
+    { user: userId }
+  )
+  const orders = await pb
+    .collection(COLLECTIONS.projectPreferences)
+    .getFullList<ProjectPreferenceRecord>({
+      filter,
+      sort: "sort_order,id",
+      requestKey: null,
+    })
+  await Promise.all(
+    orders.map((order, index) => {
+      const sortOrder =
+        PROJECT_ORDER_BASE + (index + 1) * PROJECT_ORDER_STEP
+      if (order.sort_order === sortOrder) return Promise.resolve()
+      return pb
+        .collection(COLLECTIONS.projectPreferences)
+        .update(order.id, { sort_order: sortOrder }, { requestKey: null })
+    })
+  )
+}
+
+async function connectRealtime(
+  set: (
+    patch: Partial<BoardState> | ((state: BoardState) => Partial<BoardState>)
+  ) => void,
+  projectIds: string[]
+) {
+  realtimeUnsubscribers.forEach((unsubscribe) => unsubscribe())
+  realtimeUnsubscribers = []
+  if (projectIds.length === 0) return
+
+  const projectFilter = recordsFilter("id", projectIds)
+  const relationFilter = recordsFilter("project", projectIds)
+
+  const subscribe = async <T extends RecordModel>(
+    collection: string,
+    key: "projects" | "states" | "todos" | "labels" | "members",
+    mapRecord: (record: T) => Project | ProjectState | Todo | Label | Member
+  ) => {
+    try {
+      const options =
+        key === "members"
+          ? { filter: relationFilter, expand: "user", requestKey: null }
+          : key === "projects"
+            ? {
+                filter: `(${projectFilter}) && archived = false`,
+                expand: "owner",
+                requestKey: null,
+              }
+            : { filter: relationFilter, requestKey: null }
+      const unsubscribe = await pb.collection(collection).subscribe<T>(
+        "*",
+        (event) => {
+          set((state) => {
+            const current = state[key] as Array<{ id: string }>
+            if (event.action === "delete") {
+              return {
+                [key]: current.filter((item) => item.id !== event.record.id),
+              } as Partial<BoardState>
+            }
+            if (
+              key === "todos" &&
+              (event.record as unknown as TodoRecord).archived
+            ) {
+              return {
+                todos: state.todos.filter(
+                  (item) => item.id !== event.record.id
+                ),
+                openedTask:
+                  state.openedTask?.id === event.record.id
+                    ? null
+                    : state.openedTask,
+              }
+            }
+            const mapped = mapRecord(event.record)
+            if (key === "projects") {
+              const previous = (current as Project[]).find(
+                (item) => item.id === event.record.id
+              )
+              const project = mapped as Project
+              return {
+                projects: upsertById(current as Project[], {
+                  ...project,
+                  preferenceId: previous?.preferenceId,
+                  sortOrder: previous?.sortOrder,
+                  collapsed: previous?.collapsed ?? project.collapsed,
+                }),
+              }
+            }
+            return {
+              [key]: upsertById(current, mapped),
+            } as Partial<BoardState>
+          })
+        },
+        options
+      )
+      realtimeUnsubscribers.push(unsubscribe)
+    } catch (err) {
+      // 组件卸载或被新请求替代时，静默忽略 PocketBase 自动取消产生的 abort 错误
+      if (err instanceof ClientResponseError && err.isAbort) return
+      throw err
+    }
+  }
+
+  await Promise.all([
+    subscribe<ProjectRecord>(COLLECTIONS.projects, "projects", toProject),
+    subscribe<StateRecord>(COLLECTIONS.states, "states", toState),
+    subscribe<TodoRecord>(COLLECTIONS.tasks, "todos", toTodo),
+    subscribe<LabelRecord>(COLLECTIONS.labels, "labels", toLabel),
+    subscribe<MemberRecord>(COLLECTIONS.members, "members", toMember),
+  ])
+}
+
+export const useBoardStore = create<BoardState>((set, get) => ({
+  templates: [],
+  projects: [],
+  openedProject: null,
+  projectPage: 0,
+  projectTotalPages: 1,
+  projectTotalItems: 0,
+  states: [],
+  todos: [],
+  openedTask: null,
+  labels: [],
+  members: [],
+  loading: false,
+  initialized: false,
+  error: null,
+
+  initialize: async () => {
+    connectionWanted = true
+    if (get().loading || get().initialized) return
+    set({ loading: true, error: null })
+    try {
+      const snapshot = await loadBoardPage(0)
+      set({ ...snapshot, initialized: true })
+      if (connectionWanted) {
+        await connectRealtime(
+          set,
+          snapshot.projects.map((project) => project.id)
+        )
+      }
+    } catch (error) {
+      const message = messageFromError(error, "Could not load the board")
+      set({ error: message })
+      toast.error(message)
+    } finally {
+      set({ loading: false })
+    }
+  },
+
+  loadProjectPage: async (page) => {
+    set({ loading: true, error: null })
+    try {
+      const snapshot = await loadBoardPage(page, get().templates)
+      set(snapshot)
+      if (connectionWanted) {
+        await connectRealtime(
+          set,
+          snapshot.projects.map((project) => project.id)
+        )
+      }
+    } catch (error) {
+      const message = messageFromError(error, "Could not load the board")
+      set({ error: message })
+      toast.error(message)
+    } finally {
+      set({ loading: false })
+    }
+  },
+
+  openProject: async (id) => {
+    const projectId = id.trim()
+    if (!projectId) return null
+    const existing = get().projects.find((project) => project.id === projectId)
+    if (existing) {
+      set({ openedProject: null })
+      return existing
+    }
+    try {
+      const record = await pb
+        .collection(COLLECTIONS.projects)
+        .getOne<ProjectRecord>(projectId, {
+          expand: "owner",
+          requestKey: null,
+        })
+      const project = toProject(record)
+      if (project.archived) return null
+      const relations = await loadProjectRelations([projectId])
+      set((state) => ({
+        openedProject: project,
+        states: [
+          ...state.states.filter((item) => item.projectId !== projectId),
+          ...relations.states,
+        ],
+        todos: [
+          ...state.todos.filter((item) => item.projectId !== projectId),
+          ...relations.todos,
+        ],
+        labels: [
+          ...state.labels.filter((item) => item.projectId !== projectId),
+          ...relations.labels,
+        ],
+        members: [
+          ...state.members.filter((item) => item.projectId !== projectId),
+          ...relations.members,
+        ],
+      }))
+      return project
+    } catch (error) {
+      const message = messageFromError(error, "Could not open the project")
+      set({ error: message })
+      toast.error(message)
+      return null
+    }
+  },
+
+  openTask: async (id) => {
+    const taskId = id.trim()
+    if (!taskId) return null
+    const listedTask = get().todos.find((todo) => todo.id === taskId) ?? null
+    let task = listedTask
+    if (!task) {
+      try {
+        const record = await pb
+          .collection(COLLECTIONS.tasks)
+          .getOne<TodoRecord>(taskId, { requestKey: null })
+        if (record.archived) return null
+        task = toTodo(record)
+      } catch (error) {
+        if (error instanceof ClientResponseError && error.status === 404) {
+          return null
+        }
+        const message = messageFromError(error, "Could not open the task")
+        set({ error: message })
+        toast.error(message)
+        return null
+      }
+    }
+
+    const listedProject = get().projects.find(
+      (project) => project.id === task.projectId
+    )
+    if (listedTask && listedProject) {
+      set({ openedTask: null, openedProject: null })
+      return listedTask
+    }
+
+    const project = await get().openProject(task.projectId)
+    if (!project) return null
+    set({ openedTask: task, openedProject: project })
+    return task
+  },
+
+  clearOpenedRecord: () => set({ openedTask: null, openedProject: null }),
+
+  dispose: () => {
+    connectionWanted = false
+    realtimeUnsubscribers.forEach((unsubscribe) => unsubscribe())
+    realtimeUnsubscribers = []
+    set({ initialized: false })
+  },
+
+  clearError: () => set({ error: null }),
+
+  addProject: async (input) => {
+    set({ error: null })
+    try {
+      await pb.send("/api/board/projects", {
+        method: "POST",
+        body: {
+          name: input.name,
+          description: input.description || "",
+          states: input.states,
+          labels: input.labels,
+          members: input.members,
+        },
+      })
+      const snapshot = await loadBoardPage(0, get().templates)
+      set(snapshot)
+      if (connectionWanted) {
+        await connectRealtime(
+          set,
+          snapshot.projects.map((project) => project.id)
+        )
+      }
+    } catch (error) {
+      const message = messageFromError(error, "Could not create the project")
+      set({ error: message })
+      toast.error(message)
+      throw new Error(message, { cause: error })
+    }
+  },
+
+  updateProject: async (id, patch) => {
+    try {
+      const record = await pb
+        .collection(COLLECTIONS.projects)
+        .update<ProjectRecord>(
+          id,
+          {
+            name: patch.name,
+            description: patch.description,
+          },
+          { expand: "owner", requestKey: null }
+        )
+      const updated = toProject(record)
+      set((state) => ({
+        projects: state.projects.some((project) => project.id === id)
+          ? upsertById(state.projects, {
+              ...updated,
+              preferenceId: state.projects.find(
+                (project) => project.id === id
+              )?.preferenceId,
+              sortOrder: state.projects.find((project) => project.id === id)
+                ?.sortOrder,
+              collapsed:
+                state.projects.find((project) => project.id === id)
+                  ?.collapsed ?? false,
+            })
+          : state.projects,
+        openedProject:
+          state.openedProject?.id === id
+            ? updated
+            : state.openedProject,
+      }))
+    } catch (error) {
+      const message = messageFromError(error, "Could not update the project")
+      set({ error: message })
+      toast.error(message)
+      throw new Error(message, { cause: error })
+    }
+  },
+
+  archiveProject: async (id) => {
+    try {
+      await pb.send(`/api/board/projects/${id}/archive`, { method: "POST" })
+      let page = get().projectPage
+      let snapshot = await loadBoardPage(page, get().templates)
+      if (page > 0 && snapshot.projects.length === 0) {
+        page = Math.max(0, snapshot.projectTotalPages - 1)
+        snapshot = await loadBoardPage(page, get().templates)
+      }
+      set({ ...snapshot, openedProject: null })
+      if (connectionWanted) {
+        await connectRealtime(
+          set,
+          snapshot.projects.map((project) => project.id)
+        )
+      }
+      toast.success("Project archived.")
+    } catch (error) {
+      const message = messageFromError(error, "Could not archive the project")
+      set({ error: message })
+      toast.error(message)
+      throw new Error(message, { cause: error })
+    }
+  },
+
+  removeProject: async (id) => {
+    try {
+      await pb.collection(COLLECTIONS.projects).delete(id)
+      let page = get().projectPage
+      let snapshot = await loadBoardPage(page, get().templates)
+      if (page > 0 && snapshot.projects.length === 0) {
+        page = Math.max(0, snapshot.projectTotalPages - 1)
+        snapshot = await loadBoardPage(page, get().templates)
+      }
+      set({ ...snapshot, openedProject: null })
+      if (connectionWanted) {
+        await connectRealtime(
+          set,
+          snapshot.projects.map((project) => project.id)
+        )
+      }
+    } catch (error) {
+      const message = messageFromError(error, "Could not delete the project")
+      set({ error: message })
+      toast.error(message)
+      throw new Error(message, { cause: error })
+    }
+  },
+
+  moveProject: async (id, direction) => {
+    const state = get()
+    const localIndex = state.projects.findIndex((project) => project.id === id)
+    const project = state.projects[localIndex]
+    if (
+      !project?.preferenceId ||
+      project.sortOrder === undefined ||
+      localIndex < 0
+    ) {
+      return
+    }
+    const globalIndex = state.projectPage * PROJECTS_PER_PAGE + localIndex
+    const targetIndex = globalIndex + direction
+    if (targetIndex < 0 || targetIndex >= state.projectTotalItems) return
+
+    const userId = pb.authStore.record?.id
+    if (!userId) return
+    set({ loading: true, error: null })
+    try {
+      const comparison = direction < 0 ? "<" : ">"
+      const filter = pb.filter(
+        `user = {:user} && project.archived = false && sort_order ${comparison} {:sortOrder}`,
+        { user: userId, sortOrder: project.sortOrder }
+      )
+      let neighbors = await pb
+        .collection(COLLECTIONS.projectPreferences)
+        .getList<ProjectPreferenceRecord>(1, 2, {
+          filter,
+          sort: direction < 0 ? "-sort_order,-id" : "sort_order,id",
+          requestKey: null,
+        })
+      if (neighbors.items.length === 0) return
+
+      let adjacent = neighbors.items[0].sort_order
+      let outer = neighbors.items[1]?.sort_order
+      if (outer !== undefined && Math.abs(outer - adjacent) < 0.001) {
+        await normalizeProjectPreferences(userId)
+        const refreshed = await pb
+          .collection(COLLECTIONS.projectPreferences)
+          .getOne<ProjectPreferenceRecord>(project.preferenceId, {
+            requestKey: null,
+          })
+        const refreshedFilter = pb.filter(
+          `user = {:user} && project.archived = false && sort_order ${comparison} {:sortOrder}`,
+          { user: userId, sortOrder: refreshed.sort_order }
+        )
+        neighbors = await pb
+          .collection(COLLECTIONS.projectPreferences)
+          .getList<ProjectPreferenceRecord>(1, 2, {
+            filter: refreshedFilter,
+            sort: direction < 0 ? "-sort_order,-id" : "sort_order,id",
+            requestKey: null,
+          })
+        if (neighbors.items.length === 0) return
+        adjacent = neighbors.items[0].sort_order
+        outer = neighbors.items[1]?.sort_order
+      }
+
+      let nextSortOrder =
+        outer === undefined
+          ? adjacent + direction * PROJECT_ORDER_STEP
+          : (adjacent + outer) / 2
+      if (nextSortOrder === 0) {
+        nextSortOrder =
+          outer === undefined
+            ? adjacent + direction * PROJECT_ORDER_STEP * 2
+            : adjacent + (outer - adjacent) / 3
+      }
+      await pb
+        .collection(COLLECTIONS.projectPreferences)
+        .update(
+          project.preferenceId,
+          { sort_order: nextSortOrder },
+          { requestKey: null }
+        )
+
+      const targetPage = Math.floor(targetIndex / PROJECTS_PER_PAGE)
+      const snapshot = await loadBoardPage(targetPage, get().templates)
+      set(snapshot)
+      if (connectionWanted) {
+        await connectRealtime(
+          set,
+          snapshot.projects.map((item) => item.id)
+        )
+      }
+    } catch (error) {
+      const message = messageFromError(error, "Could not reorder projects")
+      set({ error: message })
+      toast.error(message)
+      throw new Error(message, { cause: error })
+    } finally {
+      set({ loading: false })
+    }
+  },
+
+  transferProjectOwner: async (id, ownerId) => {
+    set({ error: null })
+    try {
+      await pb.send(`/api/board/projects/${id}/owner`, {
+        method: "PATCH",
+        body: { ownerId },
+      })
+      const snapshot = await loadBoardPage(get().projectPage, get().templates)
+      set(snapshot)
+      if (connectionWanted) {
+        await connectRealtime(
+          set,
+          snapshot.projects.map((project) => project.id)
+        )
+      }
+    } catch (error) {
+      const message = messageFromError(
+        error,
+        "Could not transfer project ownership"
+      )
+      set({ error: message })
+      toast.error(message)
+      throw new Error(message, { cause: error })
+    }
+  },
+
+  toggleProjectCollapse: async (id) => {
+    const project = get().projects.find((item) => item.id === id)
+    if (!project?.preferenceId) return
+    const collapsed = !project.collapsed
+    set((state) => ({
+      projects: state.projects.map((item) =>
+        item.id === id ? { ...item, collapsed } : item
+      ),
+    }))
+    try {
+      await pb
+        .collection(COLLECTIONS.projectPreferences)
+        .update(project.preferenceId, { collapsed })
+    } catch (error) {
+      if (error instanceof ClientResponseError && error.isAbort) return
+      set((state) => ({
+        projects: state.projects.map((item) =>
+          item.id === id && item.collapsed === collapsed
+            ? { ...item, collapsed: project.collapsed }
+            : item
+        ),
+      }))
+      const message = messageFromError(
+        error,
+        "Could not save the project display state"
+      )
+      set({ error: message })
+      toast.error(message)
+      throw new Error(message, { cause: error })
+    }
+  },
+
+  addState: async (projectId, input) => {
+    const sameProject = get().states.filter(
+      (state) => state.projectId === projectId
+    )
+    const sortOrder =
+      Math.max(0, ...sameProject.map((state) => state.sortOrder)) + 1024
+    try {
+      const record = await pb
+        .collection(COLLECTIONS.states)
+        .create<StateRecord>({
+          project: projectId,
+          name: input.name,
+          color: input.color,
+          category: input.category,
+          sort_order: sortOrder,
+        })
+      set((state) => ({ states: upsertById(state.states, toState(record)) }))
+    } catch (error) {
+      const message = messageFromError(error, "Could not add the state")
+      set({ error: message })
+      toast.error(message)
+      throw new Error(message, { cause: error })
+    }
+  },
+
+  updateState: async (id, patch) => {
+    try {
+      const record = await pb
+        .collection(COLLECTIONS.states)
+        .update<StateRecord>(id, patch)
+      set((state) => ({ states: upsertById(state.states, toState(record)) }))
+    } catch (error) {
+      const message = messageFromError(error, "Could not update the state")
+      set({ error: message })
+      toast.error(message)
+      throw new Error(message, { cause: error })
+    }
+  },
+
+  removeState: async (id) => {
+    try {
+      await pb.collection(COLLECTIONS.states).delete(id)
+      set((state) => ({
+        states: state.states.filter((item) => item.id !== id),
+      }))
+    } catch (error) {
+      const message = messageFromError(
+        error,
+        "Move or delete the tasks in this state first"
+      )
+      set({ error: message })
+      toast.error(message)
+      throw new Error(message, { cause: error })
+    }
+  },
+
+  reorderState: async (id, direction) => {
+    const state = get().states.find((item) => item.id === id)
+    if (!state) return
+    const ordered = get()
+      .states.filter((item) => item.projectId === state.projectId)
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+    const from = ordered.findIndex((item) => item.id === id)
+    const to = from + direction
+    if (from < 0 || to < 0 || to >= ordered.length) return
+    ;[ordered[from], ordered[to]] = [ordered[to], ordered[from]]
+    const updates = ordered.map((item, index) => ({
+      ...item,
+      sortOrder: (index + 1) * 1024,
+    }))
+    set((current) => ({
+      states: current.states.map(
+        (item) => updates.find((next) => next.id === item.id) || item
+      ),
+    }))
+    try {
+      await Promise.all(
+        updates.map((item) =>
+          pb
+            .collection(COLLECTIONS.states)
+            .update(item.id, { sort_order: item.sortOrder })
+        )
+      )
+    } catch (error) {
+      const snapshot = await loadBoardPage(get().projectPage, get().templates)
+      set({
+        ...snapshot,
+        error: messageFromError(error, "Could not reorder states"),
+      })
+      if (connectionWanted) {
+        await connectRealtime(
+          set,
+          snapshot.projects.map((project) => project.id)
+        )
+      }
+    }
+  },
+
+  addLabel: async (projectId, input) => {
+    try {
+      const record = await pb
+        .collection(COLLECTIONS.labels)
+        .create<LabelRecord>({
+          project: projectId,
+          name: input.name,
+          color: input.color,
+        })
+      set((state) => ({ labels: upsertById(state.labels, toLabel(record)) }))
+    } catch (error) {
+      const message = messageFromError(error, "Could not add the label")
+      set({ error: message })
+      toast.error(message)
+      throw new Error(message, { cause: error })
+    }
+  },
+
+  updateLabel: async (id, patch) => {
+    try {
+      const record = await pb
+        .collection(COLLECTIONS.labels)
+        .update<LabelRecord>(id, patch)
+      set((state) => ({ labels: upsertById(state.labels, toLabel(record)) }))
+    } catch (error) {
+      const message = messageFromError(error, "Could not update the label")
+      set({ error: message })
+      toast.error(message)
+      throw new Error(message, { cause: error })
+    }
+  },
+
+  removeLabel: async (id) => {
+    try {
+      const affected = get().todos.filter((todo) => todo.labels.includes(id))
+      await Promise.all(
+        affected.map((todo) =>
+          get().updateTodo(todo.id, {
+            labels: todo.labels.filter((labelId) => labelId !== id),
+          })
+        )
+      )
+      await pb.collection(COLLECTIONS.labels).delete(id)
+      set((state) => ({
+        labels: state.labels.filter((label) => label.id !== id),
+        todos: state.todos.map((todo) => ({
+          ...todo,
+          labels: todo.labels.filter((labelId) => labelId !== id),
+        })),
+      }))
+    } catch (error) {
+      const message = messageFromError(error, "Could not delete the label")
+      set({ error: message })
+      toast.error(message)
+      throw new Error(message, { cause: error })
+    }
+  },
+
+  addMember: async (projectId, input) => {
+    try {
+      const record = await pb
+        .collection(COLLECTIONS.members)
+        .create<MemberRecord>(
+          {
+            project: projectId,
+            user: input.userId,
+            role: input.role,
+          },
+          { expand: "user", requestKey: null }
+        )
+      set((state) => ({ members: upsertById(state.members, toMember(record)) }))
+    } catch (error) {
+      const message = messageFromError(error, "Could not add the member")
+      set({ error: message })
+      toast.error(message)
+      throw new Error(message, { cause: error })
+    }
+  },
+
+  updateMember: async (id, patch) => {
+    try {
+      const record = await pb
+        .collection(COLLECTIONS.members)
+        .update<MemberRecord>(
+          id,
+          { role: patch.role },
+          { expand: "user", requestKey: null }
+        )
+      set((state) => ({ members: upsertById(state.members, toMember(record)) }))
+    } catch (error) {
+      const message = messageFromError(error, "Could not update the member")
+      set({ error: message })
+      toast.error(message)
+      throw new Error(message, { cause: error })
+    }
+  },
+
+  removeMember: async (id) => {
+    try {
+      await pb.collection(COLLECTIONS.members).delete(id)
+      set((state) => ({
+        members: state.members.filter((member) => member.id !== id),
+      }))
+    } catch (error) {
+      const message = messageFromError(error, "Could not remove the member")
+      set({ error: message })
+      toast.error(message)
+      throw new Error(message, { cause: error })
+    }
+  },
+
+  addTodo: async (todo) => {
+    const sameState = get().todos.filter(
+      (item) =>
+        item.projectId === todo.projectId && item.stateId === todo.stateId
+    )
+    const rank = Math.max(0, ...sameState.map((item) => item.rank)) + 1024
+    try {
+      const record = await pb.collection(COLLECTIONS.tasks).create<TodoRecord>({
+        project: todo.projectId,
+        state: todo.stateId,
+        title: todo.title,
+        description: todo.description || "",
+        priority: todo.priority,
+        labels: todo.labels,
+        assignees: todo.members,
+        documents: todo.documents,
+        start_date: todo.startDate || "",
+        due_date: todo.dueDate || "",
+        rank,
+      })
+      set((state) => ({ todos: upsertById(state.todos, toTodo(record)) }))
+    } catch (error) {
+      const message = messageFromError(error, "Could not create the task")
+      set({ error: message })
+      toast.error(message)
+      throw new Error(message, { cause: error })
+    }
+  },
+
+  updateTodo: async (id, patch) => {
+    try {
+      const record = await pb
+        .collection(COLLECTIONS.tasks)
+        .update<TodoRecord>(id, todoPatchToRecord(patch))
+      const updated = toTodo(record)
+      set((state) => ({
+        todos: state.todos.some((todo) => todo.id === id)
+          ? upsertById(state.todos, updated)
+          : state.todos,
+        openedTask: state.openedTask?.id === id ? updated : state.openedTask,
+      }))
+    } catch (error) {
+      const message = messageFromError(error, "Could not update the task")
+      set({ error: message })
+      toast.error(message)
+      throw new Error(message, { cause: error })
+    }
+  },
+
+  archiveTodo: async (id) => {
+    try {
+      await pb
+        .collection(COLLECTIONS.tasks)
+        .update<TodoRecord>(id, { archived: true }, { requestKey: null })
+      set((state) => ({
+        todos: state.todos.filter((item) => item.id !== id),
+        openedTask: state.openedTask?.id === id ? null : state.openedTask,
+      }))
+      toast.success("Task archived.")
+    } catch (error) {
+      const message = messageFromError(error, "Could not archive the task")
+      set({ error: message })
+      toast.error(message)
+      throw new Error(message, { cause: error })
+    }
+  },
+
+  restoreTodo: async (id) => {
+    try {
+      const record = await pb
+        .collection(COLLECTIONS.tasks)
+        .update<TodoRecord>(id, { archived: false }, { requestKey: null })
+      const restored = toTodo(record)
+      set((state) => ({
+        todos: state.projects.some(
+          (project) => project.id === restored.projectId
+        )
+          ? upsertById(state.todos, restored)
+          : state.todos,
+      }))
+      toast.success("Task restored.")
+    } catch (error) {
+      const message = messageFromError(error, "Could not restore the task")
+      set({ error: message })
+      toast.error(message)
+      throw new Error(message, { cause: error })
+    }
+  },
+
+  removeTodo: async (id) => {
+    try {
+      await pb.collection(COLLECTIONS.tasks).delete(id)
+      set((state) => ({
+        todos: state.todos.filter((item) => item.id !== id),
+        openedTask: state.openedTask?.id === id ? null : state.openedTask,
+      }))
+    } catch (error) {
+      const message = messageFromError(error, "Could not delete the task")
+      set({ error: message })
+      toast.error(message)
+      throw new Error(message, { cause: error })
+    }
+  },
+
+  moveTodo: async (id, toStateId, toIndex) => {
+    const dragged = get().todos.find((todo) => todo.id === id)
+    if (!dragged) return
+    const target = get()
+      .todos.filter((todo) => todo.stateId === toStateId && todo.id !== id)
+      .sort((a, b) => a.rank - b.rank)
+    const before = target[toIndex - 1]
+    const after = target[toIndex]
+    const rank =
+      before && after
+        ? (before.rank + after.rank) / 2
+        : before
+          ? before.rank + 1024
+          : after
+            ? after.rank - 1024
+            : 1024
+    const optimistic = { ...dragged, stateId: toStateId, rank }
+    set((state) => ({ todos: upsertById(state.todos, optimistic) }))
+    try {
+      const record = await pb
+        .collection(COLLECTIONS.tasks)
+        .update<TodoRecord>(id, {
+          state: toStateId,
+          rank,
+        })
+      set((state) => ({ todos: upsertById(state.todos, toTodo(record)) }))
+    } catch (error) {
+      set((state) => ({
+        todos: upsertById(state.todos, dragged),
+        error: messageFromError(error, "Could not move the task"),
+      }))
+    }
+  },
+}))
+
+export const PRIORITY_META: {
+  value: Priority
+  label: string
+  color: string
+}[] = [
+  { value: "none", label: "None", color: "#94a3b8" },
+  { value: "low", label: "Low", color: "#64748b" },
+  { value: "medium", label: "Medium", color: "#3b82f6" },
+  { value: "high", label: "High", color: "#f59e0b" },
+  { value: "urgent", label: "Urgent", color: "#ef4444" },
+]
+
+export const STATE_CATEGORY_META: {
+  value: StateCategory
+  label: string
+}[] = [
+  { value: "pending", label: "Pending" },
+  { value: "active", label: "Active" },
+  { value: "completed", label: "Completed" },
+]

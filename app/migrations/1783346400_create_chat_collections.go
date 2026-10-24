@@ -1,0 +1,93 @@
+package migrations
+
+import (
+	"github.com/pocketbase/pocketbase/core"
+	m "github.com/pocketbase/pocketbase/migrations"
+	"github.com/pocketbase/pocketbase/tools/types"
+)
+
+const (
+	chatConversationsCollection = "chat_conversations"
+	chatMessagesCollection      = "chat_messages"
+)
+
+func init() {
+	m.Register(createChatCollections, dropChatCollections)
+}
+
+func createChatCollections(app core.App) error {
+	users, err := app.FindCollectionByNameOrId(usersCollectionName)
+	if err != nil {
+		return err
+	}
+	models, err := app.FindCollectionByNameOrId(llmModelsCollection)
+	if err != nil {
+		return err
+	}
+
+	conversations := core.NewBaseCollection(chatConversationsCollection)
+	conversations.Fields.Add(
+		&core.RelationField{Name: "owner", CollectionId: users.Id, MaxSelect: 1, Required: true, CascadeDelete: true},
+		&core.RelationField{Name: "model_config", CollectionId: models.Id, MaxSelect: 1},
+		&core.TextField{Name: "title", Required: true, Max: 200, Presentable: true},
+		&core.SelectField{Name: "status", Required: true, MaxSelect: 1, Values: []string{"active", "archived"}},
+		&core.BoolField{Name: "pinned"},
+		&core.DateField{Name: "last_message_at"},
+		&core.NumberField{Name: "message_count", OnlyInt: true},
+		&core.NumberField{Name: "tool_call_count", OnlyInt: true},
+		&core.NumberField{Name: "input_tokens", OnlyInt: true},
+		&core.NumberField{Name: "output_tokens", OnlyInt: true},
+		&core.NumberField{Name: "total_tokens", OnlyInt: true},
+		&core.AutodateField{Name: "created", OnCreate: true},
+		&core.AutodateField{Name: "updated", OnCreate: true, OnUpdate: true},
+	)
+	conversations.AddIndex("idx_chat_conversations_owner_status_updated", false, "owner, status, updated", "")
+	conversations.AddIndex("idx_chat_conversations_owner_pinned_last", false, "owner, pinned, last_message_at", "")
+	conversations.ListRule = types.Pointer(`@request.auth.id != "" && owner = @request.auth.id`)
+	conversations.ViewRule = conversations.ListRule
+	conversations.CreateRule = types.Pointer(`@request.auth.id != ""`)
+	conversations.UpdateRule = types.Pointer(`owner = @request.auth.id && @request.body.owner:changed = false`)
+	conversations.DeleteRule = types.Pointer(`owner = @request.auth.id`)
+	if err := app.Save(conversations); err != nil {
+		return err
+	}
+
+	messages := core.NewBaseCollection(chatMessagesCollection)
+	messages.Fields.Add(
+		&core.RelationField{Name: "conversation", CollectionId: conversations.Id, MaxSelect: 1, Required: true, CascadeDelete: true},
+		&core.NumberField{Name: "sequence", OnlyInt: true},
+		&core.SelectField{Name: "role", Required: true, MaxSelect: 1, Values: []string{"user", "assistant"}},
+		&core.SelectField{Name: "status", Required: true, MaxSelect: 1, Values: []string{"pending", "streaming", "complete", "error", "cancelled"}},
+		&core.RelationField{Name: "model_config", CollectionId: models.Id, MaxSelect: 1},
+		&core.JSONField{Name: "parts", MaxSize: 4 * 1024 * 1024},
+		&core.JSONField{Name: "metadata", MaxSize: 512 * 1024},
+		&core.AutodateField{Name: "created", OnCreate: true},
+		&core.AutodateField{Name: "updated", OnCreate: true, OnUpdate: true},
+	)
+	if err := app.Save(messages); err != nil {
+		return err
+	}
+
+	messages.Fields.Add(&core.RelationField{Name: "parent_message", CollectionId: messages.Id, MaxSelect: 1})
+	messages.AddIndex("idx_chat_messages_conversation_sequence", true, "conversation, sequence", "")
+	messages.AddIndex("idx_chat_messages_conversation_created", false, "conversation, created", "")
+	messages.AddIndex("idx_chat_messages_parent", false, "parent_message", "")
+	messages.AddIndex("idx_chat_messages_model", false, "model_config", "")
+	messages.ListRule = types.Pointer(`@request.auth.id != "" && conversation.owner = @request.auth.id`)
+	messages.ViewRule = messages.ListRule
+	return app.Save(messages)
+}
+
+func dropChatCollections(app core.App) error {
+	if messages, err := app.FindCollectionByNameOrId(chatMessagesCollection); err == nil {
+		if err := app.Delete(messages); err != nil {
+			return err
+		}
+	}
+	if conversations, err := app.FindCollectionByNameOrId(chatConversationsCollection); err == nil {
+		if err := app.Delete(conversations); err != nil {
+			return err
+		}
+	}
+	return nil
+}

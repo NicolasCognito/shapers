@@ -1,0 +1,541 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/inter";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-heading: var(--font-sans);
+  --font-sans: "Inter Variable", sans-serif;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  /* The public project preview measures its sticky header and overrides this
+     so day headers can stick right below it. */
+  --public-header-height: 0px;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.827 0.119 306.383);
+  --chart-2: oklch(0.627 0.265 303.9);
+  --chart-3: oklch(0.558 0.288 302.321);
+  --chart-4: oklch(0.496 0.265 301.924);
+  --chart-5: oklch(0.438 0.218 303.724);
+  --radius: 0.45rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.827 0.119 306.383);
+  --chart-2: oklch(0.627 0.265 303.9);
+  --chart-3: oklch(0.558 0.288 302.321);
+  --chart-4: oklch(0.496 0.265 301.924);
+  --chart-5: oklch(0.438 0.218 303.724);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+  /* Tailwind v4's preflight sets `cursor: default` on buttons. The Button
+     component opts back in through its own class, so this covers the plain
+     `<button>` elements and third-party markup that do not. Utilities outrank
+     the base layer, so the components that deliberately choose
+     `cursor-default` keep it. */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+}
+
+.logo .dot {
+  animation-duration: 4s;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-name: marewood-running;
+}
+
+.logo:hover .dot {
+  fill: #4caf50;
+}
+
+@keyframes marewood-running {
+  0% {
+    fill: #4caf50;
+  }
+  50% {
+    fill: #ffeb3b;
+  }
+  100% {
+    fill: #e91e63;
+  }
+}
+
+/*
+ * Streamdown code block layout overrides
+ *
+ * Default layout: header (language label) and actions (copy/download buttons)
+ * are stacked vertically — the header occupies its own row while the actions
+ * float over the top-right via a sticky wrapper with a negative margin.
+ *
+ * These overrides merge them into a single row: language label on the left,
+ * action buttons on the right, code body below. A two-column grid ensures the
+ * header and actions never overlap, so button clicks are not intercepted.
+ */
+[data-streamdown="code-block"] {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto 1fr;
+}
+
+[data-streamdown="code-block-header"] {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+[data-streamdown="code-block"]
+  > div:has([data-streamdown="code-block-actions"]) {
+  grid-column: 2;
+  grid-row: 1;
+  margin-top: 0;
+  position: static;
+  justify-self: end;
+}
+
+[data-streamdown="code-block-actions"] {
+  pointer-events: auto;
+}
+
+[data-streamdown="code-block-body"] {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+
+.workavera-doc-editor {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--background);
+  font-family: var(--font-sans);
+}
+
+.doc-rich-area {
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+  background-color: var(--bn-colors-editor-background);
+}
+
+/* Layout only — visual theming stays on BlockNote's own defaults. */
+.doc-rich-area .bn-editor {
+  min-height: 100%;
+  max-width: 56rem;
+  margin-inline: auto;
+  padding-block: 2.5rem 5rem;
+  padding-inline: 2rem;
+}
+
+@media (max-width: 768px) {
+  .doc-rich-area .bn-editor {
+    padding-inline: 1.25rem;
+  }
+}
+
+/* BlockNote hardcodes a near-black code block. Retheme the container to the
+   app palette; token colors are shiki dual-theme inline styles (github-light
+   by default, --shiki-dark variables flipped on below in dark mode). */
+.doc-rich-area [data-content-type="codeBlock"] {
+  background-color: var(--muted) !important;
+  color: var(--foreground) !important;
+}
+
+/* BlockNote's divider uses a hardcoded mid-gray that reads too heavy in
+   light mode; soften it to the app border token. */
+.doc-rich-area [data-content-type="divider"] hr {
+  border-top-color: var(--border);
+  margin-block: 1.25em;
+}
+
+/* Same hardcoded mid-gray on the quote border; soften to match. */
+.doc-rich-area [data-content-type="quote"] blockquote {
+  border-left-color: var(--border);
+}
+
+/* Use the app font stack instead of BlockNote's own Inter variant list. */
+.doc-rich-area .bn-editor,
+.doc-rich-area .bn-default-styles {
+  font-family: var(--font-sans);
+}
+
+/* BlockNote's shadcn theme reverts links to the browser default blue. Keep
+   links recognizable without leaving the app's neutral color palette. */
+.doc-rich-area .bn-editor a {
+  color: var(--primary) !important;
+  text-decoration-color: var(--muted-foreground);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.15em;
+}
+
+.doc-attachment-card {
+  display: inline-grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.625rem;
+  width: 100%;
+  margin: 0.35rem 0;
+  padding: 0.75rem 0.875rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--card);
+  box-shadow: 0 1px 2px color-mix(in oklch, var(--foreground) 8%, transparent);
+  cursor: pointer;
+  user-select: none;
+  vertical-align: middle;
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.doc-rich-area .bn-inline-content:has(.node-docAttachment),
+.doc-rich-area .node-docAttachment,
+.doc-rich-area [data-inline-content-type="docAttachment"] {
+  display: block;
+  width: 100%;
+}
+
+.doc-attachment-card:hover {
+  border-color: color-mix(in oklch, var(--border), var(--foreground) 18%);
+  background: var(--accent);
+  box-shadow: 0 3px 8px color-mix(in oklch, var(--foreground) 10%, transparent);
+}
+
+.doc-attachment-card:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.doc-attachment-icon,
+.doc-attachment-download {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  color: var(--foreground);
+}
+
+.doc-attachment-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.625rem;
+  background: var(--muted);
+}
+
+.doc-attachment-icon svg {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.doc-attachment-details {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.doc-attachment-name {
+  overflow: hidden;
+  color: var(--foreground);
+  font-size: 0.875rem;
+  font-weight: 550;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doc-attachment-meta {
+  margin-top: 0.2rem;
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+}
+
+.doc-attachment-download {
+  gap: 0.4rem;
+  height: 2.125rem;
+  padding-inline: 0.625rem;
+  border: 1px solid var(--border);
+  border-radius: 0.55rem;
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.doc-attachment-download svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+@media (max-width: 640px) {
+  .doc-attachment-download {
+    width: 2.125rem;
+    padding-inline: 0;
+  }
+
+  .doc-attachment-download-label {
+    display: none;
+  }
+}
+
+/* BlockNote only pads headings on top; add breathing room below so the
+   following paragraph isn't flush against it. */
+.doc-rich-area [data-content-type="heading"] {
+  padding-bottom: 0.4em !important;
+}
+
+.dark .doc-rich-area [data-content-type="codeBlock"] span.shiki {
+  color: var(--shiki-dark) !important;
+}
+
+.doc-rich-area [data-content-type="codeBlock"] > div > select {
+  color: inherit;
+}
+
+/* BlockNote renders both a block-type icon and a checkbox indicator in these
+   items. Keep the icon/label columns stable and give the check its own column. */
+.doc-turn-into-item {
+  gap: 0.5rem !important;
+  padding-right: 2rem !important;
+  padding-left: 0.5rem !important;
+}
+
+.doc-turn-into-item > span:first-child {
+  right: 0.5rem;
+  left: auto !important;
+}
+
+.doc-code-editor {
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+  width: 100%;
+}
+
+.doc-code-editor .cm-editor {
+  height: 100%;
+  background: var(--background);
+  font-size: 0.875rem;
+}
+
+.doc-code-editor .cm-scroller {
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    monospace;
+  line-height: 1.7;
+}
+
+.doc-code-editor .cm-gutters {
+  background: var(--background);
+  border-right: 1px solid var(--border);
+  color: var(--muted-foreground);
+}
+
+.doc-code-editor .cm-content {
+  padding-block: 1rem;
+}
+
+.doc-code-editor .cm-editor.cm-focused {
+  outline: none;
+}
+
+/* A published document is read rather than edited, but it should keep the
+   rhythm it was written in. Streamdown's defaults are tuned for chat messages,
+   so the editor's type scale (@blocknote/core, mirrored in .doc-rich-area
+   above) is restated here over Streamdown's markup. */
+.workavera-doc-reader {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.workavera-doc-reader :is(h1, h2, h3, h4, h5, h6) {
+  margin: 0;
+  /* BlockNote pads headings 18px on top; the 0.4em below matches the editor
+     override that keeps the next paragraph off the heading. */
+  padding-top: 1.125rem;
+  padding-bottom: 0.4em;
+  font-weight: 700;
+  line-height: 1.25;
+  scroll-margin-top: 2.5rem;
+}
+
+.workavera-doc-reader h1 {
+  font-size: 3em;
+}
+
+.workavera-doc-reader h2 {
+  font-size: 2em;
+}
+
+.workavera-doc-reader h3 {
+  font-size: 1.3em;
+}
+
+.workavera-doc-reader h4 {
+  font-size: 1em;
+}
+
+.workavera-doc-reader h5 {
+  font-size: 0.9em;
+}
+
+.workavera-doc-reader h6 {
+  font-size: 0.8em;
+}
+
+/* The editor separates blocks with 3px above and below rather than a large
+   paragraph margin; its generous line height does the rest. */
+.workavera-doc-reader :is(p, ul, ol, blockquote, table),
+.workavera-doc-reader [data-streamdown="code-block"] {
+  margin-block: 3px;
+}
+
+.workavera-doc-reader :is(ul, ol) {
+  padding-left: 1.5rem;
+}
+
+.workavera-doc-reader li {
+  padding-block: 3px;
+}
+
+.workavera-doc-reader hr {
+  margin-block: 1.25em;
+  border-top-color: var(--border);
+}
+
+.workavera-doc-reader blockquote {
+  border-left: 2px solid var(--border);
+  padding-left: 1em;
+}
+
+/* Streamdown renders links as buttons so it can confirm outbound navigation,
+   which means an anchor's styling does not reach them. */
+.workavera-doc-reader :is(a, [data-streamdown="link"]) {
+  color: var(--primary);
+  text-decoration-color: var(--muted-foreground);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.15em;
+}
+
+/* Overlay scrollbars stay invisible until they are used, which hides that a
+   long outline scrolls at all. Styling the WebKit pseudo-elements replaces the
+   overlay with a track that is always drawn while the outline overflows.
+   Setting the standard `scrollbar-width` here would be counterproductive:
+   Chrome then ignores these rules and keeps the overlay. */
+.workavera-doc-outline::-webkit-scrollbar {
+  width: 4px;
+}
+
+.workavera-doc-outline::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+.workavera-doc-outline::-webkit-scrollbar-thumb {
+  background-color: var(--border);
+  border-radius: 9999px;
+}

@@ -1,0 +1,430 @@
+package board
+
+import (
+	"context"
+	"errors"
+	"testing"
+
+	"github.com/pocketbase/dbx"
+	"github.com/pocketbase/pocketbase/core"
+	"github.com/pocketbase/pocketbase/tests"
+	_ "github.com/xusenlin/workavera/migrations"
+)
+
+func createBoardTestDoc(t *testing.T, app core.App, ownerID, projectID, title string) *core.Record {
+	t.Helper()
+	collection, err := app.FindCollectionByNameOrId(docsCollection)
+	if err != nil {
+		t.Fatal(err)
+	}
+	record := core.NewRecord(collection)
+	record.Set("title", title)
+	record.Set("kind", "markdown")
+	record.Set("owner", ownerID)
+	record.Set("project", projectID)
+	record.Set("status", "draft")
+	record.Set("revision", 1)
+	record.Set("last_edited_by", ownerID)
+	if err := app.Save(record); err != nil {
+		t.Fatal(err)
+	}
+	return record
+}
+
+func TestCreateProjectFromTemplateAndBlank(t *testing.T) {
+	app, err := tests.NewTestApp()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(app.Cleanup)
+	owner := createQueryTestUser(t, app, "command-owner@example.com", "Owner")
+
+	templates, err := ListVisibleTemplates(context.Background(), app, owner.Id)
+	if err != nil || len(templates) == 0 {
+		t.Fatalf("expected templates: %#v, %v", templates, err)
+	}
+	fromTemplate, err := CreateProject(context.Background(), app, owner.Id, CreateProjectCommand{
+		Name: "Templated", TemplateID: templates[0].ID,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := app.FindRecordById(boardProjectsCollection, fromTemplate.ID)
+	if err != nil || project.GetString("owner") != owner.Id {
+		t.Fatalf("unexpected project: %#v, %v", project, err)
+	}
+	states, err := app.FindRecordsByFilter(boardProjectStatesCollection, "project = {:project}", "", 0, 0, dbx.Params{"project": project.Id})
+	if err != nil || len(states) != len(templates[0].States) {
+		t.Fatalf("template states were not copied: %#v, %v", states, err)
+	}
+	members, err := app.FindRecordsByFilter(boardProjectMembersCollection, "project = {:project}", "", 0, 0, dbx.Params{"project": project.Id})
+	if err != nil || len(members) != 0 {
+		t.Fatalf("owner must not have a membership: %#v, %v", members, err)
+	}
+
+	blank, err := CreateProject(context.Background(), app, owner.Id, CreateProjectCommand{Name: "Blank"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	states, err = app.FindRecordsByFilter(boardProjectStatesCollection, "project = {:project}", "", 0, 0, dbx.Params{"project": blank.ID})
+	if err != nil || len(states) != 0 {
+		t.Fatalf("blank project unexpectedly has states: %#v, %v", states, err)
+	}
+}
+
+func TestProjectArchiveAndRestoreRequireOwner(t *testing.T) {
+	app, err := tests.NewTestApp()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(app.Cleanup)
+	owner := createQueryTestUser(t, app, "archive-owner@example.com", "Owner")
+	member := createQueryTestUser(t, app, "archive-member@example.com", "Member")
+	project := createQueryTestProject(t, app, owner.Id, "Archive me", false)
+	createProjectTestMembership(t, app, project.Id, member.Id, "member")
+
+	if _, err := SetProjectArchived(context.Background(), app, member.Id, project.Id, true); !errors.Is(err, ErrOwnerOnly) {
+		t.Fatalf("member archived project: %v", err)
+	}
+	result, err := SetProjectArchived(context.Background(), app, owner.Id, project.Id, true)
+	if err != nil || result.Action != "archived" {
+		t.Fatalf("archive project: %#v, %v", result, err)
+	}
+	project, err = app.FindRecordById(boardProjectsCollection, project.Id)
+	if err != nil || !project.GetBool("archived") {
+		t.Fatalf("project was not archived: %#v, %v", project, err)
+	}
+	name := "Archived edit"
+	if _, err := UpdateProject(context.Background(), app, owner.Id, UpdateProjectCommand{ProjectID: project.Id, Name: &name}); !errors.Is(err, ErrProjectArchived) {
+		t.Fatalf("archived project was updated: %v", err)
+	}
+
+	result, err = SetProjectArchived(context.Background(), app, owner.Id, project.Id, false)
+	if err != nil || result.Action != "restored" {
+		t.Fatalf("restore project: %#v, %v", result, err)
+	}
+	project, err = app.FindRecordById(boardProjectsCollection, project.Id)
+	if err != nil || project.GetBool("archived") {
+		t.Fatalf("project was not restored: %#v, %v", project, err)
+	}
+	logs, err := app.FindRecordsByFilter(
+		boardProjectOperationLogs,
+		"project = {:project} && action = 'update_project'",
+		"created",
+		0,
+		0,
+		dbx.Params{"project": project.Id},
+	)
+	if err != nil || len(logs) != 2 {
+		t.Fatalf("unexpected archive logs: %#v, %v", logs, err)
+	}
+}
+
+func TestProjectCapabilitiesAndCommandPermissions(t *testing.T) {
+	app, err := tests.NewTestApp()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(app.Cleanup)
+	owner := createQueryTestUser(t, app, "cap-owner@example.com", "Owner")
+	member := createQueryTestUser(t, app, "cap-member@example.com", "Member")
+	viewer := createQueryTestUser(t, app, "cap-viewer@example.com", "Viewer")
+	project := createQueryTestProject(t, app, owner.Id, "Capabilities", false)
+	createProjectTestMembership(t, app, project.Id, member.Id, "member")
+	createProjectTestMembership(t, app, project.Id, viewer.Id, "viewer")
+	state := createQueryTestState(t, app, project.Id)
+
+	ownerView, err := GetVisibleProject(context.Background(), app, owner.Id, project.Id)
+	if err != nil || ownerView.CurrentActorRole != "owner" || !ownerView.Capabilities.CanEditProject || !ownerView.Capabilities.CanEditTasks || ownerView.Capabilities.CanDeleteProject {
+		t.Fatalf("unexpected owner capabilities: %#v, %v", ownerView, err)
+	}
+	memberView, err := GetVisibleProject(context.Background(), app, member.Id, project.Id)
+	if err != nil || memberView.CurrentActorRole != "member" || memberView.Capabilities.CanEditProject || !memberView.Capabilities.CanEditTasks {
+		t.Fatalf("unexpected member capabilities: %#v, %v", memberView, err)
+	}
+	viewerView, err := GetVisibleProject(context.Background(), app, viewer.Id, project.Id)
+	if err != nil || viewerView.CurrentActorRole != "viewer" || viewerView.Capabilities.CanEditTasks {
+		t.Fatalf("unexpected viewer capabilities: %#v, %v", viewerView, err)
+	}
+
+	name := "Forbidden"
+	if _, err := UpdateProject(context.Background(), app, member.Id, UpdateProjectCommand{ProjectID: project.Id, Name: &name}); !errors.Is(err, ErrOwnerOnly) {
+		t.Fatalf("member updated project settings: %v", err)
+	}
+	if _, err := CreateTask(context.Background(), app, viewer.Id, CreateTaskCommand{ProjectID: project.Id, StateID: state.Id, Title: "Forbidden"}); !errors.Is(err, ErrTaskWriteDenied) {
+		t.Fatalf("viewer created task: %v", err)
+	}
+	created, err := CreateTask(context.Background(), app, member.Id, CreateTaskCommand{ProjectID: project.Id, StateID: state.Id, Title: "Allowed", AssigneeIDs: []string{owner.Id}})
+	if err != nil || created.ID == "" {
+		t.Fatalf("member should create owner-assigned task: %#v, %v", created, err)
+	}
+}
+
+func TestTaskDocumentLinksSameProjectOnly(t *testing.T) {
+	app, err := tests.NewTestApp()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(app.Cleanup)
+	owner := createQueryTestUser(t, app, "docs-owner@example.com", "Owner")
+	project := createQueryTestProject(t, app, owner.Id, "Docs", false)
+	state := createQueryTestState(t, app, project.Id)
+	otherProject := createQueryTestProject(t, app, owner.Id, "Other", false)
+
+	projectDoc := createBoardTestDoc(t, app, owner.Id, project.Id, "In project")
+	otherDoc := createBoardTestDoc(t, app, owner.Id, otherProject.Id, "Other project")
+	personalDoc := createBoardTestDoc(t, app, owner.Id, "", "Personal")
+
+	// A doc from another project (or a personal doc) cannot be linked.
+	if _, err := CreateTask(context.Background(), app, owner.Id, CreateTaskCommand{ProjectID: project.Id, StateID: state.Id, Title: "Cross doc", DocIDs: []string{otherDoc.Id}}); err == nil {
+		t.Fatal("cross-project document was accepted")
+	}
+	if _, err := CreateTask(context.Background(), app, owner.Id, CreateTaskCommand{ProjectID: project.Id, StateID: state.Id, Title: "Personal doc", DocIDs: []string{personalDoc.Id}}); err == nil {
+		t.Fatal("personal document was accepted")
+	}
+
+	// A same-project doc links successfully and is persisted.
+	created, err := CreateTask(context.Background(), app, owner.Id, CreateTaskCommand{ProjectID: project.Id, StateID: state.Id, Title: "Linked", DocIDs: []string{projectDoc.Id}})
+	if err != nil {
+		t.Fatalf("same-project document link failed: %v", err)
+	}
+	task, err := app.FindRecordById(boardTasksCollection, created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := task.GetStringSlice("documents"); len(got) != 1 || got[0] != projectDoc.Id {
+		t.Fatalf("expected linked document to be persisted, got %#v", got)
+	}
+
+	// Updating with a cross-project doc is rejected; clearing works.
+	if _, err := UpdateTask(context.Background(), app, owner.Id, UpdateTaskCommand{TaskID: created.ID, DocIDs: &[]string{otherDoc.Id}}); err == nil {
+		t.Fatal("cross-project document accepted on update")
+	}
+	empty := []string{}
+	if _, err := UpdateTask(context.Background(), app, owner.Id, UpdateTaskCommand{TaskID: created.ID, DocIDs: &empty}); err != nil {
+		t.Fatalf("clearing documents failed: %v", err)
+	}
+	task, _ = app.FindRecordById(boardTasksCollection, created.ID)
+	if len(task.GetStringSlice("documents")) != 0 {
+		t.Fatalf("documents were not cleared: %#v", task.GetStringSlice("documents"))
+	}
+}
+
+func TestDeletingLinkedDocumentUnlinksFromTask(t *testing.T) {
+	app, err := tests.NewTestApp()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(app.Cleanup)
+	owner := createQueryTestUser(t, app, "unlink-owner@example.com", "Owner")
+	project := createQueryTestProject(t, app, owner.Id, "Unlink", false)
+	state := createQueryTestState(t, app, project.Id)
+	doc := createBoardTestDoc(t, app, owner.Id, project.Id, "Doomed doc")
+
+	created, err := CreateTask(context.Background(), app, owner.Id, CreateTaskCommand{ProjectID: project.Id, StateID: state.Id, Title: "Has doc", DocIDs: []string{doc.Id}})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	docRecord, err := app.FindRecordById(docsCollection, doc.Id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := app.Delete(docRecord); err != nil {
+		t.Fatal(err)
+	}
+
+	// The task must survive; the dangling link is cleared automatically.
+	task, err := app.FindRecordById(boardTasksCollection, created.ID)
+	if err != nil {
+		t.Fatalf("task should still exist after its linked document is deleted: %v", err)
+	}
+	if got := task.GetStringSlice("documents"); len(got) != 0 {
+		t.Fatalf("deleting a document must unlink it from the task, got %#v", got)
+	}
+}
+
+func TestTaskCommandsValidateRelationsAndPatchClearsFields(t *testing.T) {
+	app, err := tests.NewTestApp()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(app.Cleanup)
+	owner := createQueryTestUser(t, app, "patch-owner@example.com", "Owner")
+	outsider := createQueryTestUser(t, app, "patch-outsider@example.com", "Outsider")
+	project := createQueryTestProject(t, app, owner.Id, "Patch", false)
+	state := createQueryTestState(t, app, project.Id)
+	otherProject := createQueryTestProject(t, app, outsider.Id, "Other", false)
+	otherState := createQueryTestState(t, app, otherProject.Id)
+
+	if _, err := CreateTask(context.Background(), app, owner.Id, CreateTaskCommand{ProjectID: project.Id, StateID: otherState.Id, Title: "Cross project"}); err == nil {
+		t.Fatal("cross-project state was accepted")
+	}
+	if _, err := CreateTask(context.Background(), app, owner.Id, CreateTaskCommand{ProjectID: project.Id, StateID: state.Id, Title: "Outsider", AssigneeIDs: []string{outsider.Id}}); err == nil {
+		t.Fatal("outside assignee was accepted")
+	}
+
+	created, err := CreateTask(context.Background(), app, owner.Id, CreateTaskCommand{
+		ProjectID: project.Id, StateID: state.Id, Title: "Patch me", Priority: "none",
+		DueDate: "2026-08-01", AssigneeIDs: []string{owner.Id},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	sameTitle := "Patch me"
+	unchanged, err := UpdateTask(context.Background(), app, owner.Id, UpdateTaskCommand{
+		TaskID: created.ID,
+		Title:  &sameTitle,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if unchanged.Changed == nil || *unchanged.Changed || unchanged.Action != "unchanged" {
+		t.Fatalf("no-op patch must report changed=false: %#v", unchanged)
+	}
+	empty := []string{}
+	updated, err := UpdateTask(context.Background(), app, owner.Id, UpdateTaskCommand{
+		TaskID: created.ID, DueDateSet: true, DueDate: nil,
+		AssigneeIDs: &empty, LabelIDs: &empty,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.Changed == nil || !*updated.Changed || updated.Action != "updated" {
+		t.Fatalf("changed patch must report changed=true: %#v", updated)
+	}
+	task, err := app.FindRecordById(boardTasksCollection, created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if task.GetString("due_date") != "" || len(task.GetStringSlice("assignees")) != 0 || task.GetString("priority") != "none" {
+		t.Fatalf("patch did not preserve/clear fields correctly: %#v", task)
+	}
+	logs, err := app.FindRecordsByFilter(boardTaskOperationLogs, "task_id = {:task}", "", 0, 0, dbx.Params{"task": task.Id})
+	if err != nil || len(logs) != 2 {
+		t.Fatalf("expected create and update logs: %#v, %v", logs, err)
+	}
+}
+
+func TestTaskSpanKeepsStartOnOrBeforeDue(t *testing.T) {
+	app, err := tests.NewTestApp()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(app.Cleanup)
+	owner := createQueryTestUser(t, app, "span-owner@example.com", "Owner")
+	project := createQueryTestProject(t, app, owner.Id, "Span", false)
+	state := createQueryTestState(t, app, project.Id)
+
+	if _, err := CreateTask(context.Background(), app, owner.Id, CreateTaskCommand{
+		ProjectID: project.Id, StateID: state.Id, Title: "Inverted",
+		StartDate: "2026-08-10", DueDate: "2026-08-03",
+	}); err == nil {
+		t.Fatal("a start date after the due date was accepted")
+	}
+
+	// Either date alone is a valid task: only the order of a full span is
+	// constrained.
+	startOnly, err := CreateTask(context.Background(), app, owner.Id, CreateTaskCommand{
+		ProjectID: project.Id, StateID: state.Id, Title: "Start only", StartDate: "2026-08-03",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	span, err := CreateTask(context.Background(), app, owner.Id, CreateTaskCommand{
+		ProjectID: project.Id, StateID: state.Id, Title: "Span",
+		StartDate: "2026-08-03", DueDate: "2026-08-07",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	inverted := "2026-08-20"
+	if _, err := UpdateTask(context.Background(), app, owner.Id, UpdateTaskCommand{
+		TaskID: span.ID, StartDateSet: true, StartDate: &inverted,
+	}); err == nil {
+		t.Fatal("a patch may not invert a span")
+	}
+
+	if _, err := UpdateTask(context.Background(), app, owner.Id, UpdateTaskCommand{
+		TaskID: startOnly.ID, StartDateSet: true, StartDate: nil,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	cleared, err := app.FindRecordById(boardTasksCollection, startOnly.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cleared.GetString("start_date") != "" {
+		t.Fatalf("a null start date must clear it: %#v", cleared)
+	}
+}
+
+func TestDeleteTaskReauthorizesAndWritesActivity(t *testing.T) {
+	app, err := tests.NewTestApp()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(app.Cleanup)
+	owner := createQueryTestUser(t, app, "delete-owner@example.com", "Owner")
+	member := createQueryTestUser(t, app, "delete-member@example.com", "Member")
+	viewer := createQueryTestUser(t, app, "delete-viewer@example.com", "Viewer")
+	project := createQueryTestProject(t, app, owner.Id, "Deletion", false)
+	createProjectTestMembership(t, app, project.Id, member.Id, "member")
+	createProjectTestMembership(t, app, project.Id, viewer.Id, "viewer")
+	state := createQueryTestState(t, app, project.Id)
+	created, err := CreateTask(context.Background(), app, owner.Id, CreateTaskCommand{ProjectID: project.Id, StateID: state.Id, Title: "Delete me"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	target, err := GetDeletableTask(context.Background(), app, member.Id, created.ID)
+	if err != nil || target.Title != "Delete me" || target.ProjectName != "Deletion" {
+		t.Fatalf("unexpected deletion target: %#v, %v", target, err)
+	}
+	if _, err := GetDeletableTask(context.Background(), app, viewer.Id, created.ID); !errors.Is(err, ErrTaskWriteDenied) {
+		t.Fatalf("viewer prepared a task deletion: %v", err)
+	}
+	if _, err := DeleteTask(context.Background(), app, viewer.Id, created.ID); !errors.Is(err, ErrTaskWriteDenied) {
+		t.Fatalf("viewer deleted a task: %v", err)
+	}
+
+	deleted, err := DeleteTask(context.Background(), app, member.Id, created.ID)
+	if err != nil || !deleted.OK || deleted.Action != "deleted" || deleted.Name != "Delete me" {
+		t.Fatalf("unexpected deletion result: %#v, %v", deleted, err)
+	}
+	if _, err := app.FindRecordById(boardTasksCollection, created.ID); err == nil {
+		t.Fatal("task still exists after deletion")
+	}
+	logs, err := app.FindRecordsByFilter(boardTaskOperationLogs, "task_id = {:task}", "created", 0, 0, dbx.Params{"task": created.ID})
+	if err != nil || len(logs) != 2 || logs[1].GetString("action") != "delete" || logs[1].GetString("actor") != member.Id {
+		t.Fatalf("expected create and member delete logs: %#v, %v", logs, err)
+	}
+}
+
+func TestOwnerCommandsWriteProjectActivity(t *testing.T) {
+	app, err := tests.NewTestApp()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(app.Cleanup)
+	owner := createQueryTestUser(t, app, "activity-command@example.com", "Owner")
+	member := createQueryTestUser(t, app, "activity-member@example.com", "Member")
+	project := createQueryTestProject(t, app, owner.Id, "Activity", false)
+
+	stateName, color, category := "Review", "#f59e0b", "active"
+	if _, err := UpsertState(context.Background(), app, owner.Id, UpsertStateCommand{ProjectID: project.Id, Name: &stateName, Color: &color, Category: &category}); err != nil {
+		t.Fatal(err)
+	}
+	labelName := "Docs"
+	if _, err := UpsertLabel(context.Background(), app, owner.Id, UpsertLabelCommand{ProjectID: project.Id, Name: &labelName, Color: &color}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := UpsertMember(context.Background(), app, owner.Id, UpsertMemberCommand{ProjectID: project.Id, UserID: member.Id, Role: "admin"}); err != nil {
+		t.Fatal(err)
+	}
+	logs, err := app.FindRecordsByFilter(boardProjectOperationLogs, "project = {:project}", "", 0, 0, dbx.Params{"project": project.Id})
+	if err != nil || len(logs) != 3 {
+		t.Fatalf("expected state, label, and member logs: %#v, %v", logs, err)
+	}
+}

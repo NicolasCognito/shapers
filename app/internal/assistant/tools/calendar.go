@@ -1,0 +1,227 @@
+package tools
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"time"
+
+	"charm.land/fantasy"
+	"github.com/pocketbase/pocketbase/core"
+	workagent "github.com/xusenlin/workavera/internal/agent"
+	workcalendar "github.com/xusenlin/workavera/internal/calendar"
+	"github.com/xusenlin/workavera/internal/configs"
+)
+
+type calendarGetScheduleInput struct {
+	Dates []string `json:"dates" description:"One or more calendar dates in YYYY-MM-DD format; maximum 31 unique dates"`
+}
+
+type calendarSearchEventsInput struct {
+	Query string `json:"query,omitempty" description:"Optional text matched against event titles and descriptions; omit or leave empty to list all personal events"`
+	From  string `json:"from,omitempty" description:"Optional earliest start date in YYYY-MM-DD format; repeating events are always included"`
+	To    string `json:"to,omitempty" description:"Optional latest start date in YYYY-MM-DD format; repeating events are always included"`
+}
+
+type calendarCreateEventItem struct {
+	Title                 string `json:"title" description:"Event title"`
+	Description           string `json:"description,omitempty" description:"Optional event description"`
+	StartAt               string `json:"startAt" description:"Start local date-time in the configured system timezone, formatted as YYYY-MM-DDTHH:MM:SS"`
+	EndAt                 string `json:"endAt" description:"End local date-time in the configured system timezone, formatted as YYYY-MM-DDTHH:MM:SS; must be after startAt"`
+	AllDay                bool   `json:"allDay,omitempty" description:"Whether this is an all-day event; defaults to false"`
+	Location              string `json:"location,omitempty" description:"Optional physical location or meeting link"`
+	Color                 string `json:"color,omitempty" description:"Optional color: blue, green, amber, red, or purple; defaults to blue"`
+	RecurrenceFrequency   string `json:"recurrenceFrequency,omitempty" description:"Repeat frequency: none, daily, weekly, monthly, or yearly; defaults to none"`
+	RecurrenceInterval    int    `json:"recurrenceInterval,omitempty" description:"Positive whole-number repeat interval; defaults to 1"`
+	ReminderMinutesBefore *int   `json:"reminderMinutesBefore,omitempty" description:"Reminder lead time: -1 for none, or 0, 5, 10, 30, 60, 1440 minutes; defaults to -1"`
+}
+
+type calendarCreateEventInput struct {
+	Items []calendarCreateEventItem `json:"items" description:"One to 50 personal events to create"`
+}
+
+type calendarUpdateEventItem struct {
+	EventID               string  `json:"eventId" description:"Existing personal event ID returned by calendar_search_events, calendar_get_schedule, or calendar_create_event"`
+	Title                 *string `json:"title,omitempty" description:"Optional replacement event title"`
+	Description           *string `json:"description,omitempty" description:"Optional replacement description; pass an empty string to clear"`
+	StartAt               *string `json:"startAt,omitempty" description:"Optional replacement start local date-time in the configured system timezone, formatted as YYYY-MM-DDTHH:MM:SS"`
+	EndAt                 *string `json:"endAt,omitempty" description:"Optional replacement end local date-time in the configured system timezone, formatted as YYYY-MM-DDTHH:MM:SS"`
+	AllDay                *bool   `json:"allDay,omitempty" description:"Optional replacement all-day setting"`
+	Location              *string `json:"location,omitempty" description:"Optional replacement location; pass an empty string to clear"`
+	Color                 *string `json:"color,omitempty" description:"Optional replacement color: blue, green, amber, red, or purple"`
+	RecurrenceFrequency   *string `json:"recurrenceFrequency,omitempty" description:"Optional replacement repeat frequency: none, daily, weekly, monthly, or yearly"`
+	RecurrenceInterval    *int    `json:"recurrenceInterval,omitempty" description:"Optional positive whole-number repeat interval"`
+	ReminderMinutesBefore *int    `json:"reminderMinutesBefore,omitempty" description:"Optional reminder lead time: -1, 0, 5, 10, 30, 60, or 1440 minutes"`
+}
+
+type calendarUpdateEventInput struct {
+	Items []calendarUpdateEventItem `json:"items" description:"One to 50 personal event patches"`
+}
+
+type calendarDeleteEventInput struct {
+	EventID string `json:"eventId" description:"Existing personal event ID returned by calendar_search_events or calendar_get_schedule"`
+}
+
+func newCalendarSearchEventsTool(app core.App, actorID string) fantasy.AgentTool {
+	return fantasy.NewAgentTool(
+		"calendar_search_events",
+		"List all personal Calendar events when query is omitted, or find them by title and description when query is provided. Use this, not calendar_get_schedule, when the date is unknown: calendar_get_schedule answers for exact dates only. Returns whole events with their exact IDs and repeat rules, so a repeating event is found regardless of when it next occurs. Use calendar_get_schedule instead when the user asks what is on a given date.",
+		func(ctx context.Context, input calendarSearchEventsInput, _ fantasy.ToolCall) (fantasy.ToolResponse, error) {
+			result, err := workcalendar.SearchEvents(ctx, app, actorID, input.Query, input.From, input.To)
+			return calendarToolResult(app, actorID, "search events", result, err)
+		},
+	)
+}
+
+func newCalendarGetScheduleTool(app core.App, actorID string) fantasy.AgentTool {
+	return fantasy.NewAgentTool(
+		"calendar_get_schedule",
+		"Get all personal Calendar events and visible Board task deadlines for one or more exact dates. Repeating events are expanded for the requested dates. Use returned event IDs before editing an event.",
+		func(ctx context.Context, input calendarGetScheduleInput, _ fantasy.ToolCall) (fantasy.ToolResponse, error) {
+			result, err := workcalendar.GetSchedule(ctx, app, actorID, input.Dates)
+			return calendarToolResult(app, actorID, "get schedule", result, err)
+		},
+	)
+}
+
+func newCalendarCreateEventTool(app core.App, actorID string) fantasy.AgentTool {
+	return fantasy.NewAgentTool(
+		"calendar_create_event",
+		"Create a personal Calendar event owned by the current user only when explicitly requested. This creates only calendar_events, never Board tasks. Obtain explicit date and time details from the user before calling it. All date-times use the administrator-configured system timezone.",
+		func(ctx context.Context, input calendarCreateEventInput, _ fantasy.ToolCall) (fantasy.ToolResponse, error) {
+			location := configs.SystemLocation(app)
+			result, err := executeBatch(input.Items, func(_ int, item calendarCreateEventItem) (any, error) {
+				startAt, err := calendarLocalDateTime(item.StartAt, location)
+				if err != nil {
+					return nil, fmt.Errorf("invalid startAt: %w", err)
+				}
+				endAt, err := calendarLocalDateTime(item.EndAt, location)
+				if err != nil {
+					return nil, fmt.Errorf("invalid endAt: %w", err)
+				}
+				return workcalendar.CreateEvent(ctx, app, actorID, workcalendar.CreateEventCommand{
+					Title: item.Title, Description: normalizeEscapedText(item.Description), StartAt: startAt, EndAt: endAt,
+					AllDay: item.AllDay, Location: item.Location, Color: item.Color,
+					RecurrenceFrequency: item.RecurrenceFrequency, RecurrenceInterval: item.RecurrenceInterval,
+					ReminderMinutesBefore: item.ReminderMinutesBefore,
+				})
+			})
+			return batchToolResponse(result, err)
+		},
+	)
+}
+
+func newCalendarUpdateEventTool(app core.App, actorID string) fantasy.AgentTool {
+	return fantasy.NewAgentTool(
+		"calendar_update_event",
+		"Patch an existing personal Calendar event only when explicitly requested. Call calendar_search_events or calendar_get_schedule first and use an event ID it returned. Omitted fields remain unchanged; editing a repeating event updates the entire series. All date-times use the administrator-configured system timezone. This tool cannot edit Board tasks.",
+		func(ctx context.Context, input calendarUpdateEventInput, _ fantasy.ToolCall) (fantasy.ToolResponse, error) {
+			location := configs.SystemLocation(app)
+			result, err := executeBatch(input.Items, func(_ int, item calendarUpdateEventItem) (any, error) {
+				startAt, err := optionalCalendarLocalDateTime(item.StartAt, location)
+				if err != nil {
+					return nil, fmt.Errorf("invalid startAt: %w", err)
+				}
+				endAt, err := optionalCalendarLocalDateTime(item.EndAt, location)
+				if err != nil {
+					return nil, fmt.Errorf("invalid endAt: %w", err)
+				}
+				return workcalendar.UpdateEvent(ctx, app, actorID, workcalendar.UpdateEventCommand{
+					EventID: item.EventID, Title: item.Title, Description: normalizeEscapedTextPtr(item.Description), StartAt: startAt,
+					EndAt: endAt, AllDay: item.AllDay, Location: item.Location,
+					Color: item.Color, RecurrenceFrequency: item.RecurrenceFrequency,
+					RecurrenceInterval: item.RecurrenceInterval, ReminderMinutesBefore: item.ReminderMinutesBefore,
+				})
+			})
+			return batchToolResponse(result, err)
+		},
+	)
+}
+
+func newCalendarDeleteEventTool(app core.App, actorID string) fantasy.AgentTool {
+	return fantasy.NewAgentTool(
+		"calendar_delete_event",
+		"Permanently delete one personal Calendar event only when explicitly requested. Call calendar_search_events or calendar_get_schedule first and use an exact returned event ID. Deleting a repeating event removes the entire series. This action always pauses for user approval. If approval is denied, do not retry unless the user explicitly asks again.",
+		func(ctx context.Context, input calendarDeleteEventInput, call fantasy.ToolCall) (fantasy.ToolResponse, error) {
+			target, err := workcalendar.GetDeletableEvent(ctx, app, actorID, input.EventID)
+			if err != nil {
+				return calendarToolResult(app, actorID, "prepare delete event", nil, err)
+			}
+			summary := "Permanently delete “" + target.Title + "”."
+			details := []workagent.ApprovalDetail{
+				{Label: "Starts", Value: target.StartAt, Format: "datetime"},
+			}
+			if target.RecurrenceFrequency != "none" {
+				summary = "Permanently delete the recurring event “" + target.Title + "” and all of its occurrences."
+				details = append(details, workagent.ApprovalDetail{Label: "Scope", Value: "Entire recurring series", Tone: "destructive"})
+			}
+			approved, err := workagent.RequireApproval(ctx, workagent.ApprovalRequest{
+				ToolCallID: call.ID,
+				ToolName:   call.Name,
+				Title:      "Delete event?",
+				Summary:    summary,
+				Target: map[string]any{
+					"type": "calendar_event",
+					"id":   target.ID,
+					"name": target.Title,
+				},
+				Details: details,
+				Presentation: workagent.ApprovalPresentation{
+					ConfirmLabel:   "Delete",
+					ConfirmVariant: "destructive",
+					PendingMessage: "Deleting event…",
+					SuccessMessage: "Event deleted.",
+					DeniedMessage:  "Event deletion cancelled.",
+					FailureMessage: "The event could not be deleted.",
+				},
+			})
+			if err != nil {
+				return fantasy.ToolResponse{}, err
+			}
+			if !approved {
+				return calendarToolResult(app, actorID, "delete event", map[string]any{
+					"ok": false, "action": "denied", "event": target, "reason": "user_denied",
+				}, nil)
+			}
+			result, err := workcalendar.DeleteEvent(ctx, app, actorID, input.EventID)
+			return calendarToolResult(app, actorID, "delete event", result, err)
+		},
+	)
+}
+
+const calendarLocalDateTimeLayout = "2006-01-02T15:04:05"
+
+func calendarLocalDateTime(value string, location *time.Location) (string, error) {
+	parsed, err := time.ParseInLocation(calendarLocalDateTimeLayout, value, location)
+	if err != nil {
+		return "", errors.New("must use YYYY-MM-DDTHH:MM:SS format")
+	}
+	if parsed.Format(calendarLocalDateTimeLayout) != value {
+		return "", errors.New("does not exist in the configured system timezone")
+	}
+	return parsed.Format(time.RFC3339), nil
+}
+
+func optionalCalendarLocalDateTime(value *string, location *time.Location) (*string, error) {
+	if value == nil {
+		return nil, nil
+	}
+	parsed, err := calendarLocalDateTime(*value, location)
+	if err != nil {
+		return nil, err
+	}
+	return &parsed, nil
+}
+
+func calendarToolResult(app core.App, actorID, action string, value any, err error) (fantasy.ToolResponse, error) {
+	if err != nil {
+		app.Logger().Warn("assistant calendar tool failed", "actorId", actorID, "action", action, "error", err)
+		return fantasy.NewTextErrorResponse(err.Error()), nil
+	}
+	data, err := json.Marshal(value)
+	if err != nil {
+		return fantasy.NewTextErrorResponse("Failed to serialize Calendar result"), nil
+	}
+	return fantasy.NewTextResponse(string(data)), nil
+}
