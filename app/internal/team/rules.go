@@ -505,6 +505,27 @@ func createFollowUpTask(app core.App, u, m *core.Record) (string, error) {
 	return res.ID, nil
 }
 
+// CheckIn clocks the user in to a meeting (same rules as the check-in button).
+func CheckIn(app core.App, userID, meetingID string, remote bool) (*core.Record, error) {
+	m, err := app.FindRecordById(colMeetings, meetingID)
+	if err != nil {
+		return nil, errors.New("meeting not found")
+	}
+	if !containsID(m.GetStringSlice("members"), userID) {
+		return nil, errors.New("you are not a member of this meeting series")
+	}
+	now := time.Now()
+	start, end := m.GetDateTime("start_at").Time(), m.GetDateTime("end_at").Time()
+	if now.Before(start.Add(-checkinEarly)) || now.After(end.Add(checkinLate)) {
+		return nil, errors.New("clock-in is open from 30 min before the meeting until 30 min after it ends")
+	}
+	state := "present"
+	if remote {
+		state = "remote"
+	}
+	return upsertAttendance(app, m.Id, userID, state, "self", userID)
+}
+
 // ---------- HTTP ----------
 
 func registerRuleRoutes(se *core.ServeEvent) {
