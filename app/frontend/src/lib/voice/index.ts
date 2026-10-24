@@ -23,7 +23,6 @@ export const VOICE_LANGS = [
   { code: "sr", tag: "sr-RS", label: "Srpski" },
   { code: "es", tag: "es-ES", label: "Español" },
   { code: "fr", tag: "fr-FR", label: "Français" },
-  { code: "uk", tag: "uk-UA", label: "Українська" },
 ] as const
 
 export type VoiceLang = (typeof VOICE_LANGS)[number]["code"]
