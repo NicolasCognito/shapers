@@ -21,7 +21,7 @@ func completedTasks(app core.App) (map[string]int, map[string]string) {
 		FROM board_tasks t
 		JOIN board_project_states s ON s.id = t.state
 		JOIN json_each(CASE WHEN json_valid(t.assignees) THEN t.assignees ELSE '[]' END) a
-		WHERE s.category = 'completed'
+		WHERE s.category = 'completed' AND COALESCE(t.cancelled, 0) = 0
 		GROUP BY a.value`).All(&rows)
 	done, last := map[string]int{}, map[string]string{}
 	if err != nil {
@@ -39,13 +39,16 @@ type doneTask struct {
 	Title   string `db:"title" json:"title"`
 	Project string `db:"project" json:"project"`
 	DoneAt  string `db:"done_at" json:"done_at"`
+	Cancelled    bool   `db:"cancelled" json:"cancelled"`
+	CancelReason string `db:"cancel_reason" json:"cancel_reason"`
 }
 
 // completedTaskList returns a member's finished tasks, newest first.
 func completedTaskList(app core.App, userID string) []doneTask {
 	rows := []doneTask{}
 	err := app.DB().NewQuery(`
-		SELECT t.id, t.title, p.name AS project, t.updated AS done_at
+		SELECT t.id, t.title, p.name AS project, t.updated AS done_at,
+		       COALESCE(t.cancelled, 0) AS cancelled, COALESCE(t.cancel_reason, '') AS cancel_reason
 		FROM board_tasks t
 		JOIN board_project_states s ON s.id = t.state
 		JOIN board_projects p ON p.id = t.project

@@ -9,6 +9,7 @@ export type Permission =
   | "hours.manage"
   | "members.manage"
   | "calendar.sync"
+  | "tasks.moderate"
 
 const ROLE_PERMISSIONS: Record<string, Permission[]> = {
   member: [],
@@ -18,6 +19,7 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "hours.manage",
     "members.manage",
     "calendar.sync",
+    "tasks.moderate",
   ],
 }
 

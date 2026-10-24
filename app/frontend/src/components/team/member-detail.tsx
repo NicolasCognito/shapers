@@ -20,9 +20,12 @@ import {
   WeekBars,
 } from "@/components/team/widgets"
 import { extractErrorMessage } from "@/lib/error"
+import { cn } from "@/lib/utils"
 import {
   fmtHours,
   pct,
+  requestsApi,
+  selfLogAllowed,
   teamApi,
   type HourLog,
   type MemberDetail,
@@ -33,12 +36,27 @@ const QUICK_HOURS = [0.5, 1, 2, 4, 8]
 export function MemberDetailView({
   detail,
   editable,
+  canModerate = false,
   onChanged,
 }: {
   detail: MemberDetail
   editable: boolean
+  canModerate?: boolean
   onChanged: () => void
 }) {
+  const cancelTask = async (id: string, title: string) => {
+    const reason = window.prompt(
+      `Why should “${title}” not count as done? The member will see this.`
+    )
+    if (!reason?.trim()) return
+    try {
+      await requestsApi.cancelTask(id, reason.trim())
+      toast.success("Task cancelled")
+      onChanged()
+    } catch (e) {
+      toast.error(extractErrorMessage(e, "Could not cancel"))
+    }
+  }
   const s = detail.summary
   const past = detail.past ?? []
   const upcoming = detail.upcoming ?? []
@@ -181,7 +199,8 @@ export function MemberDetailView({
         <Card className="@3xl:col-span-3">
           <CardHeader>
             <CardTitle>
-              Finished tasks · {detail.tasks_done?.length ?? 0}
+              Finished tasks ·{" "}
+              {(detail.tasks_done ?? []).filter((t) => !t.cancelled).length}
             </CardTitle>
             <CardDescription>
               Completed on the board, newest first
@@ -199,10 +218,38 @@ export function MemberDetailView({
                     <span className="w-16 shrink-0 text-muted-foreground">
                       {format(parseISO(t.done_at.replace(" ", "T")), "d MMM")}
                     </span>
-                    <span className="min-w-0 flex-1 truncate">{t.title}</span>
-                    <span className="truncate text-xs text-muted-foreground">
-                      {t.project}
+                    <span
+                      className={cn(
+                        "min-w-0 flex-1 truncate",
+                        t.cancelled && "text-muted-foreground line-through"
+                      )}
+                      title={
+                        t.cancelled
+                          ? `Cancelled: ${t.cancel_reason}`
+                          : undefined
+                      }
+                    >
+                      {t.title}
                     </span>
+                    {t.cancelled ? (
+                      <span className="truncate text-xs text-rose-600 dark:text-rose-400">
+                        Cancelled{t.cancel_reason && `: ${t.cancel_reason}`}
+                      </span>
+                    ) : (
+                      <span className="truncate text-xs text-muted-foreground">
+                        {t.project}
+                      </span>
+                    )}
+                    {canModerate && !t.cancelled && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-2 text-xs"
+                        onClick={() => cancelTask(t.id, t.title)}
+                      >
+                        Cancel
+                      </Button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -257,10 +304,18 @@ function QuickLog({
   const [note, setNote] = useState("")
   const [busy, setBusy] = useState(false)
 
+  const asRequest = !selfLogAllowed(date)
   const submit = async (h: number) => {
     if (!h || h <= 0) return
     setBusy(true)
     try {
+      if (asRequest) {
+        await requestsApi.hours(date, h, note.trim())
+        toast.success("Request sent to the admins — see Requests")
+        setHours("")
+        setNote("")
+        return
+      }
       await teamApi.logHours(
         userId,
         parseISO(date + "T12:00:00"),
@@ -287,7 +342,7 @@ function QuickLog({
             key={h}
             size="sm"
             variant="secondary"
-            disabled={busy}
+            disabled={busy || (asRequest && !note.trim())}
             onClick={() => submit(h)}
           >
             +{h}h
@@ -325,9 +380,18 @@ function QuickLog({
           value={note}
           onChange={(e) => setNote(e.target.value)}
         />
-        <Button type="submit" size="sm" disabled={busy || !hours}>
-          Log
+        <Button
+          type="submit"
+          size="sm"
+          disabled={busy || !hours || (asRequest && !note.trim())}
+        >
+          {asRequest ? "Send request" : "Log"}
         </Button>
+        {asRequest && (
+          <p className="w-full text-xs text-muted-foreground">
+            Older than yesterday: the admins approve it. Say what you worked on.
+          </p>
+        )}
       </form>
     </div>
   )

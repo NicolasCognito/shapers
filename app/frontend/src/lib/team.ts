@@ -54,14 +54,26 @@ export type MemberDetail = {
   summary: MemberSummary
   past: MeetingView[] | null
   upcoming: MeetingView[] | null
-  tasks_done: { id: string; title: string; project: string; done_at: string }[]
+  tasks_done: {
+    id: string
+    title: string
+    project: string
+    done_at: string
+    cancelled: boolean
+    cancel_reason: string
+  }[]
 }
 
 export type Overview = {
   generated_at: string
   week_start: string
   members: MemberSummary[]
-  weeks: { week_start: string; hours: number; quota: number; met_count: number }[]
+  weeks: {
+    week_start: string
+    hours: number
+    quota: number
+    met_count: number
+  }[]
   meetings: {
     id: string
     title: string
@@ -115,6 +127,61 @@ export const STATE_CLASS: Record<AttendanceState | "", string> = {
   "": "bg-muted text-muted-foreground",
 }
 
+export type RequestRec = {
+  id: string
+  type: "hours" | "handoff"
+  status: "pending" | "approved" | "rejected" | "withdrawn"
+  requester: string
+  recipient: string
+  task: string
+  date: string
+  hours: number
+  note: string
+  decision_note: string
+  created: string
+  expand?: {
+    requester?: { id: string; name: string }
+    recipient?: { id: string; name: string }
+    task?: { id: string; title: string }
+  }
+}
+
+// "Today or yesterday" — members log those themselves, older dates go as a request.
+export function selfLogAllowed(day: string) {
+  const y = new Date()
+  y.setDate(y.getDate() - 1)
+  return day >= y.toISOString().slice(0, 10)
+}
+
+export const requestsApi = {
+  list: () =>
+    pb.collection("requests").getFullList<RequestRec>({
+      expand: "requester,recipient,task",
+      sort: "-created",
+    }),
+  hours: (date: string, hours: number, note: string) =>
+    pb.send("/api/team/requests/hours", {
+      method: "POST",
+      body: { date, hours, note },
+    }),
+  handoff: (task: string, to: string) =>
+    pb.send("/api/team/requests/handoff", {
+      method: "POST",
+      body: { task, to },
+    }),
+  decide: (id: string, approve: boolean, note: string) =>
+    pb.send(`/api/team/requests/${id}/decide`, {
+      method: "POST",
+      body: { approve, note },
+    }),
+  withdraw: (id: string) =>
+    pb.send(`/api/team/requests/${id}/withdraw`, { method: "POST" }),
+  cancelTask: (id: string, reason: string) =>
+    pb.send(`/api/team/tasks/${id}/cancel`, {
+      method: "POST",
+      body: { reason },
+    }),
+}
 
 export const teamApi = {
   me: () => pb.send<MemberDetail>("/api/team/me", {}),

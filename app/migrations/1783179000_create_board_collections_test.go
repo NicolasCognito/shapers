@@ -77,6 +77,12 @@ func TestBoardCollectionsMigration(t *testing.T) {
 		t.Fatalf("unexpected member roles: %#v", role)
 	}
 
+	// requests.task points at board_tasks, so it goes first.
+	if c, err := app.FindCollectionByNameOrId("requests"); err == nil {
+		if err := app.Delete(c); err != nil {
+			t.Fatalf("drop requests: %v", err)
+		}
+	}
 	if err := dropReadingItemsCollection(app); err != nil {
 		t.Fatalf("drop reading items: %v", err)
 	}

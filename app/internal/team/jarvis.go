@@ -123,6 +123,9 @@ func LogHours(app core.App, actorID string, date time.Time, hours float64, note,
 	if date.After(time.Now().Add(24 * time.Hour)) {
 		return nil, errors.New("cannot log hours in the future")
 	}
+	if u, err := findUser(app, actorID); err == nil && !Can(u, PermHoursManage) && !selfLogAllowed(date) {
+		return nil, ErrOldDate
+	}
 	col, err := app.FindCollectionByNameOrId(colHours)
 	if err != nil {
 		return nil, err
@@ -255,7 +258,7 @@ func MemberReport(app core.App, actorID, query string) (map[string]any, error) {
 	if m.Id != actorID && !Can(actor, PermTeamView) {
 		return nil, ErrForbidden
 	}
-	return map[string]any{"summary": ds.summary(m, time.Now()), "tasks_done": len(completedTaskList(app, m.Id))}, nil
+	return map[string]any{"summary": ds.summary(m, time.Now())}, nil
 }
 
 // AttendanceReport gives per-series attendance. Admins see everyone, members

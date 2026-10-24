@@ -36,6 +36,7 @@ func Register(app *pocketbase.PocketBase) {
 	app.RootCmd.AddCommand(newImportCommand(app))
 	registerProjectHooks(app)
 	registerJarvisModel(app)
+	registerHourLimits(app)
 
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 		g := se.Router.Group("/api/team")
@@ -53,6 +54,7 @@ func Register(app *pocketbase.PocketBase) {
 			}
 			return e.JSON(200, map[string]any{"synced": n})
 		}))
+		registerRequestRoutes(se)
 		return se.Next()
 	})
 

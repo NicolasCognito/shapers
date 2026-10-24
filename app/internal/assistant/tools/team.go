@@ -45,7 +45,7 @@ func newTeamMyWeekTool(app core.App, actorID string) fantasy.AgentTool {
 func newTeamLogHoursTool(app core.App, actorID string) fantasy.AgentTool {
 	return fantasy.NewAgentTool(
 		"team_log_hours",
-		"Log volunteer hours for the current user only. Call it when the user says they worked some hours (e.g. 'I worked 2 hours on the website yesterday'). Resolve relative dates against the current time. Returns the new week total against the weekly quota.",
+		"Log volunteer hours for the current user only, for today or yesterday. Call it when the user says they worked some hours (e.g. 'I worked 2 hours on the website yesterday'). Resolve relative dates against the current time. For older dates use team_request_hours instead. Returns the new week total against the weekly quota.",
 		func(ctx context.Context, input teamLogHoursInput, _ fantasy.ToolCall) (fantasy.ToolResponse, error) {
 			date := time.Now().In(team.Location)
 			if input.Date != "" {
@@ -57,6 +57,31 @@ func newTeamLogHoursTool(app core.App, actorID string) fantasy.AgentTool {
 			}
 			result, err := team.LogHours(app, actorID, date, input.Hours, normalizeEscapedText(input.Note), input.Project)
 			return calendarToolResult(app, actorID, "team log hours", result, err)
+		},
+	)
+}
+
+type teamRequestHoursInput struct {
+	Hours float64 `json:"hours" description:"Hours worked, 0.25 to 24"`
+	Date  string  `json:"date" description:"Day the work was done, YYYY-MM-DD, older than yesterday"`
+	Note  string  `json:"note" description:"What was done; required so admins can approve"`
+}
+
+func newTeamRequestHoursTool(app core.App, actorID string) fantasy.AgentTool {
+	return fantasy.NewAgentTool(
+		"team_request_hours",
+		"Send the admins a request to log hours for a date older than yesterday (members cannot log those themselves). Ask the user what they worked on if they did not say. The admins approve or reject it on the Requests page.",
+		func(ctx context.Context, input teamRequestHoursInput, _ fantasy.ToolCall) (fantasy.ToolResponse, error) {
+			date, err := time.ParseInLocation("2006-01-02", input.Date, team.Location)
+			if err != nil {
+				return fantasy.NewTextErrorResponse("date must be YYYY-MM-DD"), nil
+			}
+			rec, err := team.RequestHours(app, actorID, date.Add(12*time.Hour), input.Hours, normalizeEscapedText(input.Note))
+			var result any
+			if rec != nil {
+				result = map[string]any{"ok": true, "id": rec.Id, "status": "pending", "date": input.Date, "hours": input.Hours}
+			}
+			return calendarToolResult(app, actorID, "team request hours", result, err)
 		},
 	)
 }

@@ -13,6 +13,7 @@ const (
 	PermHoursManage      Permission = "hours.manage"      // view/edit anyone's hour logs
 	PermMembersManage    Permission = "members.manage"    // change tier, weekly quota, role
 	PermCalendarSync     Permission = "calendar.sync"     // trigger a Google Calendar sync
+	PermTasksModerate    Permission = "tasks.moderate"    // cancel someone's finished task
 )
 
 // Keep in sync with frontend/src/lib/permissions.ts and the rules in
@@ -21,7 +22,7 @@ var rolePermissions = map[string][]Permission{
 	"member": {},
 	"admin": {
 		PermTeamView, PermAttendanceRecord, PermHoursManage,
-		PermMembersManage, PermCalendarSync,
+		PermMembersManage, PermCalendarSync, PermTasksModerate,
 	},
 }
 

@@ -6,6 +6,7 @@ import {
   UserIcon,
   Task01Icon,
   UserGroupIcon,
+  InboxIcon,
 } from "@hugeicons/core-free-icons"
 
 import type { Permission } from "@/lib/permissions"
@@ -39,6 +40,12 @@ export const navGroups: NavGroup[] = [
         url: "/tasks",
         icon: Task01Icon,
         description: "Everything assigned to you, across projects",
+      },
+      {
+        title: "Requests",
+        url: "/requests",
+        icon: InboxIcon,
+        description: "Older hours and task handoffs, with answers",
       },
       {
         title: "Team",

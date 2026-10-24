@@ -629,7 +629,8 @@ function MemberSheet({
             <MemberDetailView
               detail={detail}
               editable={false}
-              onChanged={() => {}}
+              canModerate={can("tasks.moderate")}
+              onChanged={() => id && teamApi.member(id).then(setDetail)}
             />
           ) : (
             <Skeleton className="h-96" />

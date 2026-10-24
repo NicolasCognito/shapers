@@ -40,6 +40,7 @@ func (f *Factory) ForActor(actorID string) []fantasy.AgentTool {
 	return []fantasy.AgentTool{
 		newTeamMyWeekTool(f.app, actorID),
 		newTeamLogHoursTool(f.app, actorID),
+		newTeamRequestHoursTool(f.app, actorID),
 		newTeamWhoIsBehindTool(f.app, actorID),
 		newTeamMemberTool(f.app, actorID),
 		newTeamAttendanceTool(f.app, actorID),

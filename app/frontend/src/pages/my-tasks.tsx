@@ -8,11 +8,18 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Skeleton } from "@/components/ui/skeleton"
 import { extractErrorMessage } from "@/lib/error"
 import { pb } from "@/lib/pocketbase"
+import { requestsApi } from "@/lib/team"
 import { cn } from "@/lib/utils"
 import { workspaceRecordUrl } from "@/lib/workspace-navigation"
 import { PRIORITY_META, type Priority } from "@/store/board"
 
-type StateRec = { id: string; project: string; name: string; category: "pending" | "active" | "completed"; sort_order: number }
+type StateRec = {
+  id: string
+  project: string
+  name: string
+  category: "pending" | "active" | "completed"
+  sort_order: number
+}
 type TaskRec = {
   id: string
   title: string
@@ -21,6 +28,10 @@ type TaskRec = {
   priority: Priority
   due_date: string
   assignees: string[]
+  owner: string
+  handoff_to: string
+  cancelled: boolean
+  cancel_reason: string
   updated: string
   expand?: { project?: { id: string; name: string }; state?: StateRec }
 }
@@ -54,15 +65,23 @@ export function MyTasksPage() {
   }, [me])
 
   useEffect(() => {
-    load().catch((e) => toast.error(extractErrorMessage(e, "Could not load tasks")))
+    load().catch((e) =>
+      toast.error(extractErrorMessage(e, "Could not load tasks"))
+    )
     pb.collection("users")
-      .getFullList<UserRec>({ filter: "tier != ''", sort: "name", fields: "id,name" })
+      .getFullList<UserRec>({
+        filter: "tier != ''",
+        sort: "name",
+        fields: "id,name",
+      })
       .then(setUsers)
   }, [load])
 
   const update = async (t: TaskRec, patch: Partial<TaskRec>, msg?: string) => {
     // Optimistic: the list feels instant, the server keeps the history.
-    setTasks((ts) => ts?.map((x) => (x.id === t.id ? { ...x, ...patch } : x)) ?? null)
+    setTasks(
+      (ts) => ts?.map((x) => (x.id === t.id ? { ...x, ...patch } : x)) ?? null
+    )
     try {
       await pb.collection("board_tasks").update(t.id, patch)
       if (msg) toast.success(msg)
@@ -73,14 +92,22 @@ export function MyTasksPage() {
     }
   }
 
-  const stateOf = (t: TaskRec) => states.find((s) => s.id === t.state) ?? t.expand?.state
+  const stateOf = (t: TaskRec) =>
+    states.find((s) => s.id === t.state) ?? t.expand?.state
   const firstOf = (project: string, cat: StateRec["category"]) =>
     states.find((s) => s.project === project && s.category === cat)
 
   const groups = useMemo(() => {
-    const open = (tasks ?? []).filter((t) => stateOf(t)?.category !== "completed")
+    const open = (tasks ?? []).filter(
+      (t) => stateOf(t)?.category !== "completed"
+    )
     const today = new Date()
-    const g: Record<string, TaskRec[]> = { Overdue: [], "This week": [], Later: [], "No date": [] }
+    const g: Record<string, TaskRec[]> = {
+      Overdue: [],
+      "This week": [],
+      Later: [],
+      "No date": [],
+    }
     for (const t of open) {
       if (!t.due_date) g["No date"].push(t)
       else {
@@ -99,30 +126,49 @@ export function MyTasksPage() {
   const Row = ({ t }: { t: TaskRec }) => {
     const st = stateOf(t)
     const isDone = st?.category === "completed"
+    const cancelled = t.cancelled
+    const handingTo = users.find((u) => u.id === t.handoff_to)
     const projectStates = states.filter((s) => s.project === t.project)
-    const overdue = !isDone && t.due_date && differenceInCalendarDays(parseISO(t.due_date), new Date()) < 0
+    const overdue =
+      !isDone &&
+      t.due_date &&
+      differenceInCalendarDays(parseISO(t.due_date), new Date()) < 0
     return (
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 py-2.5">
         <Checkbox
+          disabled={cancelled}
           checked={isDone}
           onCheckedChange={(v) => {
             const target = firstOf(t.project, v ? "completed" : "pending")
-            if (target) update(t, { state: target.id }, v ? "Done ✔" : undefined)
+            if (target)
+              update(t, { state: target.id }, v ? "Done ✔" : undefined)
           }}
           aria-label="Done"
         />
         <div className="min-w-0 flex-1">
           <Link
             to={workspaceRecordUrl("board", t.id)}
-            className={cn("block truncate text-sm font-medium hover:underline", isDone && "text-muted-foreground line-through")}
+            className={cn(
+              "block truncate text-sm font-medium hover:underline",
+              isDone && "text-muted-foreground",
+              cancelled && "line-through"
+            )}
           >
             {t.title}
           </Link>
-          <p className="truncate text-xs text-muted-foreground">{t.expand?.project?.name}</p>
+          <p className="truncate text-xs text-muted-foreground">
+            {t.expand?.project?.name}
+          </p>
+          {cancelled && (
+            <p className="text-xs text-rose-600 dark:text-rose-400">
+              Cancelled by an admin{t.cancel_reason && `: ${t.cancel_reason}`}
+            </p>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
           <select
             className={selectClass}
+            disabled={cancelled}
             value={t.state}
             onChange={(e) => update(t, { state: e.target.value })}
             aria-label="Status"
@@ -136,9 +182,13 @@ export function MyTasksPage() {
           <select
             className={selectClass}
             value={t.priority}
-            onChange={(e) => update(t, { priority: e.target.value as Priority })}
+            onChange={(e) =>
+              update(t, { priority: e.target.value as Priority })
+            }
             aria-label="Priority"
-            style={{ color: PRIORITY_META.find((p) => p.value === t.priority)?.color }}
+            style={{
+              color: PRIORITY_META.find((p) => p.value === t.priority)?.color,
+            }}
           >
             {PRIORITY_META.map((p) => (
               <option key={p.value} value={p.value}>
@@ -148,31 +198,58 @@ export function MyTasksPage() {
           </select>
           <input
             type="date"
-            className={cn(selectClass, overdue && "border-rose-400 text-rose-600")}
+            className={cn(
+              selectClass,
+              overdue && "border-rose-400 text-rose-600"
+            )}
             value={t.due_date ? t.due_date.slice(0, 10) : ""}
             onChange={(e) =>
-              update(t, { due_date: e.target.value ? e.target.value + " 12:00:00.000Z" : "" })
+              update(t, {
+                due_date: e.target.value
+                  ? e.target.value + " 12:00:00.000Z"
+                  : "",
+              })
             }
             aria-label="Due date"
           />
-          <select
-            className={selectClass}
-            value=""
-            onChange={(e) => {
-              const to = users.find((u) => u.id === e.target.value)
-              if (to) update(t, { assignees: [to.id] }, `Handed to ${to.name}`)
-            }}
-            aria-label="Hand to someone"
-          >
-            <option value="">Hand to…</option>
-            {users
-              .filter((u) => u.id !== me)
-              .map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name}
-                </option>
-              ))}
-          </select>
+          {handingTo ? (
+            <Link
+              to="/requests"
+              className="text-xs text-amber-600 hover:underline dark:text-amber-400"
+            >
+              Waiting for {handingTo.name}
+            </Link>
+          ) : (
+            !isDone &&
+            !cancelled &&
+            t.owner === me && (
+              <select
+                className={selectClass}
+                value=""
+                onChange={async (e) => {
+                  const to = users.find((u) => u.id === e.target.value)
+                  if (!to) return
+                  try {
+                    await requestsApi.handoff(t.id, to.id)
+                    toast.success(`Asked ${to.name} to take it over`)
+                    load()
+                  } catch (err) {
+                    toast.error(extractErrorMessage(err, "Could not hand over"))
+                  }
+                }}
+                aria-label="Hand to someone"
+              >
+                <option value="">Hand to…</option>
+                {users
+                  .filter((u) => u.id !== me)
+                  .map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name}
+                    </option>
+                  ))}
+              </select>
+            )
+          )}
         </div>
       </div>
     )
@@ -188,7 +265,10 @@ export function MyTasksPage() {
             {tasks && ` · ${openCount} open, ${done.length} done`}
           </p>
         </div>
-        <Link to="/board" className="text-sm text-muted-foreground hover:text-foreground hover:underline">
+        <Link
+          to="/board"
+          className="text-sm text-muted-foreground hover:text-foreground hover:underline"
+        >
           Open board →
         </Link>
       </div>
@@ -210,7 +290,7 @@ export function MyTasksPage() {
                 <CardContent className="pt-4">
                   <p
                     className={cn(
-                      "mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground",
+                      "mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase",
                       name === "Overdue" && "text-rose-600 dark:text-rose-400"
                     )}
                   >
@@ -229,7 +309,7 @@ export function MyTasksPage() {
             <Card>
               <CardContent className="pt-4">
                 <button
-                  className="text-xs font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground"
+                  className="text-xs font-semibold tracking-wide text-muted-foreground uppercase hover:text-foreground"
                   onClick={() => setShowDone((v) => !v)}
                 >
                   {showDone ? "▾" : "▸"} Done · {done.length}
