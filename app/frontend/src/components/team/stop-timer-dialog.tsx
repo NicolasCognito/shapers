@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+import { useTree } from "@/components/team/tree-card"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -63,6 +64,11 @@ export function StopTimerDialog() {
       if (log) {
         toast.success(t("timer.logged", { hours: res.hours ?? parsed }))
         window.dispatchEvent(new Event("hours-changed"))
+        const earned = (res as { drops_earned?: number }).drops_earned
+        if (earned) {
+          toast.success(t("tree.earned", { count: earned }))
+          void useTree.getState().load()
+        }
       } else {
         toast(t("timer.discarded"))
       }

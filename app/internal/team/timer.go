@@ -108,6 +108,11 @@ func StopTimer(app core.App, userID string, log bool, hours float64, note string
 				return err
 			}
 			out["logged"], out["hours"] = true, hours
+			// Finished the plan: the tree gets water.
+			if v.PlannedMinutes > 0 && v.ElapsedMinutes >= float64(v.PlannedMinutes) {
+				awardDrops(tx, userID, dropsPerPlan)
+				out["drops_earned"] = dropsPerPlan
+			}
 		}
 		return tx.Delete(r)
 	})

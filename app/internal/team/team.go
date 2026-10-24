@@ -56,6 +56,7 @@ func Register(app *pocketbase.PocketBase) {
 		}))
 		registerRequestRoutes(se)
 		registerTimerRoutes(se)
+		registerTreeRoutes(se)
 		return se.Next()
 	})
 
