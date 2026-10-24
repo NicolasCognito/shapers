@@ -113,7 +113,7 @@ export function TeamPage() {
         </Tabs>
       )}
 
-      <MemberSheet id={selected} onClose={() => setSelected(null)} />
+      <MemberSheet id={selected} onClose={() => setSelected(null)} onChanged={load} />
       <RollCallSheet
         meetingId={rollCall}
         people={data?.members ?? []}
@@ -380,7 +380,7 @@ function MembersTab({
       <button
         onClick={() => setSort(k)}
         className={cn(
-          "hover:text-foreground",
+          "-mx-1 -my-1.5 rounded px-1 py-1.5 hover:text-foreground",
           sort === k && "text-foreground underline"
         )}
       >
@@ -664,9 +664,12 @@ function AttendanceTab({
 function MemberSheet({
   id,
   onClose,
+  onChanged,
 }: {
   id: string | null
   onClose: () => void
+  /** Refresh the overview too (pause badges, totals). */
+  onChanged?: () => void
 }) {
   const { t } = useTranslation()
   const [detail, setDetail] = useState<MemberDetail | null>(null)
@@ -689,7 +692,10 @@ function MemberSheet({
               detail={detail}
               editable={false}
               canModerate={can("tasks.moderate")}
-              onChanged={() => id && teamApi.member(id).then(setDetail)}
+              onChanged={() => {
+                if (id) void teamApi.member(id).then(setDetail)
+                onChanged?.()
+              }}
             />
           ) : (
             <Skeleton className="h-96" />

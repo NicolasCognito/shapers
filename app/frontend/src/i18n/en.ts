@@ -482,6 +482,7 @@ export const en = {
     close: "Close",
   },
   chat: {
+    backToChat: "Back to chat",
     navigate: {
       opening: "Opening…",
       opened: "Opened",

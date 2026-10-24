@@ -14,3 +14,10 @@ node_modules/
 .vscode/
 *.exe~
 *.log
+
+# QA runs (Codex): keep the brief and report, not the artefacts
+qa/screens/
+qa/scripts/
+qa/*.log
+qa/execution-log.txt
+qa/codex-last-message.md

@@ -6,6 +6,7 @@ import "driver.js/dist/driver.css"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { HelpCircleIcon } from "@hugeicons/core-free-icons"
 
+import { useSidebar } from "@/components/ui/sidebar-context"
 import { askJarvis } from "@/lib/jarvis-ask"
 import { can } from "@/lib/permissions"
 import { pb } from "@/lib/pocketbase"
@@ -20,7 +21,7 @@ type Step = {
   route?: string
   element?: string
   text: TourStepText
-  /** Sidebar items: hidden in the mobile menu, so shown without a highlight there. */
+  /** Sidebar items: on a phone the menu is closed, so the menu button is highlighted instead. */
   sidebar?: boolean
   asks?: string[]
 }
@@ -92,7 +93,7 @@ export function startTour(navigate: NavigateFunction, lang: string) {
   const c = tourContent(lang)
   const admin = can("team.view")
   const mobile = window.matchMedia("(max-width: 767px)").matches
-  const steps = buildSteps(admin, c).map((s) => (mobile && s.sidebar ? { ...s, element: undefined } : s))
+  const steps = buildSteps(admin, c).map((s) => (mobile && s.sidebar ? { ...s, element: el("menu"), text: { ...s.text, title: `☰ ${s.text.title}` } } : s))
 
   const drv = driver({
     showProgress: true,
@@ -174,11 +175,19 @@ export function TourAutostart() {
 export function TourButton() {
   const navigate = useNavigate()
   const { i18n } = useTranslation()
+  const { isMobile, setOpenMobile } = useSidebar()
   const c = tourContent(i18n.language)
+  const start = () => {
+    if (isMobile) {
+      // Close the menu sheet first, or its overlay sits on top of the tour.
+      setOpenMobile(false)
+      setTimeout(() => startTour(navigate, i18n.language), 350)
+    } else startTour(navigate, i18n.language)
+  }
   return (
     <button
       type="button"
-      onClick={() => startTour(navigate, i18n.language)}
+      onClick={start}
       title={c.button}
       className="mx-1 flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
     >

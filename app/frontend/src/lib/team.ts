@@ -172,7 +172,9 @@ export type RequestRec = {
 export function selfLogAllowed(day: string) {
   const y = new Date()
   y.setDate(y.getDate() - 1)
-  return day >= y.toISOString().slice(0, 10)
+  // Local calendar date: toISOString() is UTC and shifts a day near midnight.
+  const pad = (n: number) => String(n).padStart(2, "0")
+  return day >= `${y.getFullYear()}-${pad(y.getMonth() + 1)}-${pad(y.getDate())}`
 }
 
 export const requestsApi = {

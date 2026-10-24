@@ -122,16 +122,16 @@ export function RollCallSheet({
         </div>
         <div className="flex-1 divide-y overflow-y-auto px-4">
           {members.map((p) => (
-            <div key={p.id} className="flex items-center gap-2 py-2">
-              <span className="min-w-0 flex-1 truncate text-sm">{p.name}</span>
-              <div className="flex gap-1">
+            <div key={p.id} className="flex flex-col gap-1.5 py-2 sm:flex-row sm:items-center sm:gap-2">
+              <span className="text-sm font-medium sm:min-w-0 sm:flex-1 sm:truncate sm:font-normal">{p.name}</span>
+              <div className="grid grid-cols-4 gap-1 sm:flex">
                 {STATES.map((st) => (
                   <button
                     key={st}
                     type="button"
                     onClick={() => setStates((s) => ({ ...s, [p.id]: s[p.id] === st ? "" : st }))}
                     className={cn(
-                      "rounded-md px-2 py-1 text-xs font-medium transition",
+                      "rounded-md px-2 py-1.5 text-xs font-medium transition sm:py-1",
                       states[p.id] === st
                         ? STATE_CLASS[st] + " ring-1 ring-current"
                         : "text-muted-foreground hover:bg-muted"

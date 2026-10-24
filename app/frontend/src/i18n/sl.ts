@@ -492,6 +492,7 @@ export const sl = {
     close: "Zapri",
   },
   chat: {
+    backToChat: "Nazaj na klepet",
     navigate: {
       opening: "Odpiram …",
       opened: "Odprto",

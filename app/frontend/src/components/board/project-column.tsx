@@ -117,8 +117,8 @@ export function ProjectColumn({
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-border/60 bg-card/50 p-4">
-      <div className="flex items-center gap-2">
+    <div className="flex min-w-0 flex-col gap-3 rounded-xl border border-border/60 bg-card/50 p-3 sm:p-4">
+      <div className="flex flex-wrap items-center gap-2">
         <button
           onClick={() => void toggleCollapse(project.id).catch(() => {})}
           className="flex items-center gap-1.5 rounded-md px-1 py-1 transition-colors hover:bg-muted"
@@ -164,7 +164,7 @@ export function ProjectColumn({
           </span>
         </button>
 
-        <div className="ml-auto flex items-center gap-0.5">
+        <div className="ml-auto flex flex-wrap items-center gap-0.5">
           <Button
             variant="ghost"
             size="icon-xs"

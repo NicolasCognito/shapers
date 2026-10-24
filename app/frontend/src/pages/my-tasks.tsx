@@ -320,7 +320,7 @@ export function MyTasksPage() {
             <Card>
               <CardContent className="pt-4">
                 <button
-                  className="text-xs font-semibold tracking-wide text-muted-foreground uppercase hover:text-foreground"
+                  className="-mx-2 -my-1 rounded-md px-2 py-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase hover:text-foreground"
                   onClick={() => setShowDone((v) => !v)}
                 >
                   {showDone ? "▾" : "▸"} {tr("myTasks.done")} · {done.length}

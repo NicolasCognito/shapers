@@ -50,7 +50,10 @@ func PauseTimer(app core.App, userID string, pause bool) (*TimerView, error) {
 	case pause && p.IsZero():
 		r.Set("paused_at", dbTime(time.Now()))
 	case !pause && !p.IsZero():
-		r.Set("paused_seconds", r.GetInt("paused_seconds")+int(time.Since(p).Seconds()))
+		// Move the start forward by the pause: exact to the millisecond,
+		// unlike summing whole seconds.
+		start := r.GetDateTime("started_at").Time()
+		r.Set("started_at", dbTime(start.Add(time.Since(p))))
 		r.Set("paused_at", "")
 	}
 	return timerView(r), app.Save(r)
