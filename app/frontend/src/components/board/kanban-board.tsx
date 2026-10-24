@@ -196,7 +196,7 @@ export function KanbanBoard({
         </DragOverlay>
       </DndContext>
 
-      {projectTotalPages > 0 && (
+      {projectTotalPages > 1 && (
         <div className="flex items-center justify-between gap-2">
           <span className="text-xs text-muted-foreground">
             {projectTotalItems} project{projectTotalItems === 1 ? "" : "s"}

@@ -101,7 +101,13 @@ const RECORDS_PER_REQUEST = 200
 const PROJECT_ORDER_STEP = 1024
 const PROJECT_ORDER_BASE = 1024 * 1024 * 1024
 
+// The Board shows one project at a time, picked from the project grid.
+// Every page load below respects it, so drag-and-drop and realtime work as before.
+let focusedProjectId: string | null = null
+
 type BoardState = {
+  focusedProjectId: string | null
+  focusProject: (id: string | null) => Promise<void>
   templates: BoardTemplate[]
   projects: Project[]
   openedProject: Project | null
@@ -442,10 +448,15 @@ async function loadBoardPage(
 ) {
   const userId = pb.authStore.record?.id
   if (!userId) throw new Error("Authentication is required")
-  const orderFilter = pb.filter(
-    "user = {:user} && project.archived = false",
-    { user: userId }
-  )
+  const orderFilter = focusedProjectId
+    ? pb.filter(
+        "user = {:user} && project.archived = false && project = {:p}",
+        {
+          user: userId,
+          p: focusedProjectId,
+        }
+      )
+    : pb.filter("user = {:user} && project.archived = false", { user: userId })
   const [templates, orderResult] = await Promise.all([
     existingTemplates
       ? Promise.resolve(existingTemplates)
@@ -480,10 +491,9 @@ async function loadBoardPage(
 }
 
 async function normalizeProjectPreferences(userId: string) {
-  const filter = pb.filter(
-    "user = {:user} && project.archived = false",
-    { user: userId }
-  )
+  const filter = pb.filter("user = {:user} && project.archived = false", {
+    user: userId,
+  })
   const orders = await pb
     .collection(COLLECTIONS.projectPreferences)
     .getFullList<ProjectPreferenceRecord>({
@@ -493,8 +503,7 @@ async function normalizeProjectPreferences(userId: string) {
     })
   await Promise.all(
     orders.map((order, index) => {
-      const sortOrder =
-        PROJECT_ORDER_BASE + (index + 1) * PROJECT_ORDER_STEP
+      const sortOrder = PROJECT_ORDER_BASE + (index + 1) * PROJECT_ORDER_STEP
       if (order.sort_order === sortOrder) return Promise.resolve()
       return pb
         .collection(COLLECTIONS.projectPreferences)
@@ -596,6 +605,12 @@ async function connectRealtime(
 }
 
 export const useBoardStore = create<BoardState>((set, get) => ({
+  focusedProjectId: null,
+  focusProject: async (id) => {
+    focusedProjectId = id
+    set({ focusedProjectId: id })
+    await get().loadProjectPage(0)
+  },
   templates: [],
   projects: [],
   openedProject: null,
@@ -793,9 +808,8 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         projects: state.projects.some((project) => project.id === id)
           ? upsertById(state.projects, {
               ...updated,
-              preferenceId: state.projects.find(
-                (project) => project.id === id
-              )?.preferenceId,
+              preferenceId: state.projects.find((project) => project.id === id)
+                ?.preferenceId,
               sortOrder: state.projects.find((project) => project.id === id)
                 ?.sortOrder,
               collapsed:
@@ -804,9 +818,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
             })
           : state.projects,
         openedProject:
-          state.openedProject?.id === id
-            ? updated
-            : state.openedProject,
+          state.openedProject?.id === id ? updated : state.openedProject,
       }))
     } catch (error) {
       const message = messageFromError(error, "Could not update the project")

@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { ArchivedProjectsDialog } from "@/components/board/archived-projects-dialog"
 import { KanbanBoard } from "@/components/board/kanban-board"
+import { ProjectGrid } from "@/components/board/project-grid"
 import { ProjectSheet } from "@/components/board/project-sheet"
 import {
   requestedRecordId,
@@ -32,6 +33,12 @@ export function BoardPage() {
   const clearOpenedRecord = useBoardStore((state) => state.clearOpenedRecord)
   const loadProjectPage = useBoardStore((state) => state.loadProjectPage)
   const projectPage = useBoardStore((state) => state.projectPage)
+  const focusedProjectId = useBoardStore((state) => state.focusedProjectId)
+  const focusProject = useBoardStore((state) => state.focusProject)
+  const focusedName = useBoardStore(
+    (state) => state.projects.find((p) => p.id === state.focusedProjectId)?.name
+  )
+  const projectCount = useBoardStore((state) => state.projectTotalItems)
 
   useEffect(() => {
     if (!initialized || !requestedTaskId) return
@@ -39,6 +46,9 @@ export function BoardPage() {
     void openTask(requestedTaskId).then(async (task) => {
       if (!active) return
       if (task) {
+        if (task.projectId !== useBoardStore.getState().focusedProjectId) {
+          await focusProject(task.projectId)
+        }
         setResolvedTaskId(task.id)
         return
       }
@@ -59,6 +69,7 @@ export function BoardPage() {
     }
   }, [
     clearOpenedRecord,
+    focusProject,
     initialized,
     navigate,
     openProject,
@@ -124,10 +135,31 @@ export function BoardPage() {
         </div>
       </div>
 
-      <KanbanBoard
-        onEditProject={handleEditProject}
-        requestedTaskId={resolvedTaskId}
-      />
+      {focusedProjectId ? (
+        <>
+          <div className="-mb-3 flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => void focusProject(null)}
+            >
+              ← All projects
+            </Button>
+            {focusedName && (
+              <span className="text-sm font-medium">{focusedName}</span>
+            )}
+          </div>
+          <KanbanBoard
+            onEditProject={handleEditProject}
+            requestedTaskId={resolvedTaskId}
+          />
+        </>
+      ) : (
+        <ProjectGrid
+          onOpen={(id) => void focusProject(id)}
+          reloadKey={projectCount}
+        />
+      )}
 
       <ProjectSheet
         key={editingProject?.id || "new"}
