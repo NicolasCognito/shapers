@@ -18,6 +18,7 @@ import {
 import { useSidebar } from "@/components/ui/sidebar-context"
 import { Logo } from "@/components/logo"
 import { navGroups } from "@/lib/navigation"
+import { isAdmin } from "@/lib/team"
 
 export function AppSidebar() {
   const { pathname } = useLocation()
@@ -56,7 +57,7 @@ export function AppSidebar() {
             <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {group.items.map((item) => (
+                {group.items.filter((item) => !item.adminOnly || isAdmin()).map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
                       asChild

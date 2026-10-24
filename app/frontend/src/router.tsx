@@ -13,6 +13,12 @@ const DashboardPage = lazy(() =>
     default: module.DashboardPage,
   }))
 )
+const MyWeekPage = lazy(() =>
+  import("@/pages/my-week").then((module) => ({ default: module.MyWeekPage }))
+)
+const TeamPage = lazy(() =>
+  import("@/pages/team").then((module) => ({ default: module.TeamPage }))
+)
 const ChatPage = lazy(() =>
   import("@/pages/chat").then((module) => ({ default: module.ChatPage }))
 )
@@ -84,6 +90,8 @@ export function AppRouter() {
 
           <Route element={<ProtectedRoute />}>
             <Route element={<DashboardLayout />}>
+              <Route path="/me" element={<MyWeekPage />} />
+              <Route path="/team" element={<TeamPage />} />
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/chat" element={<ChatPage />} />
               <Route path="/board" element={<BoardPage />} />
@@ -97,8 +105,8 @@ export function AppRouter() {
             </Route>
           </Route>
 
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/" element={<Navigate to="/me" replace />} />
+          <Route path="*" element={<Navigate to="/me" replace />} />
         </Routes>
       </Suspense>
     </BrowserRouter>

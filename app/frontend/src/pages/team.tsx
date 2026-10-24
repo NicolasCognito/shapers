@@ -1,0 +1,519 @@
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { format, parseISO } from "date-fns"
+import { Navigate } from "react-router"
+
+import { MemberDetailView } from "@/components/team/member-detail"
+import { RollCallSheet } from "@/components/team/roll-call"
+import {
+  ProgressBar,
+  StatTile,
+  TierBadge,
+  WeekBars,
+} from "@/components/team/widgets"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { pb } from "@/lib/pocketbase"
+import { cn } from "@/lib/utils"
+import {
+  SERIES,
+  STATE_CLASS,
+  STATE_LABEL,
+  fmtHours,
+  isAdmin,
+  pct,
+  teamApi,
+  type AttendanceState,
+  type MemberDetail,
+  type MemberSummary,
+  type Overview,
+} from "@/lib/team"
+
+export function TeamPage() {
+  const [data, setData] = useState<Overview | null>(null)
+  const [selected, setSelected] = useState<string | null>(null)
+  const [rollCall, setRollCall] = useState<string | null>(null)
+
+  const load = useCallback(() => {
+    teamApi.overview().then(setData)
+  }, [])
+  useEffect(() => {
+    load()
+  }, [load])
+
+  if (!isAdmin()) return <Navigate to="/me" replace />
+
+  return (
+    <div className="mx-auto w-full max-w-7xl space-y-4 p-4 md:p-6">
+      <div className="flex flex-wrap items-end gap-2">
+        <div className="mr-auto">
+          <h1 className="text-2xl font-semibold">Team</h1>
+          <p className="text-sm text-muted-foreground">
+            Hours, attendance and tasks for every member
+            {data && ` · week of ${format(parseISO(data.week_start), "d MMM")}`}
+          </p>
+        </div>
+      </div>
+
+      {!data ? (
+        <Skeleton className="h-96" />
+      ) : (
+        <Tabs defaultValue="overview">
+          <TabsList>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="members">Members</TabsTrigger>
+            <TabsTrigger value="attendance">Attendance</TabsTrigger>
+          </TabsList>
+          <TabsContent value="overview" className="mt-4">
+            <OverviewTab data={data} onSelect={setSelected} onRollCall={setRollCall} />
+          </TabsContent>
+          <TabsContent value="members" className="mt-4">
+            <MembersTab members={data.members} onSelect={setSelected} />
+          </TabsContent>
+          <TabsContent value="attendance" className="mt-4">
+            <AttendanceTab data={data} onRollCall={setRollCall} onSelect={setSelected} />
+          </TabsContent>
+        </Tabs>
+      )}
+
+      <MemberSheet id={selected} onClose={() => setSelected(null)} />
+      <RollCallSheet
+        meetingId={rollCall}
+        people={data?.members ?? []}
+        onClose={() => setRollCall(null)}
+        onSaved={load}
+      />
+    </div>
+  )
+}
+
+// ---------------- Overview ----------------
+
+function OverviewTab({
+  data,
+  onSelect,
+  onRollCall,
+}: {
+  data: Overview
+  onSelect: (id: string) => void
+  onRollCall: (id: string) => void
+}) {
+  const m = data.members
+  const cur = data.weeks[data.weeks.length - 1]
+  const last = data.weeks[data.weeks.length - 2]
+  const behind = m.filter((x) => x.behind)
+  const avgAttendance = m.reduce((a, x) => a + x.attendance.rate, 0) / Math.max(1, m.length)
+  const tasksDone = m.reduce((a, x) => a + x.tasks_done, 0)
+  const recent = [...data.meetings].reverse().slice(0, 6)
+
+  // Who needs a nudge: behind on hours AND weak attendance, or long silence.
+  const attention = m
+    .map((x) => ({
+      x,
+      score:
+        (x.behind ? 1 - x.progress : 0) +
+        (1 - x.attendance.rate) +
+        (x.weeks.slice(-3).every((w) => !w.met) ? 0.5 : 0),
+    }))
+    .filter((a) => a.score > 0.6)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 6)
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 lg:col-span-3 lg:grid-cols-4">
+        <StatTile
+          label="Hours this week"
+          value={fmtHours(Math.round(cur.hours))}
+          hint={`of ${fmtHours(cur.quota)} committed · last week ${fmtHours(Math.round(last?.hours ?? 0))}`}
+        />
+        <StatTile
+          label="Behind pace"
+          value={`${behind.length} / ${m.length}`}
+          tone={behind.length > m.length / 2 ? "warn" : undefined}
+          hint="vs. pro-rata weekly commitment"
+        />
+        <StatTile
+          label="Showed up"
+          value={pct(avgAttendance)}
+          tone={avgAttendance >= 0.85 ? "good" : avgAttendance < 0.7 ? "bad" : undefined}
+          hint="present or remote, all series"
+        />
+        <StatTile label="Tasks done" value={tasksDone} hint="completed on the board" />
+      </div>
+
+      <Card className="lg:col-span-2">
+        <CardHeader>
+          <CardTitle>Organisation hours</CardTitle>
+          <CardDescription>
+            All members per week; dashed line = total commitment. Members at goal:{" "}
+            {data.weeks.map((w) => w.met_count).join(" → ")}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <WeekBars weeks={data.weeks} height={160} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Needs attention</CardTitle>
+          <CardDescription>Behind on hours and missing meetings</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {attention.length === 0 && <p className="text-sm text-muted-foreground">Everyone looks fine.</p>}
+          {attention.map(({ x }) => (
+            <button
+              key={x.id}
+              onClick={() => onSelect(x.id)}
+              className="flex w-full items-center gap-2 rounded-lg p-2 text-left hover:bg-muted"
+            >
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium">{x.name}</span>
+                <span className="text-xs text-muted-foreground">
+                  {fmtHours(x.this_week)} / {fmtHours(x.weekly_hours)} · showed up {pct(x.attendance.rate)}
+                </span>
+              </span>
+              <TierBadge tier={x.tier} />
+            </button>
+          ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>By tier</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {data.tiers.map((t) => (
+            <div key={t.tier} className="space-y-1">
+              <div className="flex items-center gap-2 text-sm">
+                <TierBadge tier={t.tier} />
+                <span className="text-muted-foreground">{t.members} members</span>
+                <span className="ml-auto text-xs text-muted-foreground">{t.behind_count} behind</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs">
+                <span className="w-16 text-muted-foreground">Hours</span>
+                <ProgressBar value={t.avg_progress} className="flex-1" />
+                <span className="w-10 text-right">{pct(t.avg_progress)}</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs">
+                <span className="w-16 text-muted-foreground">Attend.</span>
+                <ProgressBar value={t.avg_attendance} className="flex-1" />
+                <span className="w-10 text-right">{pct(t.avg_attendance)}</span>
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>By meeting series</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {SERIES.filter((s) => data.series[s]).map((s) => (
+            <div key={s} className="flex items-center gap-2 text-sm">
+              <span className="w-28 shrink-0 truncate">{s}</span>
+              <ProgressBar value={data.series[s].rate} className="flex-1" />
+              <span className="w-10 text-right tabular-nums">{pct(data.series[s].rate)}</span>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent meetings</CardTitle>
+          <CardDescription>Tap to record attendance</CardDescription>
+        </CardHeader>
+        <CardContent className="divide-y">
+          {recent.map((mt) => (
+            <button
+              key={mt.id}
+              onClick={() => onRollCall(mt.id)}
+              className="flex w-full items-center gap-2 py-2 text-left hover:bg-muted/50"
+            >
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm">{mt.title}</span>
+                <span className="text-xs text-muted-foreground">
+                  {format(parseISO(mt.start), "EEE d MMM")}
+                </span>
+              </span>
+              <span className="text-sm tabular-nums">
+                {mt.stats.present + mt.stats.remote}/{mt.members}
+              </span>
+              {mt.stats.unmarked > 0 && (
+                <span className="rounded bg-amber-500/15 px-1.5 text-xs text-amber-700 dark:text-amber-300">
+                  {mt.stats.unmarked} unmarked
+                </span>
+              )}
+            </button>
+          ))}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+// ---------------- Members ----------------
+
+type SortKey = "name" | "progress" | "attendance" | "streak" | "tasks"
+
+function MembersTab({
+  members,
+  onSelect,
+}: {
+  members: MemberSummary[]
+  onSelect: (id: string) => void
+}) {
+  const [sort, setSort] = useState<SortKey>("progress")
+  const [tier, setTier] = useState<string>("all")
+  const rows = useMemo(() => {
+    const list = members.filter((m) => tier === "all" || m.tier === tier)
+    const key: Record<SortKey, (m: MemberSummary) => number | string> = {
+      name: (m) => m.name,
+      progress: (m) => m.progress,
+      attendance: (m) => m.attendance.rate,
+      streak: (m) => -m.streak,
+      tasks: (m) => -m.tasks_done,
+    }
+    return [...list].sort((a, b) => {
+      const ka = key[sort](a)
+      const kb = key[sort](b)
+      return ka < kb ? -1 : ka > kb ? 1 : 0
+    })
+  }, [members, sort, tier])
+
+  const H = ({ k, children, className }: { k: SortKey; children: string; className?: string }) => (
+    <th className={cn("px-3 py-2 font-medium", className)}>
+      <button
+        onClick={() => setSort(k)}
+        className={cn("hover:text-foreground", sort === k && "text-foreground underline")}
+      >
+        {children}
+      </button>
+    </th>
+  )
+
+  return (
+    <Card>
+      <CardContent className="pt-4">
+        <div className="mb-3 flex flex-wrap gap-2">
+          {["all", "Core", "Impact", "GO!"].map((t) => (
+            <Button key={t} size="sm" variant={tier === t ? "default" : "outline"} onClick={() => setTier(t)}>
+              {t === "all" ? "All tiers" : t}
+            </Button>
+          ))}
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="text-left text-xs text-muted-foreground">
+              <tr>
+                <H k="name">Member</H>
+                <H k="progress" className="min-w-48">This week</H>
+                <th className="px-3 py-2 font-medium">Last 6 weeks</th>
+                <H k="streak">Streak</H>
+                <H k="attendance">Showed up</H>
+                <H k="tasks">Tasks</H>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {rows.map((m) => (
+                <tr key={m.id} className="cursor-pointer hover:bg-muted/50" onClick={() => onSelect(m.id)}>
+                  <td className="px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{m.name}</span>
+                      <TierBadge tier={m.tier} />
+                      {m.is_admin && <span className="text-[10px] text-muted-foreground">admin</span>}
+                    </div>
+                  </td>
+                  <td className="px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <ProgressBar
+                        value={m.progress}
+                        marker={m.weekly_hours ? m.expected / m.weekly_hours : undefined}
+                        className="flex-1"
+                      />
+                      <span className="w-20 text-right text-xs tabular-nums">
+                        {fmtHours(m.this_week)}/{m.weekly_hours}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-3 py-2">
+                    <div className="flex h-6 items-end gap-0.5">
+                      {m.weeks.map((w) => (
+                        <div
+                          key={w.week_start}
+                          title={`${w.week_start}: ${fmtHours(w.hours)}`}
+                          className={cn("w-2 rounded-sm", w.met ? "bg-emerald-500" : "bg-primary/40")}
+                          style={{ height: `${Math.min(100, (w.hours / Math.max(1, w.quota)) * 100)}%`, minHeight: 2 }}
+                        />
+                      ))}
+                    </div>
+                  </td>
+                  <td className="px-3 py-2 tabular-nums">{m.streak > 0 ? `🔥 ${m.streak}` : "—"}</td>
+                  <td
+                    className={cn(
+                      "px-3 py-2 tabular-nums",
+                      m.attendance.rate < 0.7 && "text-rose-600 dark:text-rose-400"
+                    )}
+                  >
+                    {pct(m.attendance.rate)}
+                  </td>
+                  <td className="px-3 py-2 tabular-nums">{m.tasks_done}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+// ---------------- Attendance matrix ----------------
+
+function AttendanceTab({
+  data,
+  onRollCall,
+  onSelect,
+}: {
+  data: Overview
+  onRollCall: (id: string) => void
+  onSelect: (id: string) => void
+}) {
+  const [series, setSeries] = useState<string>("Community")
+  const [att, setAtt] = useState<Record<string, AttendanceState>>({})
+  const [meetingMembers, setMeetingMembers] = useState<Record<string, string[]>>({})
+
+  useEffect(() => {
+    pb.collection("attendance")
+      .getFullList<{ meeting: string; user: string; state: AttendanceState }>({ fields: "meeting,user,state" })
+      .then((rows) => {
+        const map: Record<string, AttendanceState> = {}
+        for (const r of rows) map[r.meeting + "|" + r.user] = r.state
+        setAtt(map)
+      })
+    teamApi.pastMeetings().then((ms) => {
+      const map: Record<string, string[]> = {}
+      for (const m of ms) map[m.id] = m.members
+      setMeetingMembers(map)
+    })
+  }, [data])
+
+  const meetings = data.meetings.filter((m) => m.series === series)
+  const memberIds = new Set(meetings.flatMap((m) => meetingMembers[m.id] ?? []))
+  const people = data.members.filter((m) => memberIds.has(m.id))
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Attendance by series</CardTitle>
+        <CardDescription>Click a date to record or fix attendance for that meeting</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="mb-3 flex flex-wrap gap-2">
+          {SERIES.map((s) => (
+            <Button key={s} size="sm" variant={series === s ? "default" : "outline"} onClick={() => setSeries(s)}>
+              {s} {data.series[s] && <span className="ml-1 opacity-70">{pct(data.series[s].rate)}</span>}
+            </Button>
+          ))}
+        </div>
+        <div className="overflow-x-auto">
+          <table className="text-xs">
+            <thead>
+              <tr>
+                <th className="sticky left-0 bg-card px-2 py-1 text-left font-medium">Member</th>
+                {meetings.map((m) => (
+                  <th key={m.id} className="px-1 py-1">
+                    <button
+                      onClick={() => onRollCall(m.id)}
+                      className="rounded px-1 font-medium hover:bg-muted"
+                      title="Record attendance"
+                    >
+                      {format(parseISO(m.start), "d.M")}
+                    </button>
+                  </th>
+                ))}
+                <th className="px-2 py-1 text-right font-medium">Rate</th>
+              </tr>
+            </thead>
+            <tbody>
+              {people.map((p) => {
+                let held = 0
+                let came = 0
+                return (
+                  <tr key={p.id} className="hover:bg-muted/40">
+                    <td className="sticky left-0 bg-card px-2 py-1">
+                      <button className="hover:underline" onClick={() => onSelect(p.id)}>
+                        {p.name}
+                      </button>
+                    </td>
+                    {meetings.map((m) => {
+                      const isMember = meetingMembers[m.id]?.includes(p.id)
+                      if (!isMember) return <td key={m.id} />
+                      const st = att[m.id + "|" + p.id]
+                      held++
+                      if (st === "present" || st === "remote") came++
+                      return (
+                        <td key={m.id} className="px-1 py-1 text-center">
+                          <span
+                            title={st ? STATE_LABEL[st] : "Not marked"}
+                            className={cn(
+                              "inline-block size-5 rounded leading-5",
+                              STATE_CLASS[st ?? ""]
+                            )}
+                          >
+                            {st ? STATE_LABEL[st][0] : "·"}
+                          </span>
+                        </td>
+                      )
+                    })}
+                    <td className="px-2 py-1 text-right tabular-nums">{held ? pct(came / held) : "—"}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-3 text-xs text-muted-foreground">
+          {(["present", "remote", "excused", "unexcused"] as AttendanceState[]).map((s) => (
+            <span key={s} className="flex items-center gap-1">
+              <span className={cn("inline-block size-3 rounded", STATE_CLASS[s])} /> {STATE_LABEL[s]}
+            </span>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+// ---------------- Member drill-down ----------------
+
+function MemberSheet({ id, onClose }: { id: string | null; onClose: () => void }) {
+  const [detail, setDetail] = useState<MemberDetail | null>(null)
+  useEffect(() => {
+    if (!id) return
+    setDetail(null)
+    teamApi.member(id).then(setDetail)
+  }, [id])
+  return (
+    <Sheet open={!!id} onOpenChange={(o) => !o && onClose()}>
+      <SheetContent className="w-full overflow-y-auto sm:max-w-4xl">
+        <SheetHeader>
+          <SheetTitle>{detail?.summary.name ?? "Member"}</SheetTitle>
+        </SheetHeader>
+        <div className="p-4">
+          {detail ? (
+            <MemberDetailView detail={detail} editable={false} onChanged={() => {}} />
+          ) : (
+            <Skeleton className="h-96" />
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
+  )
+}

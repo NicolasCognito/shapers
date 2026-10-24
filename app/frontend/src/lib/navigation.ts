@@ -8,6 +8,8 @@ import {
   Calendar03Icon,
   BookOpen01Icon,
   Settings02Icon,
+  UserIcon,
+  UserGroupIcon,
 } from "@hugeicons/core-free-icons"
 
 export type NavItem = {
@@ -15,6 +17,7 @@ export type NavItem = {
   url: string
   icon: IconSvgElement
   description?: string
+  adminOnly?: boolean
 }
 
 export type NavGroup = {
@@ -23,6 +26,24 @@ export type NavGroup = {
 }
 
 export const navGroups: NavGroup[] = [
+  {
+    label: "Shapers",
+    items: [
+      {
+        title: "My week",
+        url: "/me",
+        icon: UserIcon,
+        description: "Your hours, meetings and streak",
+      },
+      {
+        title: "Team",
+        url: "/team",
+        icon: UserGroupIcon,
+        description: "Hours, attendance and tasks for every member",
+        adminOnly: true,
+      },
+    ],
+  },
   {
     label: "Overview",
     items: [
