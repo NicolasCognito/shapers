@@ -25,6 +25,7 @@ export type MemberSummary = {
   tier: "Core" | "Impact" | "GO!" | ""
   weekly_hours: number
   is_admin: boolean
+  role: string
   series: string[]
   weeks: WeekHours[]
   this_week: number
@@ -113,7 +114,6 @@ export const STATE_CLASS: Record<AttendanceState | "", string> = {
   "": "bg-muted text-muted-foreground",
 }
 
-export const isAdmin = () => Boolean(pb.authStore.record?.is_admin)
 
 export const teamApi = {
   me: () => pb.send<MemberDetail>("/api/team/me", {}),

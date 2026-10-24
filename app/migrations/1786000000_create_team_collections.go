@@ -15,10 +15,16 @@ var (
 	teamStates = []string{"present", "remote", "excused", "unexcused"}
 )
 
-const (
-	teamAdminRule = `@request.auth.is_admin = true`
-	teamAuthRule  = `@request.auth.id != ""`
-)
+const teamAuthRule = `@request.auth.id != ""`
+
+// permRule is the PocketBase API-rule fragment for "the caller has permission
+// p". Mirrors internal/team/permissions.go: today every permission belongs to
+// admins only. When roles become data (docs/permissions.md), this becomes
+// `@request.auth.role.permissions ?= "<p>"` in a new migration.
+func permRule(p string) string {
+	_ = p
+	return `@request.auth.is_admin = true`
+}
 
 func init() {
 	m.Register(createTeamCollections, dropTeamCollections)
@@ -36,7 +42,7 @@ func createTeamCollections(app core.App) error {
 		&core.SelectField{Name: "series", MaxSelect: len(teamSeries), Values: teamSeries},
 	)
 	// Members edit their own profile but never their tier, quota or role.
-	users.UpdateRule = types.Pointer(`(id = @request.auth.id && @request.body.is_admin:changed = false && @request.body.tier:changed = false && @request.body.weekly_hours:changed = false) || ` + teamAdminRule)
+	users.UpdateRule = types.Pointer(`(id = @request.auth.id && @request.body.is_admin:changed = false && @request.body.tier:changed = false && @request.body.weekly_hours:changed = false) || ` + permRule("members.manage"))
 	if err := app.Save(users); err != nil {
 		return err
 	}
@@ -63,14 +69,13 @@ func createTeamCollections(app core.App) error {
 	}
 
 	attendance := core.NewBaseCollection("attendance")
-	ownOrAdmin := `user = @request.auth.id || ` + teamAdminRule
-	attendance.ListRule = types.Pointer(ownOrAdmin)
-	attendance.ViewRule = types.Pointer(ownOrAdmin)
+	attendance.ListRule = types.Pointer(`user = @request.auth.id || ` + permRule("team.view"))
+	attendance.ViewRule = attendance.ListRule
 	// Members clock in through POST /api/team/checkin (time-window checked);
 	// admins record anything directly.
-	attendance.CreateRule = types.Pointer(teamAdminRule)
-	attendance.UpdateRule = types.Pointer(teamAdminRule)
-	attendance.DeleteRule = types.Pointer(teamAdminRule)
+	attendance.CreateRule = types.Pointer(permRule("attendance.record"))
+	attendance.UpdateRule = attendance.CreateRule
+	attendance.DeleteRule = attendance.CreateRule
 	attendance.Fields.Add(
 		&core.RelationField{Name: "meeting", CollectionId: meetings.Id, MaxSelect: 1, Required: true, CascadeDelete: true},
 		&core.RelationField{Name: "user", CollectionId: users.Id, MaxSelect: 1, Required: true, CascadeDelete: true},
@@ -86,11 +91,12 @@ func createTeamCollections(app core.App) error {
 	}
 
 	hours := core.NewBaseCollection("hour_logs")
-	hours.ListRule = types.Pointer(ownOrAdmin)
-	hours.ViewRule = types.Pointer(ownOrAdmin)
-	hours.CreateRule = types.Pointer(`(@request.auth.id != "" && @request.body.user = @request.auth.id) || ` + teamAdminRule)
-	hours.UpdateRule = types.Pointer(`(user = @request.auth.id && @request.body.user:changed = false) || ` + teamAdminRule)
-	hours.DeleteRule = types.Pointer(ownOrAdmin)
+	ownOrHoursManager := `user = @request.auth.id || ` + permRule("hours.manage")
+	hours.ListRule = types.Pointer(ownOrHoursManager)
+	hours.ViewRule = types.Pointer(ownOrHoursManager)
+	hours.CreateRule = types.Pointer(`(@request.auth.id != "" && @request.body.user = @request.auth.id) || ` + permRule("hours.manage"))
+	hours.UpdateRule = types.Pointer(`(user = @request.auth.id && @request.body.user:changed = false) || ` + permRule("hours.manage"))
+	hours.DeleteRule = types.Pointer(ownOrHoursManager)
 	hours.Fields.Add(
 		&core.RelationField{Name: "user", CollectionId: users.Id, MaxSelect: 1, Required: true, CascadeDelete: true},
 		&core.DateField{Name: "date", Required: true},

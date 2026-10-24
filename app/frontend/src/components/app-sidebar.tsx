@@ -18,7 +18,7 @@ import {
 import { useSidebar } from "@/components/ui/sidebar-context"
 import { Logo } from "@/components/logo"
 import { navGroups } from "@/lib/navigation"
-import { isAdmin } from "@/lib/team"
+import { can } from "@/lib/permissions"
 
 export function AppSidebar() {
   const { pathname } = useLocation()
@@ -57,7 +57,7 @@ export function AppSidebar() {
             <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {group.items.filter((item) => !item.adminOnly || isAdmin()).map((item) => (
+                {group.items.filter((item) => !item.permission || can(item.permission)).map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
                       asChild

@@ -41,10 +41,10 @@ func Register(app *pocketbase.PocketBase) {
 		g.POST("/checkin", handleCheckin)
 		g.GET("/me", handleMe)
 		g.GET("/meetings/upcoming", handleUpcoming)
-		g.POST("/attendance/bulk", requireAdmin(handleBulkAttendance))
-		g.GET("/overview", requireAdmin(handleOverview))
-		g.GET("/members/{id}", requireAdmin(handleMember))
-		g.POST("/calendar/sync", requireAdmin(func(e *core.RequestEvent) error {
+		g.POST("/attendance/bulk", requirePerm(PermAttendanceRecord, handleBulkAttendance))
+		g.GET("/overview", requirePerm(PermTeamView, handleOverview))
+		g.GET("/members/{id}", requirePerm(PermTeamView, handleMember))
+		g.POST("/calendar/sync", requirePerm(PermCalendarSync, func(e *core.RequestEvent) error {
 			n, err := SyncGoogleCalendar(e.App)
 			if err != nil {
 				return e.BadRequestError("Calendar sync failed: "+err.Error(), err)
@@ -70,15 +70,6 @@ func runSync(app core.App) {
 		return
 	}
 	slog.Info("google calendar synced", "meetings", n)
-}
-
-func requireAdmin(next func(*core.RequestEvent) error) func(*core.RequestEvent) error {
-	return func(e *core.RequestEvent) error {
-		if e.Auth == nil || !e.Auth.GetBool("is_admin") {
-			return e.ForbiddenError("Admins only.", nil)
-		}
-		return next(e)
-	}
 }
 
 // WeekStart returns Monday 00:00 (organisation time) of the week containing t.

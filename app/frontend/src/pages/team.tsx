@@ -15,6 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { can } from "@/lib/permissions"
 import { pb } from "@/lib/pocketbase"
 import { cn } from "@/lib/utils"
 import {
@@ -22,7 +23,6 @@ import {
   STATE_CLASS,
   STATE_LABEL,
   fmtHours,
-  isAdmin,
   pct,
   teamApi,
   type AttendanceState,
@@ -43,7 +43,7 @@ export function TeamPage() {
     load()
   }, [load])
 
-  if (!isAdmin()) return <Navigate to="/me" replace />
+  if (!can("team.view")) return <Navigate to="/me" replace />
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-4 p-4 md:p-6">
@@ -327,7 +327,7 @@ function MembersTab({
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{m.name}</span>
                       <TierBadge tier={m.tier} />
-                      {m.is_admin && <span className="text-[10px] text-muted-foreground">admin</span>}
+                      {m.role !== "member" && <span className="text-[10px] text-muted-foreground">{m.role}</span>}
                     </div>
                   </td>
                   <td className="px-3 py-2">

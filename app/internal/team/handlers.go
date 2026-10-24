@@ -267,6 +267,7 @@ type memberSummary struct {
 	Tier         string                      `json:"tier"`
 	WeeklyHours  float64                     `json:"weekly_hours"`
 	IsAdmin      bool                        `json:"is_admin"`
+	Role         string                      `json:"role"`
 	Series       []string                    `json:"series"`
 	Weeks        []weekHours                 `json:"weeks"`
 	ThisWeek     float64                     `json:"this_week"`
@@ -290,7 +291,7 @@ func (ds *dataset) summary(u *core.Record, now time.Time) memberSummary {
 	att, bySeries := ds.memberAttendance(u, now)
 	s := memberSummary{
 		ID: u.Id, Name: u.GetString("name"), Email: u.Email(), Tier: u.GetString("tier"),
-		WeeklyHours: quota, IsAdmin: u.GetBool("is_admin"), Series: u.GetStringSlice("series"),
+		WeeklyHours: quota, IsAdmin: u.GetBool("is_admin"), Role: RoleOf(u), Series: u.GetStringSlice("series"),
 		Weeks: hist, ThisWeek: this, Expected: expected, Behind: this < expected,
 		Streak: streak(hist), Attendance: att, BySeries: bySeries,
 		TasksDone: ds.tasksDone[u.Id], LastTaskDone: ds.lastDone[u.Id],
@@ -341,7 +342,7 @@ func handleUpcoming(e *core.RequestEvent) error {
 	}
 	out := make([]meetingView, 0, len(recs))
 	for _, m := range recs {
-		if !e.Auth.GetBool("is_admin") && !slices.Contains(m.GetStringSlice("members"), e.Auth.Id) {
+		if !Can(e.Auth, PermTeamView) && !slices.Contains(m.GetStringSlice("members"), e.Auth.Id) {
 			continue
 		}
 		state := ""

@@ -12,12 +12,15 @@ import {
   UserGroupIcon,
 } from "@hugeicons/core-free-icons"
 
+import type { Permission } from "@/lib/permissions"
+
 export type NavItem = {
   title: string
   url: string
   icon: IconSvgElement
   description?: string
-  adminOnly?: boolean
+  /** Hide unless the user has this permission. */
+  permission?: Permission
 }
 
 export type NavGroup = {
@@ -40,7 +43,7 @@ export const navGroups: NavGroup[] = [
         url: "/team",
         icon: UserGroupIcon,
         description: "Hours, attendance and tasks for every member",
-        adminOnly: true,
+        permission: "team.view",
       },
     ],
   },

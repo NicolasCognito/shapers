@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Тест голосового ввода</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 0 20px;
+      line-height: 1.5;
+    }
+    button {
+      padding: 14px 24px;
+      font-size: 16px;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #0066cc;
+      color: white;
+      transition: background 0.2s;
+    }
+    button.recording {
+      background: #cc0000;
+      animation: pulse 1.2s infinite;
+    }
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.6; }
+      100% { opacity: 1; }
+    }
+    #status {
+      margin-top: 15px;
+      color: #666;
+      font-size: 14px;
+    }
+    #result {
+      margin-top: 20px;
+      padding: 16px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: #fafafa;
+      min-height: 80px;
+      white-space: pre-wrap;
+      font-size: 18px;
+    }
+    .lang-select {
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Проверка голосового ввода (Web Speech API)</h2>
+
+  <div class="lang-select">
+    <label for="lang">Язык распознавания: </label>
+    <select id="lang">
+      <option value="ru-RU" selected>Русский (ru-RU)</option>
+      <option value="en-US">English (en-US)</option>
+      <option value="sl-SI">Slovenščina (sl-SI)</option>
+    </select>
+  </div>
+
+  <button id="toggleBtn">🎤 Начать запись</button>
+  <div id="status">Нажмите кнопку и разрешите доступ к микрофону.</div>
+  
+  <h3>Результат распознавания:</h3>
+  <div id="result">Текст появится здесь...</div>
+
+  <script>
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    const toggleBtn = document.getElementById('toggleBtn');
+    const statusDiv = document.getElementById('status');
+    const resultDiv = document.getElementById('result');
+    const langSelect = document.getElementById('lang');
+
+    if (!SpeechRecognition) {
+      statusDiv.innerHTML = '<b style="color:red;">Web Speech API не поддерживается в этом браузере. Откройте в Google Chrome или Microsoft Edge.</b>';
+      toggleBtn.disabled = true;
+    } else {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false; // останавливается, когда закончили говорить
+      recognition.interimResults = true; // показывает текст на лету в процессе речи
+
+      let isRecording = false;
+
+      toggleBtn.addEventListener('click', () => {
+        if (!isRecording) {
+          recognition.lang = langSelect.value;
+          recognition.start();
+        } else {
+          recognition.stop();
+        }
+      });
+
+      recognition.onstart = () => {
+        isRecording = true;
+        toggleBtn.textContent = '⏹ Остановить';
+        toggleBtn.classList.add('recording');
+        statusDiv.textContent = 'Слушаю... говорите в микрофон.';
+        resultDiv.textContent = '';
+      };
+
+      recognition.onresult = (event) => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+        }
+        resultDiv.textContent = transcript;
+      };
+
+      recognition.onspeechend = () => {
+        statusDiv.textContent = 'Речь завершена, обработка...';
+      };
+
+      recognition.onend = () => {
+        isRecording = false;
+        toggleBtn.textContent = '🎤 Начать запись';
+        toggleBtn.classList.remove('recording');
+        if (resultDiv.textContent.trim() === '') {
+          statusDiv.textContent = 'Ничего не услышано. Нажмите снова, чтобы повторить.';
+        } else {
+          statusDiv.textContent = 'Готово! Текст зафиксирован.';
+        }
+      };
+
+      recognition.onerror = (event) => {
+        isRecording = false;
+        toggleBtn.textContent = '🎤 Начать запись';
+        toggleBtn.classList.remove('recording');
+        statusDiv.textContent = 'Ошибка: ' + event.error;
+      };
+    }
+  </script>
+</body>
+</html>
