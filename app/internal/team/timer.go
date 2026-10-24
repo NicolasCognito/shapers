@@ -19,16 +19,41 @@ const (
 type TimerView struct {
 	ID             string    `json:"id"`
 	StartedAt      time.Time `json:"started_at"`
-	PlannedMinutes int       `json:"planned_minutes"` // 0 = open-ended
-	ElapsedMinutes float64   `json:"elapsed_minutes"`
+	PlannedMinutes int        `json:"planned_minutes"` // 0 = open-ended
+	ElapsedMinutes float64    `json:"elapsed_minutes"` // work time, pauses excluded
+	PausedAt       *time.Time `json:"paused_at"`       // set while paused
+	PausedSeconds  int        `json:"paused_seconds"`  // finished pauses
 }
 
 func timerView(r *core.Record) *TimerView {
 	start := r.GetDateTime("started_at").Time()
-	return &TimerView{
+	v := &TimerView{
 		ID: r.Id, StartedAt: start, PlannedMinutes: r.GetInt("planned_minutes"),
-		ElapsedMinutes: time.Since(start).Minutes(),
+		PausedSeconds: r.GetInt("paused_seconds"),
 	}
+	end := time.Now()
+	if p := r.GetDateTime("paused_at").Time(); !p.IsZero() {
+		v.PausedAt, end = &p, p
+	}
+	v.ElapsedMinutes = math.Max(0, end.Sub(start).Minutes()-float64(v.PausedSeconds)/60)
+	return v
+}
+
+// PauseTimer pauses or resumes the actor's timer.
+func PauseTimer(app core.App, userID string, pause bool) (*TimerView, error) {
+	r, err := findTimer(app, userID)
+	if err != nil {
+		return nil, errors.New("no timer is running")
+	}
+	p := r.GetDateTime("paused_at").Time()
+	switch {
+	case pause && p.IsZero():
+		r.Set("paused_at", dbTime(time.Now()))
+	case !pause && !p.IsZero():
+		r.Set("paused_seconds", r.GetInt("paused_seconds")+int(time.Since(p).Seconds()))
+		r.Set("paused_at", "")
+	}
+	return timerView(r), app.Save(r)
 }
 
 func findTimer(app core.App, userID string) (*core.Record, error) {
@@ -150,6 +175,17 @@ func registerTimerRoutes(se *core.ServeEvent) {
 		}
 		return e.JSON(200, map[string]any{"timer": v})
 	})
+	pauseRoute := func(pause bool) func(e *core.RequestEvent) error {
+		return func(e *core.RequestEvent) error {
+			v, err := PauseTimer(e.App, e.Auth.Id, pause)
+			if err != nil {
+				return e.BadRequestError(err.Error(), nil)
+			}
+			return e.JSON(200, map[string]any{"timer": v})
+		}
+	}
+	g.POST("/pause", pauseRoute(true))
+	g.POST("/resume", pauseRoute(false))
 	g.POST("/stop", func(e *core.RequestEvent) error {
 		var in struct {
 			Log   bool    `json:"log"`

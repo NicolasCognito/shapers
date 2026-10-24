@@ -38,6 +38,7 @@ func Register(app *pocketbase.PocketBase) {
 	registerJarvisModel(app)
 	registerHourLimits(app)
 	registerSlack(app)
+	registerTierRules(app)
 
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 		g := se.Router.Group("/api/team")
@@ -58,6 +59,7 @@ func Register(app *pocketbase.PocketBase) {
 		registerRequestRoutes(se)
 		registerTimerRoutes(se)
 		registerTreeRoutes(se)
+		registerRuleRoutes(se)
 		return se.Next()
 	})
 

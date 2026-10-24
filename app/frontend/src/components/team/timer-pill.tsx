@@ -15,7 +15,8 @@ export function TimerPill() {
   const now = useNow(1000)
   if (!timer) return null
   const elapsed = elapsedSeconds(timer, now)
-  const over = timer.planned_minutes > 0 && elapsed > timer.planned_minutes * 60
+  const paused = !!timer.paused_at
+  const over = !paused && timer.planned_minutes > 0 && elapsed > timer.planned_minutes * 60
   return (
     <button
       type="button"
@@ -23,12 +24,14 @@ export function TimerPill() {
       title={t("timer.stopAndLog")}
       className={cn(
         "mr-1 inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-full border px-2.5 font-mono text-xs tabular-nums transition-colors",
-        over
+        paused
+          ? "bg-muted text-muted-foreground hover:bg-muted/70"
+          : over
           ? "border-amber-500/50 bg-amber-500/15 text-amber-700 dark:text-amber-400"
           : "bg-muted text-foreground hover:bg-muted/70"
       )}
     >
-      <span aria-hidden>⏱</span>
+      <span aria-hidden>{paused ? "⏸" : "⏱"}</span>
       {formatClock(elapsed)}
     </button>
   )

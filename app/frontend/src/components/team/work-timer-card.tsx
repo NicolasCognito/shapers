@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { format } from "date-fns"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { PlayIcon, StopIcon } from "@hugeicons/core-free-icons"
+import { PauseIcon, PlayIcon, StopIcon } from "@hugeicons/core-free-icons"
 
 import {
   AlertDialog,
@@ -35,6 +35,7 @@ export function WorkTimerCard() {
   const loaded = useWorkTimer((s) => s.loaded)
   const start = useWorkTimer((s) => s.start)
   const extend = useWorkTimer((s) => s.extend)
+  const pause = useWorkTimer((s) => s.pause)
   const stop = useWorkTimer((s) => s.stop)
   const openDialog = useWorkTimer((s) => s.openDialog)
   const now = useNow(1000)
@@ -60,6 +61,7 @@ export function WorkTimerCard() {
   const chosen = plan === "custom" ? customMinutes : plan
 
   const running = !!timer
+  const paused = !!timer?.paused_at
   const elapsed = timer ? elapsedSeconds(timer, now) : 0
   const plannedSec = timer ? timer.planned_minutes * 60 : 0
   const over = plannedSec > 0 && elapsed > plannedSec
@@ -69,6 +71,8 @@ export function WorkTimerCard() {
   let status: string
   if (!timer) {
     status = chosen > 0 ? t("timer.willPlan", { duration: durationLabel(t, chosen) }) : t("timer.noPlanHint")
+  } else if (paused) {
+    status = t("timer.paused")
   } else if (over) {
     status = t("timer.overPlan", { minutes: Math.floor((elapsed - plannedSec) / 60) })
   } else if (end) {
@@ -77,7 +81,7 @@ export function WorkTimerCard() {
     status = t("timer.runningOpen")
   }
 
-  const ringColor = over ? "stroke-amber-500" : "stroke-emerald-500"
+  const ringColor = paused ? "stroke-muted-foreground/40" : over ? "stroke-amber-500" : "stroke-emerald-500"
 
   return (
     <Card className="gap-0 p-5">
@@ -99,7 +103,7 @@ export function WorkTimerCard() {
               />
             )}
             {running && plannedSec === 0 && (
-              <circle cx="40" cy="40" r="36" className="fill-none stroke-emerald-500/60" strokeWidth="4" />
+              <circle cx="40" cy="40" r="36" className={cn("fill-none", paused ? "stroke-muted-foreground/40" : "stroke-emerald-500/60")} strokeWidth="4" />
             )}
           </svg>
           <button
@@ -122,13 +126,13 @@ export function WorkTimerCard() {
           <p
             className={cn(
               "text-4xl leading-tight font-semibold tracking-tight tabular-nums",
-              !running && "text-muted-foreground/60",
-              over && "text-amber-600 dark:text-amber-400"
+              (!running || paused) && "text-muted-foreground/60",
+              over && !paused && "text-amber-600 dark:text-amber-400"
             )}
           >
             {formatClock(elapsed)}
           </p>
-          <p className={cn("text-sm text-muted-foreground", over && "text-amber-600 dark:text-amber-400")}>{status}</p>
+          <p className={cn("text-sm text-muted-foreground", over && !paused && "text-amber-600 dark:text-amber-400")}>{status}</p>
         </div>
 
         {/* Plan picker before start; quiet actions while running */}
@@ -198,6 +202,18 @@ export function WorkTimerCard() {
           </div>
         ) : (
           <div className="flex items-center gap-1">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => run(() => pause(!paused))}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium disabled:opacity-60",
+                paused ? "bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25 dark:text-emerald-400" : "text-foreground hover:bg-muted"
+              )}
+            >
+              <HugeiconsIcon icon={paused ? PlayIcon : PauseIcon} strokeWidth={2} className="size-4" />
+              {paused ? t("timer.resume") : t("timer.pause")}
+            </button>
             <button
               type="button"
               disabled={busy}

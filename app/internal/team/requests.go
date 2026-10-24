@@ -152,6 +152,13 @@ func DecideRequest(app core.App, actor *core.Record, id string, approve bool, no
 		if !approve && note == "" {
 			return nil, errors.New("write a reason, the member will see it")
 		}
+	case "pause":
+		if !Can(actor, PermMembersManage) {
+			return nil, errors.New("only admins decide pause requests")
+		}
+		if !approve && note == "" {
+			return nil, errors.New("write a reason, the member will see it")
+		}
 	case "handoff":
 		if r.GetString("recipient") != actor.Id {
 			return nil, errors.New("only the person the task is offered to can answer")
@@ -177,6 +184,13 @@ func DecideRequest(app core.App, actor *core.Record, id string, approve bool, no
 				log.Set("note", r.GetString("note"))
 				log.Set("source", "request")
 				if err := tx.Save(log); err != nil {
+					return err
+				}
+			}
+		case "pause":
+			if approve {
+				if _, err := SetPause(tx, actor.Id, r.GetString("requester"), dayOf(r.GetDateTime("date").Time()),
+					dayOf(r.GetDateTime("end_date").Time()), r.GetString("note")); err != nil {
 					return err
 				}
 			}

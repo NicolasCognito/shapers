@@ -8,6 +8,8 @@ export type WorkTimer = {
   started_at: string
   planned_minutes: number
   elapsed_minutes: number
+  paused_at: string | null
+  paused_seconds: number
 }
 
 export type StopResult = {
@@ -24,6 +26,7 @@ type WorkTimerState = {
   load: () => Promise<void>
   start: (plannedMinutes: number) => Promise<void>
   extend: (minutes: number) => Promise<void>
+  pause: (on: boolean) => Promise<void>
   stop: (opts: {
     log: boolean
     hours?: number
@@ -69,6 +72,13 @@ export const useWorkTimer = create<WorkTimerState>((set, get) => ({
     )
     set({ timer: res.timer ?? null })
   },
+  pause: async (on) => {
+    const res = await pb.send<{ timer: WorkTimer | null }>(
+      on ? "/api/team/timer/pause" : "/api/team/timer/resume",
+      { method: "POST" }
+    )
+    set({ timer: res.timer ?? null })
+  },
   stop: async (opts) => {
     const res = await pb.send<StopResult>("/api/team/timer/stop", {
       method: "POST",
@@ -93,16 +103,21 @@ export function useNow(intervalMs = 1000): number {
   return now
 }
 
+/** Work seconds so far: pauses don't count, and a paused clock stands still. */
 export function elapsedSeconds(timer: WorkTimer, now: number): number {
   const started = new Date(timer.started_at).getTime()
   if (Number.isNaN(started)) return timer.elapsed_minutes * 60
-  return Math.max(0, Math.floor((now - started) / 1000))
+  const end = timer.paused_at ? new Date(timer.paused_at).getTime() : now
+  return Math.max(0, Math.floor((end - started) / 1000 - (timer.paused_seconds || 0)))
 }
 
-/** Planned end as epoch ms, or null for an open-ended timer. */
+/** Planned end as epoch ms, or null for an open-ended or paused timer. */
 export function plannedEnd(timer: WorkTimer): number | null {
-  if (!timer.planned_minutes) return null
-  return new Date(timer.started_at).getTime() + timer.planned_minutes * 60_000
+  if (!timer.planned_minutes || timer.paused_at) return null
+  return (
+    new Date(timer.started_at).getTime() +
+    (timer.planned_minutes * 60 + (timer.paused_seconds || 0)) * 1000
+  )
 }
 
 export function formatClock(totalSeconds: number): string {

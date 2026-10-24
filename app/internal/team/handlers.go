@@ -115,6 +115,8 @@ type meetingView struct {
 	Location string    `json:"location"`
 	State    string    `json:"state"` // my state, "" if not recorded
 	CanCheck bool      `json:"can_check_in"`
+	Notice   string    `json:"notice,omitempty"` // my "can't come" reason, sent ahead
+	Late     bool      `json:"notice_late,omitempty"`
 }
 
 type weekHours struct {
@@ -122,6 +124,7 @@ type weekHours struct {
 	Hours     float64 `json:"hours"`
 	Quota     float64 `json:"quota"`
 	Met       bool    `json:"met"`
+	Paused    bool    `json:"paused"` // on pause: not behind, doesn't break the streak
 }
 
 type attendanceStats struct {
@@ -165,10 +168,13 @@ type dataset struct {
 	weeks      []time.Time                   // oldest .. current
 	tasksDone  map[string]int                // userID -> completed tasks (all time)
 	lastDone   map[string]string             // userID -> last completion time
+	pauses     map[string][]pausePeriod      // userID -> pauses
+	late       map[string]bool               // meetingID|userID -> absence noticed too late
+	notice     map[string]string             // meetingID|userID -> "can't come" reason
 }
 
 func loadDataset(app core.App) (*dataset, error) {
-	ds := &dataset{attendance: map[string]string{}, hours: map[string]map[string]float64{}}
+	ds := &dataset{attendance: map[string]string{}, hours: map[string]map[string]float64{}, late: map[string]bool{}, notice: map[string]string{}}
 	var err error
 	// Only roster members (with a tier) count in analytics.
 	if ds.users, err = app.FindRecordsByFilter(colUsers, "tier != ''", "", 0, 0); err != nil {
@@ -183,8 +189,16 @@ func loadDataset(app core.App) (*dataset, error) {
 		return nil, err
 	}
 	for _, a := range att {
-		ds.attendance[a.GetString("meeting")+"|"+a.GetString("user")] = a.GetString("state")
+		key := a.GetString("meeting") + "|" + a.GetString("user")
+		ds.attendance[key] = a.GetString("state")
+		if a.GetBool("notice_late") {
+			ds.late[key] = true
+		}
+		if a.GetString("source") == "notice" {
+			ds.notice[key] = a.GetString("note")
+		}
 	}
+	ds.pauses = loadPauses(app, "")
 	cur := WeekStart(time.Now())
 	for i := historyWeeks - 1; i >= 0; i-- {
 		ds.weeks = append(ds.weeks, cur.AddDate(0, 0, -7*i))
@@ -210,18 +224,21 @@ func (ds *dataset) weekHistory(u *core.Record) []weekHours {
 	for _, w := range ds.weeks {
 		k := w.Format("2006-01-02")
 		h := ds.hours[u.Id][k]
-		out = append(out, weekHours{WeekStart: k, Hours: h, Quota: quota, Met: quota > 0 && h >= quota})
+		out = append(out, weekHours{WeekStart: k, Hours: h, Quota: quota, Met: quota > 0 && h >= quota, Paused: weekPaused(ds.pauses[u.Id], w)})
 	}
 	return out
 }
 
 // streak counts consecutive weeks with the quota met, ending with the last
 // complete week (the current week counts too once it is already met).
+// Paused weeks neither add to the streak nor break it.
 func streak(hist []weekHours) int {
 	n := 0
 	for i := len(hist) - 1; i >= 0; i-- {
 		if hist[i].Met {
 			n++
+		} else if hist[i].Paused {
+			continue
 		} else if i != len(hist)-1 {
 			break
 		}
@@ -237,6 +254,9 @@ func (ds *dataset) memberAttendance(u *core.Record, now time.Time) (attendanceSt
 			continue
 		}
 		st := ds.attendance[m.Id+"|"+u.Id]
+		if (st == "" || st == "unexcused") && inPause(ds.pauses[u.Id], m.GetDateTime("start_at").Time()) {
+			st = "excused" // on pause: missing a meeting is fine
+		}
 		total.add(st)
 		s := m.GetString("series")
 		if bySeries[s] == nil {
@@ -274,6 +294,9 @@ type memberSummary struct {
 	Progress     float64                     `json:"progress"` // this week / quota
 	Expected     float64                     `json:"expected"` // pro-rata quota by today
 	Behind       bool                        `json:"behind"`
+	Paused       bool                        `json:"paused"`          // this week is on pause
+	Pause        *pausePeriod                `json:"pause,omitempty"` // running or next pause
+	Community    *communityStats             `json:"community,omitempty"`
 	Streak       int                         `json:"streak"`
 	Attendance   attendanceStats             `json:"attendance"`
 	BySeries     map[string]*attendanceStats `json:"by_series"`
@@ -292,7 +315,8 @@ func (ds *dataset) summary(u *core.Record, now time.Time) memberSummary {
 	s := memberSummary{
 		ID: u.Id, Name: u.GetString("name"), Email: u.Email(), Tier: u.GetString("tier"),
 		WeeklyHours: quota, IsAdmin: u.GetBool("is_admin"), Role: RoleOf(u), Series: u.GetStringSlice("series"),
-		Weeks: hist, ThisWeek: this, Expected: expected, Behind: this < expected,
+		Weeks: hist, ThisWeek: this, Expected: expected, Behind: this < expected && !hist[len(hist)-1].Paused,
+		Paused: hist[len(hist)-1].Paused, Pause: currentOrNextPause(ds.pauses[u.Id], now), Community: ds.community(u, now),
 		Streak: streak(hist), Attendance: att, BySeries: bySeries,
 		TasksDone: ds.tasksDone[u.Id], LastTaskDone: ds.lastDone[u.Id],
 	}
@@ -317,7 +341,9 @@ func memberDetail(app core.App, ds *dataset, u *core.Record, now time.Time) map[
 		if !slices.Contains(m.GetStringSlice("members"), u.Id) {
 			continue
 		}
-		v := toView(m, ds.attendance[m.Id+"|"+u.Id], now)
+		key := m.Id + "|" + u.Id
+		v := toView(m, ds.attendance[key], now)
+		v.Notice, v.Late = ds.notice[key], ds.late[key]
 		if v.Start.Before(now) {
 			past = append(past, v)
 		} else if v.Start.Before(now.AddDate(0, 0, 14)) {
@@ -330,6 +356,7 @@ func memberDetail(app core.App, ds *dataset, u *core.Record, now time.Time) map[
 		"past":       past,
 		"upcoming":   upcoming,
 		"tasks_done": completedTaskList(app, u.Id),
+		"pauses":     pausesOrEmpty(ds.pauses[u.Id]),
 	}
 }
 
@@ -346,11 +373,14 @@ func handleUpcoming(e *core.RequestEvent) error {
 		if !Can(e.Auth, PermTeamView) && !slices.Contains(m.GetStringSlice("members"), e.Auth.Id) {
 			continue
 		}
-		state := ""
+		v := toView(m, "", now)
 		if a, err := e.App.FindFirstRecordByFilter(colAttendance, "meeting = {:m} && user = {:u}", dbx.Params{"m": m.Id, "u": e.Auth.Id}); err == nil {
-			state = a.GetString("state")
+			v.State = a.GetString("state")
+			if a.GetString("source") == "notice" {
+				v.Notice, v.Late = a.GetString("note"), a.GetBool("notice_late")
+			}
 		}
-		out = append(out, toView(m, state, now))
+		out = append(out, v)
 	}
 	return e.JSON(200, out)
 }
@@ -379,7 +409,9 @@ func handleOverview(e *core.RequestEvent) error {
 		weeks[i].WeekStart = w.Format("2006-01-02")
 		for _, m := range members {
 			weeks[i].Hours += m.Weeks[i].Hours
-			weeks[i].Quota += m.Weeks[i].Quota
+			if !m.Weeks[i].Paused {
+				weeks[i].Quota += m.Weeks[i].Quota
+			}
 			if m.Weeks[i].Met {
 				weeks[i].MetCount++
 			}
@@ -473,4 +505,11 @@ func handleMember(e *core.RequestEvent) error {
 		}
 	}
 	return e.NotFoundError("Member not found.", nil)
+}
+
+func pausesOrEmpty(ps []pausePeriod) []pausePeriod {
+	if ps == nil {
+		return []pausePeriod{}
+	}
+	return ps
 }

@@ -117,6 +117,9 @@ func LoadTree(app core.App, userID string) (TreeView, error) {
 		}
 	}
 	v := viewTree(r)
+	if !v.Vacation && inPause(loadPauses(app, userID)[userID], time.Now()) {
+		v.Vacation, v.Mood, v.DaysDry = true, "happy", 0 // on pause the tree waits too
+	}
 	v.Bonus = bonus
 	v.Demo = demoEnabled()
 	return v, nil
