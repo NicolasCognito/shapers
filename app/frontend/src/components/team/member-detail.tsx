@@ -44,6 +44,15 @@ export function MemberDetailView({
   canModerate?: boolean
   onChanged: () => void
 }) {
+  const restoreTask = async (id: string) => {
+    try {
+      await requestsApi.restoreTask(id)
+      toast.success("Task counts as done again")
+      onChanged()
+    } catch (e) {
+      toast.error(extractErrorMessage(e, "Could not restore"))
+    }
+  }
   const cancelTask = async (id: string, title: string) => {
     const reason = window.prompt(
       `Why should “${title}” not count as done? The member will see this.`
@@ -240,14 +249,16 @@ export function MemberDetailView({
                         {t.project}
                       </span>
                     )}
-                    {canModerate && !t.cancelled && (
+                    {canModerate && (
                       <Button
                         size="sm"
                         variant="ghost"
                         className="h-6 px-2 text-xs"
-                        onClick={() => cancelTask(t.id, t.title)}
+                        onClick={() =>
+                          t.cancelled ? restoreTask(t.id) : cancelTask(t.id, t.title)
+                        }
                       >
-                        Cancel
+                        {t.cancelled ? "Restore" : "Cancel"}
                       </Button>
                     )}
                   </div>

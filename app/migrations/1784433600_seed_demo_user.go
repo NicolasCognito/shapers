@@ -8,6 +8,12 @@ import (
 	m "github.com/pocketbase/pocketbase/migrations"
 )
 
+// Do not delete the demo user or this seed. The migration tests build on it:
+// TestSeedDemoUser checks it exists, and TestBackfillConversationLastMessageAt
+// uses it as the owner of test conversations. Removing it breaks both.
+// It has no tier, so team analytics, Team page and Jarvis ignore it.
+// On a public server, change its password or delete it there by hand —
+// never via a migration.
 const (
 	demoUserID       = "workaverademo01"
 	demoUserEmail    = "demo@workavera.local"

@@ -251,6 +251,21 @@ func CancelTask(app core.App, actor *core.Record, taskID, reason string) (*core.
 
 // ---------- HTTP ----------
 
+// RestoreTask: an admin undoes a cancel; the task counts as done again.
+func RestoreTask(app core.App, actor *core.Record, taskID string) (*core.Record, error) {
+	if !Can(actor, PermTasksModerate) {
+		return nil, errors.New("only admins can restore tasks")
+	}
+	task, err := app.FindRecordById("board_tasks", taskID)
+	if err != nil {
+		return nil, errors.New("task not found")
+	}
+	task.Set("cancelled", false)
+	task.Set("cancel_reason", "")
+	task.Set("cancelled_by", "")
+	return task, app.Save(task)
+}
+
 func registerRequestRoutes(se *core.ServeEvent) {
 	g := se.Router.Group("/api/team")
 	g.Bind(apis.RequireAuth(colUsers))
@@ -307,6 +322,10 @@ func registerRequestRoutes(se *core.ServeEvent) {
 			return e.BadRequestError("Invalid body.", err)
 		}
 		rec, err := CancelTask(e.App, e.Auth, e.Request.PathValue("id"), in.Reason)
+		return reply(e, rec, err)
+	})
+	g.POST("/tasks/{id}/restore", func(e *core.RequestEvent) error {
+		rec, err := RestoreTask(e.App, e.Auth, e.Request.PathValue("id"))
 		return reply(e, rec, err)
 	})
 }

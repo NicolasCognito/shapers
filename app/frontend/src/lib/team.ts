@@ -176,6 +176,8 @@ export const requestsApi = {
     }),
   withdraw: (id: string) =>
     pb.send(`/api/team/requests/${id}/withdraw`, { method: "POST" }),
+  restoreTask: (id: string) =>
+    pb.send(`/api/team/tasks/${id}/restore`, { method: "POST" }),
   cancelTask: (id: string, reason: string) =>
     pb.send(`/api/team/tasks/${id}/cancel`, {
       method: "POST",
