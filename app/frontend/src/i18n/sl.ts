@@ -70,7 +70,7 @@ export const sl = {
     accountsNote: "Račune ustvari skrbnik vašega delovnega prostora.",
   },
   nav: {
-    tree: "Happy Little Tree",
+    tree: "Moje drevo",
     treeDesc: "Zalijte ga, ko dokončate načrtovano",
     groupShapers: "Shapers",
     groupTree: "Drevo",

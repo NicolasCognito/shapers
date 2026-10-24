@@ -75,7 +75,7 @@ export const navGroups: NavGroup[] = [
     labelKey: "nav.groupTree",
     items: [
       {
-        title: "Happy Little Tree",
+        title: "My Tree",
         titleKey: "nav.tree",
         descriptionKey: "nav.treeDesc",
         url: "/tree",
