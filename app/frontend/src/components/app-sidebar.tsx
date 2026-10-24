@@ -37,12 +37,12 @@ export function AppSidebar() {
               asChild
               className="data-[slot=sidebar-menu-button]:!p-2"
             >
-              <NavLink to="/dashboard" onClick={closeMobileSidebar}>
+              <NavLink to="/me" onClick={closeMobileSidebar}>
                 <Logo className="!size-[30px] shrink-0 group-data-[collapsible=icon]:!size-4" />
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">Workavera</span>
+                  <span className="truncate font-semibold">Shapers</span>
                   <span className="truncate text-xs text-muted-foreground">
-                    workavera.com
+                    Team hub
                   </span>
                 </div>
               </NavLink>
@@ -82,8 +82,8 @@ export function AppSidebar() {
 
       <SidebarFooter>
         <div className="px-3 py-2 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
-          <p className="font-medium text-foreground/70">Workavera</p>
-          <p className="mt-0.5">workavera.com · Press ⌘B to toggle</p>
+          <p className="font-medium text-foreground/70">Shapers</p>
+          <p className="mt-0.5">Press ⌘B to toggle</p>
         </div>
       </SidebarFooter>
 

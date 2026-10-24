@@ -391,7 +391,7 @@ export function DashboardPage() {
         <Button asChild size="sm">
           <Link to="/chat">
             <HugeiconsIcon icon={SparklesIcon} strokeWidth={2} className="size-4" />
-            Ask Workavera
+            Ask Jarvis
           </Link>
         </Button>
       </div>
