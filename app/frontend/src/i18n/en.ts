@@ -70,9 +70,10 @@ export const en = {
     accountsNote: "Accounts are created by your workspace administrator.",
   },
   nav: {
-    tree: "My tree",
+    tree: "Happy Little Tree",
     treeDesc: "Water it by finishing what you planned",
     groupShapers: "Shapers",
+    groupTree: "Tree",
     groupWorkflow: "Workflow",
     groupSystem: "System",
     myWeek: "My week",

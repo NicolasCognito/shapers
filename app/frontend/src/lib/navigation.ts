@@ -60,14 +60,6 @@ export const navGroups: NavGroup[] = [
         description: "Older hours and task handoffs, with answers",
       },
       {
-        title: "My tree",
-        titleKey: "nav.tree",
-        descriptionKey: "nav.treeDesc",
-        url: "/tree",
-        icon: Plant01Icon,
-        description: "Water it by finishing what you planned",
-      },
-      {
         title: "Team",
         titleKey: "nav.team",
         descriptionKey: "nav.teamDesc",
@@ -75,6 +67,20 @@ export const navGroups: NavGroup[] = [
         icon: UserGroupIcon,
         description: "Hours, attendance and tasks for every member",
         permission: "team.view",
+      },
+    ],
+  },
+  {
+    label: "Tree",
+    labelKey: "nav.groupTree",
+    items: [
+      {
+        title: "Happy Little Tree",
+        titleKey: "nav.tree",
+        descriptionKey: "nav.treeDesc",
+        url: "/tree",
+        icon: Plant01Icon,
+        description: "Water it by finishing what you planned",
       },
     ],
   },

@@ -47,8 +47,10 @@ export function TreePage() {
       </div>
 
       <div className="space-y-1">
-        <h1 className="text-3xl font-semibold tracking-tight">{t(`tree.stage${tree.stage}`)}</h1>
-        <p className="text-lg text-muted-foreground">{moodLine}</p>
+        <h1 className="text-3xl font-semibold tracking-tight">Happy Little Tree</h1>
+        <p className="text-lg text-muted-foreground">
+          {t(`tree.stage${tree.stage}`)}, {moodLine.charAt(0).toLowerCase() + moodLine.slice(1)}
+        </p>
       </div>
 
       <div className="flex flex-col items-center gap-2">
