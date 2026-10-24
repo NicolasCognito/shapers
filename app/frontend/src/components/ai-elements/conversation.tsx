@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import i18n from "@/i18n"
 import type { UIMessage } from "ai"
 import { ArrowDownIcon, DownloadIcon } from "lucide-react"
 import type { ComponentProps } from "react"
@@ -42,8 +43,8 @@ export type ConversationEmptyStateProps = ComponentProps<"div"> & {
 
 export const ConversationEmptyState = ({
   className,
-  title = "No messages yet",
-  description = "Start a conversation to see messages here",
+  title = i18n.t("chat.noMessages"),
+  description = i18n.t("aiElements.startConversation"),
   icon,
   children,
   ...props

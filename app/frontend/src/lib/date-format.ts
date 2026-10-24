@@ -1,12 +1,12 @@
 import { format, parseISO } from "date-fns"
-import { zhCN } from "date-fns/locale"
+import { sl as slLocale, zhCN } from "date-fns/locale"
 
 /**
  * The public preview reads in English by default and switches to Chinese date
  * formatting with `?lang=zh`. Only dates follow the parameter: the rest of the
  * page keeps the interface language it is written in.
  */
-export type DateLocale = "en" | "zh"
+export type DateLocale = "en" | "zh" | "sl"
 
 /** Any `zh` variant selects Chinese; everything else stays on the default. */
 export function resolveDateLocale(value: string | null): DateLocale {
@@ -35,6 +35,15 @@ const PATTERNS = {
     /** `3` */
     dayOfMonth: "d",
   },
+  sl: {
+    monthDay: "d. MMM",
+    monthDayYear: "d. MMM yyyy",
+    monthYear: "MMM yyyy",
+    weekdayShort: "EEE, d. MMM",
+    weekdayLong: "EEEE, d. MMM",
+    weekdayNarrow: "EEEEE",
+    dayOfMonth: "d",
+  },
   zh: {
     monthDay: "M月d日",
     monthDayYear: "yyyy年M月d日",
@@ -54,13 +63,13 @@ export function formatDate(
   locale: DateLocale
 ) {
   return format(date, PATTERNS[locale][pattern], {
-    locale: locale === "zh" ? zhCN : undefined,
+    locale: dateFnsLocale(locale),
   })
 }
 
 /** The `date-fns` locale for helpers that format on their own, e.g. distances. */
 export function dateFnsLocale(locale: DateLocale) {
-  return locale === "zh" ? zhCN : undefined
+  return locale === "zh" ? zhCN : locale === "sl" ? slLocale : undefined
 }
 
 /** A start and a due date read as one span; either alone reads as a day. */

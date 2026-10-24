@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import {
   Message,
   MessageContent,
@@ -52,6 +53,7 @@ import { ToolInput } from "./tool-input"
  * spelled out — an animation alone still looks like a frozen page.
  */
 export function ThinkingIndicator({ className }: { className?: string }) {
+  const { t } = useTranslation()
   const [seconds, setSeconds] = useState(0)
 
   useEffect(() => {
@@ -64,7 +66,9 @@ export function ThinkingIndicator({ className }: { className?: string }) {
 
   return (
     <Shimmer as="span" className={cn("text-sm", className)}>
-      {seconds >= 2 ? `Thinking… ${seconds}s` : "Thinking…"}
+      {seconds >= 2
+        ? t("chat.thinkingSeconds", { seconds })
+        : t("chat.thinking")}
     </Shimmer>
   )
 }
@@ -291,6 +295,7 @@ function MessageParts({
   message: ChatUIMessage
   runActive: boolean
 }) {
+  const { t } = useTranslation()
   const approvals = new Map(
     message.parts
       .filter((part) => part.type === "data-approval")
@@ -346,7 +351,7 @@ function MessageParts({
         if (part.data.state === "started") {
           return (
             <Shimmer key={`compaction-${index}`} className="text-xs">
-              Compacting context…
+              {t("chat.compacting")}
             </Shimmer>
           )
         }
@@ -356,8 +361,8 @@ function MessageParts({
             className="text-xs text-muted-foreground/70"
           >
             {part.data.state === "failed"
-              ? "Context compaction failed — continued with full history"
-              : "Older messages were compacted into a summary"}
+              ? t("chat.compactFailed")
+              : t("chat.compacted")}
           </div>
         )
       case "data-approval":
@@ -375,6 +380,7 @@ function ChatMessageItemComponent({
   message: ChatUIMessage
   runActive: boolean
 }) {
+  const { t } = useTranslation()
   const isUser = message.role === "user"
   const metadata = message.metadata
   const createdAt = metadata?.createdAt
@@ -388,7 +394,7 @@ function ChatMessageItemComponent({
           isUser && "ml-auto justify-end"
         )}
       >
-        <span className="font-medium">{isUser ? "You" : "Assistant"}</span>
+        <span className="font-medium">{isUser ? t("common.you") : t("chat.assistant")}</span>
         {!isUser && metadata?.model?.name && (
           <>
             <span className="text-muted-foreground/50">·</span>
@@ -406,7 +412,7 @@ function ChatMessageItemComponent({
             "state" in part ? part.state === "streaming" : false
           )) && (
           <Badge variant="secondary" className="h-4 px-1 text-[10px]">
-            streaming
+            {t("chat.streaming")}
           </Badge>
         )}
       </div>
@@ -422,8 +428,8 @@ function ChatMessageItemComponent({
         usage &&
         (usage.inputTokens > 0 || usage.outputTokens > 0) && (
           <div className="flex items-center gap-2 text-[11px] text-muted-foreground/70">
-            {usage.inputTokens > 0 && <span>↑ {usage.inputTokens} in</span>}
-            {usage.outputTokens > 0 && <span>↓ {usage.outputTokens} out</span>}
+            {usage.inputTokens > 0 && <span>↑ {t("chat.usageIn", { count: usage.inputTokens })}</span>}
+            {usage.outputTokens > 0 && <span>↓ {t("chat.usageOut", { count: usage.outputTokens })}</span>}
           </div>
         )}
     </Message>

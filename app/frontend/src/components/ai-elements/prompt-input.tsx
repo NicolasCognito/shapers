@@ -40,6 +40,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
+import i18n from "@/i18n"
 import type { ChatStatus, FileUIPart, SourceDocumentUIPart } from "ai"
 import {
   CornerDownLeftIcon,
@@ -319,7 +320,7 @@ export type PromptInputActionAddAttachmentsProps = ComponentProps<
 }
 
 export const PromptInputActionAddAttachments = ({
-  label = "Add photos or files",
+  label = i18n.t("aiElements.addFiles"),
   ...props
 }: PromptInputActionAddAttachmentsProps) => {
   const attachments = usePromptInputAttachments()
@@ -346,7 +347,7 @@ export type PromptInputActionAddScreenshotProps = ComponentProps<
 }
 
 export const PromptInputActionAddScreenshot = ({
-  label = "Take screenshot",
+  label = i18n.t("aiElements.screenshot"),
   onSelect,
   ...props
 }: PromptInputActionAddScreenshotProps) => {
@@ -486,7 +487,7 @@ export const PromptInput = ({
       if (incoming.length && accepted.length === 0) {
         onError?.({
           code: "accept",
-          message: "No files match the accepted types.",
+          message: i18n.t("aiElements.noMatchTypes"),
         })
         return
       }
@@ -496,7 +497,7 @@ export const PromptInput = ({
       if (accepted.length > 0 && sized.length === 0) {
         onError?.({
           code: "max_file_size",
-          message: "All files exceed the maximum size.",
+          message: i18n.t("aiElements.tooLarge"),
         })
         return
       }
@@ -511,7 +512,7 @@ export const PromptInput = ({
         if (typeof capacity === "number" && sized.length > capacity) {
           onError?.({
             code: "max_files",
-            message: "Too many files. Some were not added.",
+            message: i18n.t("aiElements.tooMany"),
           })
         }
         const next: (FileUIPart & { id: string })[] = []
@@ -550,7 +551,7 @@ export const PromptInput = ({
       if (incoming.length && accepted.length === 0) {
         onError?.({
           code: "accept",
-          message: "No files match the accepted types.",
+          message: i18n.t("aiElements.noMatchTypes"),
         })
         return
       }
@@ -560,7 +561,7 @@ export const PromptInput = ({
       if (accepted.length > 0 && sized.length === 0) {
         onError?.({
           code: "max_file_size",
-          message: "All files exceed the maximum size.",
+          message: i18n.t("aiElements.tooLarge"),
         })
         return
       }
@@ -575,7 +576,7 @@ export const PromptInput = ({
       if (typeof capacity === "number" && sized.length > capacity) {
         onError?.({
           code: "max_files",
-          message: "Too many files. Some were not added.",
+          message: i18n.t("aiElements.tooMany"),
         })
       }
 
@@ -810,12 +811,12 @@ export const PromptInput = ({
     <>
       <input
         accept={accept}
-        aria-label="Upload files"
+        aria-label={i18n.t("aiElements.upload")}
         className="hidden"
         multiple={multiple}
         onChange={handleChange}
         ref={inputRef}
-        title="Upload files"
+        title={i18n.t("aiElements.upload")}
         type="file"
       />
       <form
@@ -1149,7 +1150,11 @@ export const PromptInputSubmit = ({
 
   return (
     <InputGroupButton
-      aria-label={isGenerating ? "Stop" : "Submit"}
+      aria-label={
+        isGenerating
+          ? i18n.t("aiElements.stop")
+          : i18n.t("aiElements.submit")
+      }
       className={cn(className)}
       onClick={handleClick}
       size={size}

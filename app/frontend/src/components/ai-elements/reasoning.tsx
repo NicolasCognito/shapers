@@ -7,6 +7,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { cn } from "@/lib/utils"
+import i18n from "@/i18n"
 import { cjk } from "@streamdown/cjk"
 import { code } from "@streamdown/code"
 import { math } from "@streamdown/math"
@@ -156,12 +157,12 @@ export type ReasoningTriggerProps = ComponentProps<
 
 const defaultGetThinkingMessage = (isStreaming: boolean, duration?: number) => {
   if (isStreaming || duration === 0) {
-    return <Shimmer duration={1}>Thinking...</Shimmer>
+    return <Shimmer duration={1}>{i18n.t("aiElements.thinking")}</Shimmer>
   }
   if (duration === undefined) {
-    return <p>Thought for a few seconds</p>
+    return <p>{i18n.t("aiElements.thoughtFew")}</p>
   }
-  return <p>Thought for {duration} seconds</p>
+  return <p>{i18n.t("aiElements.thoughtFor", { count: duration })}</p>
 }
 
 export const ReasoningTrigger = memo(

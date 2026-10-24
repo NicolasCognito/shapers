@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useState } from "react"
 
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -35,16 +36,17 @@ import { useAuthStore, type UserStatus } from "@/store/auth"
 
 const STATUS_OPTIONS: {
   value: UserStatus
-  label: string
+  labelKey: string
   color: string
 }[] = [
-  { value: "online", label: "Online", color: "#22c55e" },
-  { value: "away", label: "Away", color: "#f59e0b" },
-  { value: "busy", label: "Busy", color: "#ef4444" },
-  { value: "offline", label: "Offline", color: "#64748b" },
+  { value: "online", labelKey: "profile.status.online", color: "#22c55e" },
+  { value: "away", labelKey: "profile.status.away", color: "#f59e0b" },
+  { value: "busy", labelKey: "profile.status.busy", color: "#ef4444" },
+  { value: "offline", labelKey: "profile.status.offline", color: "#64748b" },
 ]
 
 export function ProfilePage() {
+  const { t } = useTranslation()
   const user = useAuthStore((s) => s.user)
   const updateProfile = useAuthStore((s) => s.updateProfile)
   const updatePassword = useAuthStore((s) => s.updatePassword)
@@ -96,7 +98,7 @@ export function ProfilePage() {
       setSaved(true)
     } catch (error) {
       setSaveError(
-        error instanceof Error ? error.message : "Could not save your profile"
+        error instanceof Error ? error.message : t("profile.saveFailed")
       )
       setSaved(false)
     } finally {
@@ -107,11 +109,11 @@ export function ProfilePage() {
   const handleUpdatePassword = async () => {
     setPwdError(null)
     if (pwdForm.next.length < 8) {
-      setPwdError("New password must be at least 8 characters")
+      setPwdError(t("profile.pwdTooShort"))
       return
     }
     if (pwdForm.next !== pwdForm.confirm) {
-      setPwdError("Passwords do not match")
+      setPwdError(t("profile.pwdMismatch"))
       return
     }
     setPwdSaving(true)
@@ -123,7 +125,7 @@ export function ProfilePage() {
       setPwdError(
         error instanceof Error
           ? error.message
-          : "Could not update your password"
+          : t("profile.pwdFailed")
       )
       setPwdSaved(false)
     } finally {
@@ -136,9 +138,9 @@ export function ProfilePage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Profile</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("profile.title")}</h1>
         <p className="text-sm text-muted-foreground">
-          Manage your personal information and security settings.
+          {t("profile.subtitle")}
         </p>
       </div>
 
@@ -154,9 +156,9 @@ export function ProfilePage() {
               />
             </div>
             <div>
-              <CardTitle>Personal Information</CardTitle>
+              <CardTitle>{t("profile.personalInfo")}</CardTitle>
               <CardDescription>
-                Update your avatar, name, contact details, and profile.
+                {t("profile.personalInfoDesc")}
               </CardDescription>
             </div>
           </div>
@@ -177,7 +179,7 @@ export function ProfilePage() {
 
           {/* Name */}
           <div className="flex flex-col gap-2">
-            <Label htmlFor="profile-name">Username</Label>
+            <Label htmlFor="profile-name">{t("profile.username")}</Label>
             <Input
               id="profile-name"
               value={name}
@@ -186,13 +188,13 @@ export function ProfilePage() {
                 setName(e.target.value)
                 setSaved(false)
               }}
-              placeholder="Your name"
+              placeholder={t("profile.namePlaceholder")}
             />
           </div>
 
           {/* Phone */}
           <div className="flex flex-col gap-2">
-            <Label htmlFor="profile-phone">Phone</Label>
+            <Label htmlFor="profile-phone">{t("profile.phone")}</Label>
             <div className="relative">
               <HugeiconsIcon
                 icon={Call02Icon}
@@ -215,7 +217,7 @@ export function ProfilePage() {
 
           {/* Title */}
           <div className="flex flex-col gap-2">
-            <Label htmlFor="profile-title">Title</Label>
+            <Label htmlFor="profile-title">{t("profile.jobTitle")}</Label>
             <Input
               id="profile-title"
               value={title}
@@ -224,13 +226,13 @@ export function ProfilePage() {
                 setTitle(e.target.value)
                 setSaved(false)
               }}
-              placeholder="Product Designer"
+              placeholder={t("profile.titlePlaceholder")}
             />
           </div>
 
           {/* Bio */}
           <div className="flex flex-col gap-2">
-            <Label htmlFor="profile-bio">Bio</Label>
+            <Label htmlFor="profile-bio">{t("profile.bio")}</Label>
             <Textarea
               id="profile-bio"
               value={bio}
@@ -240,7 +242,7 @@ export function ProfilePage() {
                 setBio(e.target.value)
                 setSaved(false)
               }}
-              placeholder="A short introduction about you"
+              placeholder={t("profile.bioPlaceholder")}
             />
             <span className="text-right text-xs text-muted-foreground">
               {bio.length}/1000
@@ -249,7 +251,7 @@ export function ProfilePage() {
 
           {/* Status */}
           <div className="flex flex-col gap-2">
-            <Label>Status</Label>
+            <Label>{t("profile.statusLabel")}</Label>
             <Select
               value={status}
               onValueChange={(v) => {
@@ -273,7 +275,7 @@ export function ProfilePage() {
                       className="size-2 rounded-full"
                       style={{ backgroundColor: opt.color }}
                     />
-                    {opt.label}
+                    {t(opt.labelKey)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -295,11 +297,11 @@ export function ProfilePage() {
                 strokeWidth={2}
                 className="size-4 text-emerald-500"
               />
-              Saved
+              {t("profile.saved")}
             </span>
           )}
           <Button onClick={handleSaveProfile} disabled={!name.trim() || saving}>
-            {saving ? "Saving..." : "Save changes"}
+            {saving ? t("profile.saving") : t("profile.saveChanges")}
           </Button>
         </CardFooter>
       </Card>
@@ -316,9 +318,9 @@ export function ProfilePage() {
               />
             </div>
             <div>
-              <CardTitle>Security</CardTitle>
+              <CardTitle>{t("profile.security")}</CardTitle>
               <CardDescription>
-                Change your password to keep your account secure.
+                {t("profile.securityDesc")}
               </CardDescription>
             </div>
           </div>
@@ -327,7 +329,7 @@ export function ProfilePage() {
         <CardContent className="flex flex-col gap-5">
           <PasswordField
             id="pwd-current"
-            label="Current password"
+            label={t("profile.currentPassword")}
             value={pwdForm.current}
             show={showCurrent}
             onToggle={() => setShowCurrent((v) => !v)}
@@ -339,7 +341,7 @@ export function ProfilePage() {
           />
           <PasswordField
             id="pwd-new"
-            label="New password"
+            label={t("profile.newPassword")}
             value={pwdForm.next}
             show={showNext}
             onToggle={() => setShowNext((v) => !v)}
@@ -351,7 +353,7 @@ export function ProfilePage() {
           />
           <PasswordField
             id="pwd-confirm"
-            label="Confirm new password"
+            label={t("profile.confirmPassword")}
             value={pwdForm.confirm}
             show={showConfirm}
             onToggle={() => setShowConfirm((v) => !v)}
@@ -374,7 +376,7 @@ export function ProfilePage() {
                 strokeWidth={2}
                 className="size-4"
               />
-              Password updated successfully.
+              {t("profile.pwdUpdated")}
             </p>
           )}
         </CardContent>
@@ -386,7 +388,7 @@ export function ProfilePage() {
               pwdSaving || !pwdForm.current || !pwdForm.next || !pwdForm.confirm
             }
           >
-            {pwdSaving ? "Updating..." : "Update password"}
+            {pwdSaving ? t("profile.updating") : t("profile.updatePassword")}
           </Button>
         </CardFooter>
       </Card>
@@ -409,6 +411,7 @@ function PasswordField({
   onToggle: () => void
   onChange: (value: string) => void
 }) {
+  const { t } = useTranslation()
   return (
     <div className="flex flex-col gap-2">
       <Label htmlFor={id}>{label}</Label>
@@ -430,7 +433,7 @@ function PasswordField({
           type="button"
           onClick={onToggle}
           className="absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
-          aria-label={show ? "Hide password" : "Show password"}
+          aria-label={show ? t("login.hidePassword") : t("login.showPassword")}
         >
           <HugeiconsIcon
             icon={show ? EyeOffIcon : EyeIcon}

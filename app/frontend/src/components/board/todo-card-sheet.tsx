@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router"
 
@@ -121,6 +122,7 @@ export function TodoCardSheet({
   projectId,
   defaultStateId,
 }: TodoCardSheetProps) {
+  const { t } = useTranslation()
   const titleInputRef = useRef<HTMLInputElement>(null)
   const addTodo = useBoardStore((s) => s.addTodo)
   const updateTodo = useBoardStore((s) => s.updateTodo)
@@ -246,9 +248,9 @@ export function TodoCardSheet({
     if (!todo) return
     try {
       await navigator.clipboard.writeText(`Task:${todo.id}:${todo.title}`)
-      toast.success("Task ID and name copied.")
+      toast.success(t("task.copied"))
     } catch {
-      toast.error("Could not copy task ID and name.")
+      toast.error(t("task.copyFailed"))
     }
   }
 
@@ -276,7 +278,7 @@ export function TodoCardSheet({
       >
         <SheetHeader>
           <div className="flex items-center gap-1.5">
-            <SheetTitle>{todo ? "Edit task" : "Add task"}</SheetTitle>
+            <SheetTitle>{todo ? t("task.edit") : t("task.add")}</SheetTitle>
             {todo && (
               <TooltipProvider>
                 <Tooltip>
@@ -285,14 +287,14 @@ export function TodoCardSheet({
                       type="button"
                       variant="ghost"
                       size="icon-xs"
-                      aria-label="Copy task ID and name"
+                      aria-label={t("task.copyRef")}
                       onClick={() => void copyTaskReference()}
                     >
                       <HugeiconsIcon icon={Copy01Icon} strokeWidth={2} />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="bottom">
-                    Copy task ID and name
+                    {t("task.copyRef")}
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -300,19 +302,19 @@ export function TodoCardSheet({
           </div>
           <SheetDescription>
             {todo
-              ? "Update the task details below."
-              : "Fill in the details for your new task."}
+              ? t("task.editDesc")
+              : t("task.addDesc")}
           </SheetDescription>
         </SheetHeader>
 
         <div className="flex flex-col gap-5 overflow-y-auto px-6">
           {/* Title */}
           <div className="flex flex-col gap-2">
-            <Label htmlFor="todo-title">Title</Label>
+            <Label htmlFor="todo-title">{t("common.title")}</Label>
             <Input
               ref={titleInputRef}
               id="todo-title"
-              placeholder="Task title..."
+              placeholder={t("task.titlePlaceholder")}
               value={form.title}
               onChange={(e) => setField("title", e.target.value)}
             />
@@ -320,10 +322,10 @@ export function TodoCardSheet({
 
           {/* Description */}
           <div className="flex flex-col gap-2">
-            <Label htmlFor="todo-description">Description</Label>
+            <Label htmlFor="todo-description">{t("common.description")}</Label>
             <Textarea
               id="todo-description"
-              placeholder="Add more details..."
+              placeholder={t("task.descPlaceholder")}
               value={form.description}
               onChange={(e) => setField("description", e.target.value)}
             />
@@ -332,7 +334,7 @@ export function TodoCardSheet({
           {/* Status + Priority */}
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-2">
-              <Label>Status</Label>
+              <Label>{t("common.status")}</Label>
               <Select
                 value={form.stateId}
                 onValueChange={(value) => setField("stateId", value)}
@@ -355,7 +357,7 @@ export function TodoCardSheet({
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label>Priority</Label>
+              <Label>{t("common.priority")}</Label>
               <Select
                 value={form.priority}
                 onValueChange={(v) => setField("priority", v as Priority)}
@@ -370,7 +372,7 @@ export function TodoCardSheet({
                         className="size-2 rounded-full"
                         style={{ backgroundColor: p.color }}
                       />
-                      {p.label}
+                      {t(p.labelKey)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -381,14 +383,14 @@ export function TodoCardSheet({
           {/* Dates */}
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="todo-start">Start date</Label>
+              <Label htmlFor="todo-start">{t("task.startDate")}</Label>
               <DatePicker
                 value={form.startDate}
                 onChange={(v) => setField("startDate", v)}
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="todo-due">Due date</Label>
+              <Label htmlFor="todo-due">{t("task.dueDate")}</Label>
               <DatePicker
                 value={form.dueDate}
                 onChange={(v) => setField("dueDate", v)}
@@ -397,13 +399,13 @@ export function TodoCardSheet({
           </div>
           {invertedSpan && (
             <p className="-mt-2 text-xs text-destructive">
-              The start date cannot be after the due date.
+              {t("task.invertedSpan")}
             </p>
           )}
 
           {/* Labels */}
           <div className="flex flex-col gap-2">
-            <Label>Labels</Label>
+            <Label>{t("common.labels")}</Label>
             <div className="flex flex-wrap gap-2">
               {projectLabels.map((label) => {
                 const selected = form.labels.includes(label.id)
@@ -439,7 +441,7 @@ export function TodoCardSheet({
 
           {/* Assignees */}
           <div className="flex flex-col gap-2">
-            <Label>Assignees</Label>
+            <Label>{t("task.assignees")}</Label>
             <div className="flex flex-wrap gap-2">
               {participants.map((participant) => {
                 const selected = form.members.includes(participant.userId)
@@ -472,7 +474,7 @@ export function TodoCardSheet({
                     {participant.name}
                     {participant.role === "owner" && (
                       <span className="text-[10px] text-muted-foreground">
-                        Owner
+                        {t("common.owner")}
                       </span>
                     )}
                   </button>
@@ -483,7 +485,7 @@ export function TodoCardSheet({
 
           {/* Documents */}
           <div className="flex flex-col gap-2">
-            <Label>Documents</Label>
+            <Label>{t("common.documents")}</Label>
             {form.documents.length > 0 && (
               <div className="flex flex-col gap-1.5">
                 {form.documents.map((id) => (
@@ -510,7 +512,7 @@ export function TodoCardSheet({
                       className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary"
                     />
                     <span className="min-w-0 flex-1 truncate font-medium text-primary underline-offset-2 group-hover:underline">
-                      {docTitles[id]?.title ?? "Untitled document"}
+                      {docTitles[id]?.title ?? t("task.untitledDoc")}
                     </span>
                     <HugeiconsIcon
                       icon={ArrowUpRight01Icon}
@@ -519,7 +521,7 @@ export function TodoCardSheet({
                     />
                     <button
                       type="button"
-                      aria-label="Remove document"
+                      aria-label={t("task.removeDoc")}
                       onClick={(event) => {
                         event.stopPropagation()
                         setField(
@@ -545,7 +547,7 @@ export function TodoCardSheet({
               className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed py-2 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
             >
               <HugeiconsIcon icon={Link02Icon} strokeWidth={2} className="size-4" />
-              Link a document
+              {t("task.linkDoc")}
             </button>
           </div>
 
@@ -560,20 +562,20 @@ export function TodoCardSheet({
               onClick={() => setConfirmDelete(true)}
             >
               <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
-              Delete
+              {t("common.delete")}
             </Button>
           ) : (
             <div />
           )}
           <div className="flex gap-2">
             <SheetClose asChild>
-              <Button variant="ghost">Cancel</Button>
+              <Button variant="ghost">{t("common.cancel")}</Button>
             </SheetClose>
             <Button
               onClick={() => void handleSave()}
               disabled={!form.title.trim() || !form.stateId || invertedSpan}
             >
-              {todo ? "Save changes" : "Add task"}
+              {todo ? t("task.saveChanges") : t("task.add")}
             </Button>
           </div>
         </SheetFooter>
@@ -582,19 +584,18 @@ export function TodoCardSheet({
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete task?</AlertDialogTitle>
+            <AlertDialogTitle>{t("task.deleteTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently remove "{todo?.title}" from the board. This
-              action cannot be undone.
+              {t("task.deleteDesc", { title: todo?.title })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
               onClick={() => void handleDelete()}
             >
-              Delete
+              {t("common.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

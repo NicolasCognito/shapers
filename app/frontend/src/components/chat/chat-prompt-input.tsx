@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useMemo, useState } from "react"
 
 import type { UseChatHelpers } from "@ai-sdk/react"
@@ -29,6 +30,7 @@ import {
   PromptInputTextarea,
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input"
+import { VoiceButton } from "@/components/chat/voice-button"
 import { pb } from "@/lib/pocketbase"
 import { useLlmSettingsStore } from "@/store/llm-settings"
 import type { ChatUIMessage } from "@/types/chat"
@@ -70,6 +72,7 @@ export function ChatPromptInput({
   onRunStarted,
   contextInfo,
 }: Props) {
+  const { t } = useTranslation()
   const models = useLlmSettingsStore((state) => state.models)
   const defaultModelId = useMemo(
     () => models.find((model) => model.isDefault)?.id ?? "",
@@ -126,8 +129,8 @@ export function ChatPromptInput({
           <PromptInputTextarea
             placeholder={
               models.length === 0
-                ? "Configure a model to start chatting"
-                : "Send a message..."
+                ? t("chat.configureModel")
+                : t("chat.sendPlaceholder")
             }
             value={text}
             onChange={(event) => setText(event.target.value)}
@@ -141,7 +144,7 @@ export function ChatPromptInput({
               onValueChange={setSelectedModelConfigId}
             >
               <PromptInputSelectTrigger disabled={models.length === 0}>
-                <PromptInputSelectValue placeholder="Select model" />
+                <PromptInputSelectValue placeholder={t("chat.selectModel")} />
               </PromptInputSelectTrigger>
               <PromptInputSelectContent>
                 {models.map((model) => (
@@ -178,11 +181,18 @@ export function ChatPromptInput({
               </Context>
             )}
           </PromptInputTools>
-          <PromptInputSubmit
-            disabled={!generating && !canSend}
-            status={status}
-            onStop={() => void handleStop()}
-          />
+          <div className="flex items-center gap-1">
+            <VoiceButton
+              text={text}
+              setText={setText}
+              disabled={disabled || generating || models.length === 0}
+            />
+            <PromptInputSubmit
+              disabled={!generating && !canSend}
+              status={status}
+              onStop={() => void handleStop()}
+            />
+          </div>
         </PromptInputFooter>
       </PromptInput>
     </div>

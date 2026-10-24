@@ -49,6 +49,7 @@ import {
 } from "@/components/ui/popover"
 import { NotificationItem } from "@/components/notifications/notification-item"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { LanguageSwitcher } from "@/components/language-switcher"
 import { useAuthStore } from "@/store/auth"
 import { useChatRunsStore } from "@/store/chat-runs"
 import { useChatStore } from "@/store/chat"
@@ -62,8 +63,8 @@ function getInitials(name: string) {
 
 // Pages reachable outside the sidebar navigation still need a breadcrumb title.
 const EXTRA_PAGE_TITLES: Record<string, string> = {
-  "/notifications": "Notifications",
-  "/profile": "Profile",
+  "/notifications": "header.notifications",
+  "/profile": "header.profile",
 }
 
 export function AppHeader() {
@@ -93,7 +94,7 @@ export function AppHeader() {
   const extraTitle = EXTRA_PAGE_TITLES[location.pathname]
   const currentNav =
     flatNavItems.find((item) => location.pathname === item.url) ??
-    (extraTitle ? { title: extraTitle } : undefined)
+    (extraTitle ? { title: t(extraTitle) } : undefined)
 
   const handleLogout = () => {
     logout()
@@ -136,7 +137,7 @@ export function AppHeader() {
         <BreadcrumbList>
           <BreadcrumbItem className="hidden sm:block">
             <BreadcrumbLink asChild>
-              <a href="/dashboard">Home</a>
+              <a href="/dashboard">{t("header.home")}</a>
             </BreadcrumbLink>
           </BreadcrumbItem>
           {currentNav && (
@@ -163,7 +164,7 @@ export function AppHeader() {
           onClick={openActiveRun}
         >
           <Spinner className="size-3.5" />
-          <span className="hidden sm:inline">AI is responding</span>
+          <span className="hidden sm:inline">{t("header.aiResponding")}</span>
           <span>· {activeRunCount}</span>
         </Button>
       )}
@@ -179,7 +180,7 @@ export function AppHeader() {
                 variant="ghost"
                 size="icon-sm"
                 className="relative"
-                aria-label="Notifications"
+                aria-label={t("header.notifications")}
               >
                 <HugeiconsIcon
                   icon={BellIcon}
@@ -203,16 +204,16 @@ export function AppHeader() {
               onMouseLeave={scheduleNotificationsClose}
             >
               <div className="flex items-center justify-between border-b px-3 py-2.5">
-                <span className="text-sm font-semibold">Notifications</span>
+                <span className="text-sm font-semibold">{t("header.notifications")}</span>
                 {unreadCount > 0 && (
                   <span className="text-xs text-muted-foreground">
-                    {unreadCount} unread
+                    {t("header.unread", { count: unreadCount })}
                   </span>
                 )}
               </div>
               {recentNotifications.length === 0 ? (
                 <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-                  No notifications yet.
+                  {t("header.noNotifications")}
                 </p>
               ) : (
                 recentNotifications.map((notification) => (
@@ -232,7 +233,7 @@ export function AppHeader() {
                 }}
                 className="w-full cursor-pointer border-t px-3 py-2.5 text-center text-xs font-medium text-primary hover:bg-muted/50"
               >
-                View all notifications
+                {t("header.viewAll")}
               </button>
             </PopoverContent>
           </div>
@@ -256,7 +257,7 @@ export function AppHeader() {
                 </AvatarFallback>
               </Avatar>
               <span className="hidden text-sm font-medium sm:inline">
-                {user?.name ?? "Guest"}
+                {user?.name ?? t("header.guest")}
               </span>
             </Button>
           </DropdownMenuTrigger>
@@ -272,22 +273,27 @@ export function AppHeader() {
               </Avatar>
               <div className="grid min-w-0 flex-1">
                 <span className="truncate text-sm font-medium text-foreground">
-                  {user?.name ?? "Guest"}
+                  {user?.name ?? t("header.guest")}
                 </span>
                 <span className="truncate text-xs text-muted-foreground">
-                  {user?.email ?? "Not signed in"}
+                  {user?.email ?? t("header.notSignedIn")}
                 </span>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            <div className="flex items-center justify-between gap-2 px-2 py-1.5 text-sm">
+              <span>{t("common.language")}</span>
+              <LanguageSwitcher />
+            </div>
+            <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem onClick={() => navigate("/profile")}>
                 <HugeiconsIcon icon={UserCircle02Icon} strokeWidth={2} />
-                <span>Profile</span>
+                <span>{t("header.profile")}</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigate("/settings")}>
                 <HugeiconsIcon icon={Settings02Icon} strokeWidth={2} />
-                <span>Settings</span>
+                <span>{t("header.settings")}</span>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
@@ -296,7 +302,7 @@ export function AppHeader() {
               onClick={() => setConfirmLogout(true)}
             >
               <HugeiconsIcon icon={Logout02Icon} strokeWidth={2} />
-              <span>Log out</span>
+              <span>{t("header.logOut")}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -305,16 +311,15 @@ export function AppHeader() {
       <AlertDialog open={confirmLogout} onOpenChange={setConfirmLogout}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Log out?</AlertDialogTitle>
+            <AlertDialogTitle>{t("header.logOutTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              You will be signed out of your account and redirected to the login
-              page.
+              {t("header.logOutDesc")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction variant="destructive" onClick={handleLogout}>
-              Log out
+              {t("header.logOut")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { ChevronDownIcon, KanbanIcon } from "@hugeicons/core-free-icons"
 import {
@@ -20,6 +21,13 @@ import type { DynamicToolUIPart } from "ai"
 import type { ReactNode } from "react"
 import { useNavigate } from "react-router"
 
+import i18n from "@/i18n"
+
+// Module-level helpers translate at call time, so they follow the language.
+const t = (key: string, options?: Record<string, unknown>) =>
+  i18n.t(key, options)
+
+
 type StateSummary = {
   id: string
   name: string
@@ -37,10 +45,10 @@ type ProjectSummary = {
 }
 
 const statusLabels: Partial<Record<DynamicToolUIPart["state"], string>> = {
-  "input-available": "Running",
-  "input-streaming": "Pending",
-  "output-available": "Completed",
-  "output-error": "Error",
+  "input-available": "toolStatus.running",
+  "input-streaming": "toolStatus.pending",
+  "output-available": "toolStatus.completed",
+  "output-error": "toolStatus.error",
 }
 
 const statusIcons: Partial<Record<DynamicToolUIPart["state"], ReactNode>> = {
@@ -57,7 +65,7 @@ function getStatusBadge(state: DynamicToolUIPart["state"]) {
   return (
     <Badge className="gap-1.5 rounded-full text-xs" variant="secondary">
       {icon}
-      {label}
+      {t(label)}
     </Badge>
   )
 }
@@ -82,6 +90,7 @@ export function BoardProjectsToolCard({
 }: {
   part: BoardProjectsToolPart
 }) {
+  useTranslation()
   const projects = parseProjects(part.output)
   const isError = part.state === "output-error"
   const isLoading =
@@ -110,7 +119,7 @@ export function BoardProjectsToolCard({
             strokeWidth={2}
             className="size-4 shrink-0 text-muted-foreground"
           />
-          <span className="text-sm font-medium">Projects</span>
+          <span className="text-sm font-medium">{t("chat.projectsTool.title")}</span>
           {projects.length > 0 && (
             <Badge variant="secondary" className="rounded-full px-1.5">
               {projects.length}
@@ -133,7 +142,7 @@ export function BoardProjectsToolCard({
           <div className="rounded-md border bg-muted/20 px-3 py-2">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <ClockIcon className="size-3.5 animate-spin" />
-              <span>Loading projects...</span>
+              <span>{t("chat.projectsTool.loading")}</span>
             </div>
             <div className="mt-2 h-1 overflow-hidden rounded-full bg-muted">
               <div className="h-full w-1/2 animate-pulse rounded-full bg-primary/60" />
@@ -144,7 +153,7 @@ export function BoardProjectsToolCard({
         {/* Error */}
         {isError && (
           <div className="rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive">
-            {part.errorText || "Tool execution failed"}
+            {part.errorText || t("toolStatus.failed")}
           </div>
         )}
 
@@ -176,12 +185,12 @@ export function BoardProjectsToolCard({
                             variant="outline"
                             className="text-xs font-normal"
                           >
-                            Archived
+                            {t("toolStatus.archived")}
                           </Badge>
                         )}
                       </div>
                       <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                        {projectTasks} tasks
+                        {t("chat.tasksCount", { count: projectTasks })}
                       </span>
                     </div>
 
@@ -221,9 +230,9 @@ export function BoardProjectsToolCard({
 
             {/* Summary */}
             <div className="flex items-center gap-3 px-1 text-xs text-muted-foreground">
-              <span>{projects.length} projects</span>
+              <span>{t("chat.projectsCount", { count: projects.length })}</span>
               <span>·</span>
-              <span>{totalTasks} tasks</span>
+              <span>{t("chat.tasksCount", { count: totalTasks })}</span>
             </div>
           </div>
         )}
@@ -231,7 +240,7 @@ export function BoardProjectsToolCard({
         {/* Empty result */}
         {part.state === "output-available" && projects.length === 0 && (
           <div className="rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
-            No projects found
+            {t("chat.projectsTool.none")}
           </div>
         )}
       </CollapsibleContent>

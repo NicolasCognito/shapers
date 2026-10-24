@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useCallback, useEffect, useState } from "react"
 
 import {
@@ -53,6 +54,7 @@ export function ArchivedProjectsDialog({
   onOpenChange: (open: boolean) => void
   onChanged: () => Promise<void>
 }) {
+  const { t } = useTranslation()
   const [items, setItems] = useState<ArchivedProjectRecord[]>([])
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -79,7 +81,7 @@ export function ArchivedProjectsDialog({
       .catch((error) => {
         if (isRequestAbort(error)) return
         toast.error(
-          extractErrorMessage(error, "Could not load archived projects.")
+          extractErrorMessage(error, t("archivedProjects.loadFailed"))
         )
       })
       .finally(() => setLoading(false))
@@ -91,9 +93,9 @@ export function ArchivedProjectsDialog({
         method: "POST",
       })
       await Promise.all([load(), onChanged()])
-      toast.success("Project restored.")
+      toast.success(t("archivedProjects.restored"))
     } catch (error) {
-      toast.error(extractErrorMessage(error, "Could not restore project."))
+      toast.error(extractErrorMessage(error, t("archivedProjects.restoreFailed")))
     }
   }
 
@@ -103,9 +105,9 @@ export function ArchivedProjectsDialog({
       await pb.collection("board_projects").delete(deleteTarget.id)
       setDeleteTarget(null)
       await Promise.all([load(), onChanged()])
-      toast.success("Project deleted.")
+      toast.success(t("archivedProjects.deleted"))
     } catch (error) {
-      toast.error(extractErrorMessage(error, "Could not delete project."))
+      toast.error(extractErrorMessage(error, t("archivedProjects.deleteFailed")))
     }
   }
 
@@ -122,11 +124,10 @@ export function ArchivedProjectsDialog({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <HugeiconsIcon icon={Archive02Icon} className="size-4" />
-              Archived projects
+              {t("archivedProjects.title")}
             </DialogTitle>
             <DialogDescription>
-              Project owners can restore or permanently delete their archived
-              projects.
+              {t("archivedProjects.desc")}
             </DialogDescription>
           </DialogHeader>
           <div className="no-scrollbar max-h-[50vh] space-y-1 overflow-y-auto">
@@ -136,7 +137,7 @@ export function ArchivedProjectsDialog({
               </div>
             ) : items.length === 0 ? (
               <p className="py-10 text-center text-sm text-muted-foreground">
-                No archived projects.
+                {t("archivedProjects.empty")}
               </p>
             ) : (
               items.map((project) => {
@@ -152,7 +153,7 @@ export function ArchivedProjectsDialog({
                       </p>
                       <p className="truncate text-xs text-muted-foreground">
                         {project.description ||
-                          (isOwner ? "Owned by you" : "Shared project")}
+                          (isOwner ? t("archivedProjects.ownedByYou") : t("archivedProjects.shared"))}
                       </p>
                     </div>
                     {isOwner && (
@@ -160,7 +161,7 @@ export function ArchivedProjectsDialog({
                         <Button
                           variant="ghost"
                           size="icon-sm"
-                          aria-label="Restore project"
+                          aria-label={t("archivedProjects.restore")}
                           onClick={() => void restore(project.id)}
                         >
                           <HugeiconsIcon
@@ -171,7 +172,7 @@ export function ArchivedProjectsDialog({
                         <Button
                           variant="ghost"
                           size="icon-sm"
-                          aria-label="Delete project"
+                          aria-label={t("projectColumn.deleteProject")}
                           onClick={() => setDeleteTarget(project)}
                         >
                           <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
@@ -188,7 +189,7 @@ export function ArchivedProjectsDialog({
               <PaginationContent>
                 <PaginationItem>
                   <PaginationPrevious
-                    text="Prev"
+                    text={t("notifications.prev")}
                     onClick={() => {
                       setLoading(true)
                       setPage((value) => Math.max(1, value - 1))
@@ -205,7 +206,7 @@ export function ArchivedProjectsDialog({
                 </span>
                 <PaginationItem>
                   <PaginationNext
-                    text="Next"
+                    text={t("notifications.next")}
                     onClick={() => {
                       setLoading(true)
                       setPage((value) => Math.min(totalPages, value + 1))
@@ -229,20 +230,18 @@ export function ArchivedProjectsDialog({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete project permanently?</AlertDialogTitle>
+            <AlertDialogTitle>{t("archivedProjects.deletePermTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              “{deleteTarget?.name}” and all of its tasks, workflow states,
-              labels, and memberships will be deleted. This action cannot be
-              undone.
+              {t("archivedProjects.deletePermDesc", { name: deleteTarget?.name })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
               onClick={() => void remove()}
             >
-              Delete
+              {t("common.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

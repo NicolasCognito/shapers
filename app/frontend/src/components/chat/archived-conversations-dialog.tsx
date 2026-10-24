@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useEffect, useState } from "react"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Archive02Icon, ArchiveRestoreIcon } from "@hugeicons/core-free-icons"
@@ -29,6 +30,7 @@ export function ArchivedConversationsDialog({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
+  const { t } = useTranslation()
   const loadArchived = useChatStore((s) => s.loadArchived)
   const unarchiveConversation = useChatStore((s) => s.unarchiveConversation)
   const [items, setItems] = useState<Conversation[]>([])
@@ -90,7 +92,7 @@ export function ArchivedConversationsDialog({
               strokeWidth={2}
               className="size-4 text-muted-foreground"
             />
-            Archived conversations
+            {t("chat.archivedTitle")}
             {total > 0 && (
               <span className="text-sm font-normal text-muted-foreground">
                 ({total})
@@ -102,11 +104,11 @@ export function ArchivedConversationsDialog({
         <div className="max-h-[50vh] space-y-1 overflow-y-auto">
           {loading ? (
             <p className="py-8 text-center text-sm text-muted-foreground">
-              Loading...
+              {t("common.loading")}
             </p>
           ) : items.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">
-              No archived conversations
+              {t("chat.archivedEmpty")}
             </p>
           ) : (
             items.map((conversation) => (
@@ -121,11 +123,11 @@ export function ArchivedConversationsDialog({
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <span>{formatRelativeTime(conversation.updated)}</span>
                     <span className="text-muted-foreground/50">·</span>
-                    <span>{conversation.message_count} msgs</span>
+                    <span>{t("chat.msgsShort", { count: conversation.message_count })}</span>
                     {conversation.tool_call_count > 0 && (
                       <>
                         <span className="text-muted-foreground/50">·</span>
-                        <span>{conversation.tool_call_count} tools</span>
+                        <span>{t("chat.toolsShort", { count: conversation.tool_call_count })}</span>
                       </>
                     )}
                   </div>
@@ -135,7 +137,7 @@ export function ArchivedConversationsDialog({
                   variant="ghost"
                   size="icon-sm"
                   className="cursor-pointer rounded-md p-1.5 text-muted-foreground transition-colors hover:text-foreground"
-                  aria-label="Unarchive"
+                  aria-label={t("chat.unarchive")}
                   onClick={() => void handleUnarchive(conversation.id)}
                 >
                   <HugeiconsIcon
@@ -154,7 +156,7 @@ export function ArchivedConversationsDialog({
             <PaginationContent>
               <PaginationItem>
                 <PaginationPrevious
-                  text="Prev"
+                  text={t("notifications.prev")}
                   onClick={() => {
                     setLoading(true)
                     setPage((p) => Math.max(1, p - 1))
@@ -171,7 +173,7 @@ export function ArchivedConversationsDialog({
               </span>
               <PaginationItem>
                 <PaginationNext
-                  text="Next"
+                  text={t("notifications.next")}
                   onClick={() => {
                     setLoading(true)
                     setPage((p) => Math.min(totalPages, p + 1))

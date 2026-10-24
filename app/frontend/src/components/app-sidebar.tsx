@@ -18,7 +18,6 @@ import {
 } from "@/components/ui/sidebar"
 import { useSidebar } from "@/components/ui/sidebar-context"
 import { Logo } from "@/components/logo"
-import { LanguageSwitcher } from "@/components/language-switcher"
 import { navGroups } from "@/lib/navigation"
 import { can } from "@/lib/permissions"
 
@@ -45,7 +44,7 @@ export function AppSidebar() {
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">Shapers</span>
                   <span className="truncate text-xs text-muted-foreground">
-                    Team hub
+                    {t("sidebar.teamHub")}
                   </span>
                 </div>
               </NavLink>
@@ -88,8 +87,7 @@ export function AppSidebar() {
       <SidebarFooter>
         <div className="px-3 py-2 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
           <p className="font-medium text-foreground/70">Shapers</p>
-          <p className="mt-0.5">Press ⌘B to toggle</p>
-          <LanguageSwitcher className="mt-2" />
+          <p className="mt-0.5">{t("sidebar.toggleHint")}</p>
         </div>
       </SidebarFooter>
 

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router"
 
@@ -28,6 +29,7 @@ export function KanbanBoard({
   onEditProject,
   requestedTaskId,
 }: KanbanBoardProps) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const projects = useBoardStore((store) => store.projects)
   const projectPage = useBoardStore((store) => store.projectPage)
@@ -153,7 +155,7 @@ export function KanbanBoard({
         <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
           <span>{error}</span>
           <Button variant="ghost" size="sm" onClick={clearError}>
-            Dismiss
+            {t("common.dismiss")}
           </Button>
         </div>
       )}
@@ -179,9 +181,9 @@ export function KanbanBoard({
 
           {projects.length === 0 && initialized && (
             <div className="flex min-h-48 flex-col items-center justify-center rounded-xl border border-dashed bg-muted/20 p-8 text-center">
-              <p className="text-sm font-medium">No projects yet</p>
+              <p className="text-sm font-medium">{t("kanban.noProjects")}</p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Create a project from a template to start planning work.
+                {t("kanban.noProjectsHint")}
               </p>
             </div>
           )}
@@ -199,7 +201,7 @@ export function KanbanBoard({
       {projectTotalPages > 1 && (
         <div className="flex items-center justify-between gap-2">
           <span className="text-xs text-muted-foreground">
-            {projectTotalItems} project{projectTotalItems === 1 ? "" : "s"}
+            {t("kanban.projects", { count: projectTotalItems })}
           </span>
           <div className="flex items-center gap-2">
             <Button
@@ -208,7 +210,7 @@ export function KanbanBoard({
               disabled={projectPage === 0 || loading}
               onClick={() => void loadProjectPage(projectPage - 1)}
             >
-              Previous
+              {t("common.previous")}
             </Button>
             <span className="text-xs text-muted-foreground tabular-nums">
               {projectPage + 1} / {projectTotalPages}
@@ -219,7 +221,7 @@ export function KanbanBoard({
               disabled={projectPage >= projectTotalPages - 1 || loading}
               onClick={() => void loadProjectPage(projectPage + 1)}
             >
-              Next
+              {t("common.next")}
             </Button>
           </div>
         </div>

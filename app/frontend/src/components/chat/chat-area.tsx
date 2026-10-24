@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useEffect } from "react"
 
 import { Chat01Icon, SparklesIcon } from "@hugeicons/core-free-icons"
@@ -55,6 +56,7 @@ function deriveContextInfo(
 }
 
 function ChatEmptyState({ onCreate }: { onCreate: () => void }) {
+  const { t } = useTranslation()
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8">
       <div className="flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
@@ -62,22 +64,22 @@ function ChatEmptyState({ onCreate }: { onCreate: () => void }) {
       </div>
       <div className="flex flex-col items-center gap-1 text-center">
         <h3 className="text-lg font-semibold tracking-tight">
-          Start a conversation
+          {t("chat.startTitle")}
         </h3>
         <p className="text-sm text-muted-foreground">
-          Select a conversation from the sidebar, or create a new one to begin
-          chatting.
+          {t("chat.startDesc")}
         </p>
       </div>
       <Button onClick={onCreate} className="gap-2">
         <HugeiconsIcon icon={SparklesIcon} strokeWidth={2} className="size-4" />
-        New conversation
+        {t("chat.newConversation")}
       </Button>
     </div>
   )
 }
 
 function ActiveChat({ conversation }: { conversation: ChatConversation }) {
+  const { t } = useTranslation()
   const renameConversation = useChatStore((state) => state.renameConversation)
   const { runtime, state: runtimeState } = useChatRuntime(conversation.id)
 
@@ -108,8 +110,8 @@ function ActiveChat({ conversation }: { conversation: ChatConversation }) {
         <ConversationContent className="w-full px-4 md:px-16 lg:px-24">
           {!loadingMessages && messages.length === 0 ? (
             <ConversationEmptyState
-              title="No messages yet"
-              description="Send a message below to start the conversation."
+              title={t("chat.noMessages")}
+              description={t("chat.noMessagesDesc")}
             />
           ) : (
             messages.map((message) => (
@@ -126,7 +128,7 @@ function ActiveChat({ conversation }: { conversation: ChatConversation }) {
           {awaitingReply && (
             <Message from="assistant">
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span className="font-medium">Assistant</span>
+                <span className="font-medium">{t("chat.assistant")}</span>
               </div>
               <MessageContent>
                 <ThinkingIndicator />
@@ -143,7 +145,7 @@ function ActiveChat({ conversation }: { conversation: ChatConversation }) {
                   size="sm"
                   onClick={() => void runtime.retry()}
                 >
-                  Retry
+                  {t("common.retry")}
                 </Button>
               )}
             </div>

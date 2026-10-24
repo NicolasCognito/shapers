@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 
@@ -16,6 +17,7 @@ type TodoCardProps = {
 }
 
 export function TodoCard({ todo, onEdit, onArchive }: TodoCardProps) {
+  const { t } = useTranslation()
   const labels = useBoardStore((s) => s.labels)
   const members = useBoardStore((s) => s.members)
   const projects = useBoardStore((s) => s.projects)
@@ -81,8 +83,8 @@ export function TodoCard({ todo, onEdit, onArchive }: TodoCardProps) {
               variant="ghost"
               size="icon-xs"
               className="-mt-1 -mr-1 shrink-0 text-muted-foreground opacity-60 transition-opacity hover:opacity-100 focus-visible:opacity-100"
-              aria-label={`Archive ${todo.title}`}
-              title="Archive task"
+              aria-label={t("todoCard.archiveNamed", { title: todo.title })}
+              title={t("todoCard.archiveTask")}
               onPointerDown={(event) => event.stopPropagation()}
               onClick={(event) => {
                 event.preventDefault()

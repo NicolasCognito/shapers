@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { ChevronDownIcon, LayoutGridIcon } from "@hugeicons/core-free-icons"
 import {
@@ -20,6 +21,13 @@ import { cn } from "@/lib/utils"
 import type { DynamicToolUIPart } from "ai"
 import type { ReactNode } from "react"
 
+import i18n from "@/i18n"
+
+// Module-level helpers translate at call time, so they follow the language.
+const t = (key: string, options?: Record<string, unknown>) =>
+  i18n.t(key, options)
+
+
 type TemplateState = {
   name: string
   color: string
@@ -40,10 +48,10 @@ type TemplateSummary = {
 }
 
 const statusLabels: Partial<Record<DynamicToolUIPart["state"], string>> = {
-  "input-available": "Running",
-  "input-streaming": "Pending",
-  "output-available": "Completed",
-  "output-error": "Error",
+  "input-available": "toolStatus.running",
+  "input-streaming": "toolStatus.pending",
+  "output-available": "toolStatus.completed",
+  "output-error": "toolStatus.error",
 }
 
 const statusIcons: Partial<Record<DynamicToolUIPart["state"], ReactNode>> = {
@@ -60,7 +68,7 @@ function getStatusBadge(state: DynamicToolUIPart["state"]) {
   return (
     <Badge className="gap-1.5 rounded-full text-xs" variant="secondary">
       {icon}
-      {label}
+      {t(label)}
     </Badge>
   )
 }
@@ -93,7 +101,7 @@ function TemplateDetail({ template }: { template: TemplateSummary }) {
         {template.states.length > 0 && (
           <div className="space-y-1">
             <span className="text-xs font-medium text-muted-foreground">
-              States
+              {t("projectSheet.states")}
             </span>
             <div className="flex flex-wrap items-center gap-1.5">
               {template.states.map((state, i) => (
@@ -116,7 +124,7 @@ function TemplateDetail({ template }: { template: TemplateSummary }) {
         {template.labels.length > 0 && (
           <div className="mt-2 space-y-1">
             <span className="text-xs font-medium text-muted-foreground">
-              Labels
+              {t("common.labels")}
             </span>
             <div className="flex flex-wrap items-center gap-1.5">
               {template.labels.map((label, i) => (
@@ -153,6 +161,7 @@ export function BoardTemplatesToolCard({
 }: {
   part: BoardTemplatesToolPart
 }) {
+  useTranslation()
   const templates = parseTemplates(part.output)
   const isError = part.state === "output-error"
   const isLoading =
@@ -176,7 +185,7 @@ export function BoardTemplatesToolCard({
             strokeWidth={2}
             className="size-4 shrink-0 text-muted-foreground"
           />
-          <span className="text-sm font-medium">Project Templates</span>
+          <span className="text-sm font-medium">{t("chat.templatesTool.title")}</span>
           {templates.length > 0 && (
             <Badge variant="secondary" className="rounded-full px-1.5">
               {templates.length}
@@ -199,7 +208,7 @@ export function BoardTemplatesToolCard({
           <div className="rounded-md border bg-muted/20 px-3 py-2">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <ClockIcon className="size-3.5 animate-spin" />
-              <span>Loading templates...</span>
+              <span>{t("chat.templatesTool.loading")}</span>
             </div>
             <div className="mt-2 h-1 overflow-hidden rounded-full bg-muted">
               <div className="h-full w-1/2 animate-pulse rounded-full bg-primary/60" />
@@ -210,7 +219,7 @@ export function BoardTemplatesToolCard({
         {/* Error */}
         {isError && (
           <div className="rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive">
-            {part.errorText || "Tool execution failed"}
+            {part.errorText || t("toolStatus.failed")}
           </div>
         )}
 
@@ -246,7 +255,7 @@ export function BoardTemplatesToolCard({
         {/* Empty result */}
         {part.state === "output-available" && templates.length === 0 && (
           <div className="rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
-            No templates found
+            {t("chat.templatesTool.none")}
           </div>
         )}
       </CollapsibleContent>

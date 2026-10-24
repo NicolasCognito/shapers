@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { CheckCircleIcon, XCircleIcon } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
@@ -10,15 +11,16 @@ export function BatchToolResultSummary<T>({
   batch: BatchToolResult<T>
   getLabel?: (result: T) => string | undefined
 }) {
+  const { t } = useTranslation()
   return (
     <div className="space-y-2 rounded-md border bg-card px-3 py-2">
       <div className="flex flex-wrap items-center gap-2 text-sm font-medium">
-        <span>{batch.total} records</span>
+        <span>{t("batch.records", { count: batch.total })}</span>
         <Badge className="bg-green-500/10 text-green-700 dark:text-green-400">
-          {batch.succeeded} succeeded
+          {t("batch.succeeded", { count: batch.succeeded })}
         </Badge>
         {batch.failed > 0 && (
-          <Badge variant="destructive">{batch.failed} failed</Badge>
+          <Badge variant="destructive">{t("batch.failed", { count: batch.failed })}</Badge>
         )}
       </div>
 
@@ -36,7 +38,7 @@ export function BatchToolResultSummary<T>({
                 <XCircleIcon className="mt-0.5 size-3.5 shrink-0 text-destructive" />
               )}
               <span className="min-w-0 break-words">
-                {label || `Record ${item.index + 1}`}
+                {label || t("batch.record", { n: item.index + 1 })}
                 {!item.ok && item.error && (
                   <span className="text-destructive"> — {item.error}</span>
                 )}

@@ -1,3 +1,5 @@
+import { useTranslation } from "react-i18next"
+import i18n from "@/i18n"
 import { CheckIcon, ChevronDownIcon, CopyIcon } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 
@@ -33,6 +35,7 @@ type InputPreview = {
 }
 
 export function ToolInput({ input, className }: ToolInputProps) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const copyTimeout = useRef<number>(0)
@@ -72,7 +75,7 @@ export function ToolInput({ input, className }: ToolInputProps) {
       <div className="flex items-center gap-1">
         <CollapsibleTrigger className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2 text-left">
           <span className="shrink-0 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
-            Parameters
+            {t("toolInput.parameters")}
           </span>
           <span className="min-w-0 flex-1 truncate font-mono text-xs text-muted-foreground">
             {summary}
@@ -89,8 +92,8 @@ export function ToolInput({ input, className }: ToolInputProps) {
           variant="ghost"
           size="icon-sm"
           className="mr-1 shrink-0"
-          aria-label="Copy full parameters"
-          title="Copy full parameters"
+          aria-label={t("toolInput.copyAll")}
+          title={t("toolInput.copyAll")}
           onClick={() => void copyFullInput()}
         >
           {copied ? <CheckIcon /> : <CopyIcon />}
@@ -103,9 +106,11 @@ export function ToolInput({ input, className }: ToolInputProps) {
         </pre>
         {preview?.truncated && (
           <div className="border-t px-3 py-1.5 text-[10px] text-muted-foreground">
-            Preview limited to {MAX_PREVIEW_CHARS.toLocaleString()} characters,
-            {` ${MAX_ARRAY_ITEMS}`} array items, and {MAX_DEPTH} levels. Copy to
-            inspect the complete parameters.
+            {t("toolInput.limited", {
+              chars: MAX_PREVIEW_CHARS.toLocaleString(),
+              items: MAX_ARRAY_ITEMS,
+              depth: MAX_DEPTH,
+            })}
           </div>
         )}
       </CollapsibleContent>
@@ -114,11 +119,13 @@ export function ToolInput({ input, className }: ToolInputProps) {
 }
 
 function formatSummary(input: unknown): string {
+  const t = (key: string, options?: Record<string, unknown>) =>
+    i18n.t(key, options)
   if (input === null) return "null"
   if (input === undefined) return ""
-  if (typeof input === "string") return `${input.length} chars`
+  if (typeof input === "string") return t("toolInput.chars", { count: input.length })
   if (typeof input !== "object") return String(input)
-  if (Array.isArray(input)) return `${input.length} items`
+  if (Array.isArray(input)) return t("toolInput.items", { count: input.length })
 
   const entries = Object.entries(input as Record<string, unknown>)
   if (entries.length === 0) return ""
@@ -126,20 +133,22 @@ function formatSummary(input: unknown): string {
     .slice(0, 4)
     .map(([key, value]) => `${key}: ${summarizeValue(value)}`)
   if (entries.length > shown.length) {
-    shown.push(`+${entries.length - shown.length} fields`)
+    shown.push(t("toolInput.moreFields", { count: entries.length - shown.length }))
   }
   return shown.join(" · ")
 }
 
 function summarizeValue(value: unknown): string {
+  const t = (key: string, options?: Record<string, unknown>) =>
+    i18n.t(key, options)
   if (value === null) return "null"
   if (value === undefined) return "undefined"
-  if (Array.isArray(value)) return `${value.length} items`
+  if (Array.isArray(value)) return t("toolInput.items", { count: value.length })
   if (typeof value === "object") {
-    return `${Object.keys(value as Record<string, unknown>).length} fields`
+    return t("toolInput.fields", { count: Object.keys(value as Record<string, unknown>).length })
   }
   if (typeof value === "string") {
-    if (value.length > 48) return `${value.length} chars`
+    if (value.length > 48) return t("toolInput.chars", { count: value.length })
     return JSON.stringify(value)
   }
   return String(value)
@@ -155,7 +164,7 @@ function formatPreview(input: unknown): InputPreview {
   let text =
     typeof value === "string" ? value : (JSON.stringify(value, null, 2) ?? "")
   if (text.length > MAX_PREVIEW_CHARS) {
-    text = `${text.slice(0, MAX_PREVIEW_CHARS)}\n… preview shortened`
+    text = `${text.slice(0, MAX_PREVIEW_CHARS)}\n${i18n.t("toolInput.shortened")}`
     context.truncated = true
   }
   return { text, truncated: context.truncated }
@@ -168,14 +177,14 @@ function toPreviewValue(
 ): unknown {
   if (context.nodes >= MAX_NODES) {
     context.truncated = true
-    return "… preview node limit reached"
+    return i18n.t("toolInput.nodeLimit")
   }
   context.nodes++
 
   if (typeof value === "string") {
     if (value.length <= MAX_STRING_CHARS) return value
     context.truncated = true
-    return `${value.slice(0, MAX_STRING_CHARS)}… [${value.length - MAX_STRING_CHARS} more chars]`
+    return `${value.slice(0, MAX_STRING_CHARS)}${i18n.t("toolInput.moreChars", { count: value.length - MAX_STRING_CHARS })}`
   }
   if (value === null || typeof value !== "object") return value
   if (context.seen.has(value)) return "[Circular]"
@@ -184,14 +193,14 @@ function toPreviewValue(
   if (Array.isArray(value)) {
     if (depth >= MAX_DEPTH) {
       context.truncated = true
-      return `[Array(${value.length}) hidden at depth limit]`
+      return i18n.t("toolInput.arrayHidden", { count: value.length })
     }
     const visible = value
       .slice(0, MAX_ARRAY_ITEMS)
       .map((item) => toPreviewValue(item, depth + 1, context))
     if (value.length > visible.length) {
       context.truncated = true
-      visible.push(`… ${value.length - visible.length} more items`)
+      visible.push(i18n.t("toolInput.moreItems", { count: value.length - visible.length }))
     }
     return visible
   }
@@ -199,7 +208,7 @@ function toPreviewValue(
   const entries = Object.entries(value as Record<string, unknown>)
   if (depth >= MAX_DEPTH) {
     context.truncated = true
-    return `[Object with ${entries.length} fields hidden at depth limit]`
+    return i18n.t("toolInput.objectHidden", { count: entries.length })
   }
   const visibleEntries = entries.slice(0, MAX_OBJECT_KEYS)
   const result: Record<string, unknown> = {}
@@ -208,7 +217,7 @@ function toPreviewValue(
   }
   if (entries.length > visibleEntries.length) {
     context.truncated = true
-    result["…"] = `${entries.length - visibleEntries.length} more fields`
+    result["…"] = i18n.t("toolInput.moreFieldsShort", { count: entries.length - visibleEntries.length })
   }
   return result
 }

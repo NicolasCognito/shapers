@@ -1,9 +1,15 @@
 import { useEffect, useState } from "react"
 
+import { useTranslation } from "react-i18next"
 import { ClientResponseError, type RecordModel } from "pocketbase"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { pb } from "@/lib/pocketbase"
+import i18n from "@/i18n"
+
+// Module-level helpers translate at call time, so they follow the language.
+const t = (key: string, options?: Record<string, unknown>) =>
+  i18n.t(key, options)
 
 type Change = {
   from?: unknown
@@ -41,7 +47,7 @@ function toOperationLog(record: OperationLogRecord): OperationLog {
   const actor = record.expand?.actor
   return {
     id: record.id,
-    actorName: actor?.name || actor?.email || record.actor_name || "System",
+    actorName: actor?.name || actor?.email || record.actor_name || t("activity.system"),
     actorAvatar: actor?.avatar
       ? pb.files.getURL(actor, actor.avatar)
       : undefined,
@@ -59,62 +65,50 @@ function upsertLog(logs: OperationLog[], log: OperationLog) {
 }
 
 function text(value: unknown) {
-  if (Array.isArray(value)) return value.length > 0 ? value.join(", ") : "none"
-  if (typeof value === "string") return value || "none"
-  return String(value ?? "none")
+  const none = t("activity.none")
+  if (Array.isArray(value)) return value.length > 0 ? value.join(", ") : none
+  if (typeof value === "string") return value || none
+  return String(value ?? none)
 }
 
 function describeLog(log: OperationLog) {
-  if (log.action === "create") return ["created this task"]
-  if (log.action === "delete") return ["deleted this task"]
-  if (log.action === "archive") return ["archived this task"]
-  if (log.action === "restore") return ["restored this task"]
+  if (log.action === "create") return [t("activity.task.created")]
+  if (log.action === "delete") return [t("activity.task.deleted")]
+  if (log.action === "archive") return [t("activity.task.archived")]
+  if (log.action === "restore") return [t("activity.task.restored")]
 
   const descriptions: string[] = []
   const changes = log.changes
+  const fromTo = (c: Change) => ({ from: text(c.from), to: text(c.to) })
   if (changes.state) {
-    descriptions.push(
-      `moved the task from ${text(changes.state.from)} to ${text(changes.state.to)}`
-    )
+    descriptions.push(t("activity.task.moved", fromTo(changes.state)))
   }
   if (changes.title) {
-    descriptions.push(
-      `renamed the task from “${text(changes.title.from)}” to “${text(changes.title.to)}”`
-    )
+    descriptions.push(t("activity.task.renamed", fromTo(changes.title)))
   }
-  if (changes.description) descriptions.push("updated the description")
+  if (changes.description) descriptions.push(t("activity.task.descUpdated"))
   if (changes.priority) {
-    descriptions.push(
-      `changed priority from ${text(changes.priority.from)} to ${text(changes.priority.to)}`
-    )
+    descriptions.push(t("activity.task.priority", fromTo(changes.priority)))
   }
   if (changes.due_date) {
-    const from = text(changes.due_date.from)
-    const to = text(changes.due_date.to)
-    descriptions.push(`changed the due date from ${from} to ${to}`)
+    descriptions.push(t("activity.task.dueDate", fromTo(changes.due_date)))
   }
   if (changes.labels) {
-    descriptions.push(
-      `changed labels from ${text(changes.labels.from)} to ${text(changes.labels.to)}`
-    )
+    descriptions.push(t("activity.task.labels", fromTo(changes.labels)))
   }
   if (changes.assignees) {
-    descriptions.push(
-      `changed assignees from ${text(changes.assignees.from)} to ${text(changes.assignees.to)}`
-    )
+    descriptions.push(t("activity.task.assignees", fromTo(changes.assignees)))
   }
   if (changes.documents) {
-    descriptions.push(
-      `changed linked documents from ${text(changes.documents.from)} to ${text(changes.documents.to)}`
-    )
+    descriptions.push(t("activity.task.documents", fromTo(changes.documents)))
   }
-  return descriptions.length > 0 ? descriptions : ["updated this task"]
+  return descriptions.length > 0 ? descriptions : [t("activity.task.updated")]
 }
 
 function formatTime(value: string) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
-  return date.toLocaleString(undefined, {
+  return date.toLocaleString(i18n.language, {
     month: "short",
     day: "numeric",
     hour: "2-digit",
@@ -123,6 +117,7 @@ function formatTime(value: string) {
 }
 
 export function TaskActivity({ taskId }: { taskId: string }) {
+  useTranslation()
   const [logs, setLogs] = useState<OperationLog[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -180,17 +175,17 @@ export function TaskActivity({ taskId }: { taskId: string }) {
   return (
     <div className="flex flex-col gap-3 border-t pt-5">
       <div>
-        <p className="text-sm font-medium">Activity</p>
+        <p className="text-sm font-medium">{t("activity.title")}</p>
         <p className="mt-1 text-xs text-muted-foreground">
-          Task changes recorded by the server.
+          {t("activity.taskDesc")}
         </p>
       </div>
 
       {loading ? (
-        <p className="text-xs text-muted-foreground">Loading activity…</p>
+        <p className="text-xs text-muted-foreground">{t("activity.loading")}</p>
       ) : logs.length === 0 ? (
         <p className="text-xs text-muted-foreground">
-          No activity recorded yet.
+          {t("activity.empty")}
         </p>
       ) : (
         <div className="relative flex flex-col gap-4 before:absolute before:top-3 before:bottom-3 before:left-3 before:w-px before:bg-border">

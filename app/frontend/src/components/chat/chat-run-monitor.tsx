@@ -4,6 +4,7 @@ import { useNavigate } from "react-router"
 import { ClientResponseError, type RecordModel } from "pocketbase"
 import { toast } from "sonner"
 
+import i18n from "@/i18n"
 import { pb } from "@/lib/pocketbase"
 import { workspaceRecordUrl } from "@/lib/workspace-navigation"
 import { useChatRunsStore, type ChatRunSummary } from "@/store/chat-runs"
@@ -49,18 +50,18 @@ export function ChatRunMonitor() {
 
       const title =
         chat.conversations.find((item) => item.id === record.conversation)
-          ?.title ?? "Chat"
+          ?.title ?? i18n.t("chat.fallbackTitle")
       const action = {
-        label: "View",
+        label: i18n.t("chat.view"),
         onClick: () => viewConversation(record.conversation),
       }
       if (record.status === "complete") {
-        toast.success(`${title} has a new AI response.`, { action })
+        toast.success(i18n.t("chat.newResponse", { title }), { action })
       } else if (record.status === "cancelled") {
-        toast.info(`${title} generation was stopped.`, { action })
+        toast.info(i18n.t("chat.stopped", { title }), { action })
       } else {
         toast.error(
-          record.metadata?.error?.message ?? `${title} generation failed.`,
+          record.metadata?.error?.message ?? i18n.t("chat.failed", { title }),
           { action }
         )
       }

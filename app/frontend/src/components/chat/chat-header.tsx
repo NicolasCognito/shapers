@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useEffect, useRef, useState } from "react"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -19,6 +20,7 @@ import { useChatStore } from "@/store/chat"
 import type { Conversation } from "@/types/chat"
 
 export function ChatHeader({ conversation }: { conversation: Conversation }) {
+  const { t } = useTranslation()
   const togglePin = useChatStore((s) => s.togglePin)
   const archiveConversation = useChatStore((s) => s.archiveConversation)
   const renameConversation = useChatStore((s) => s.renameConversation)
@@ -94,7 +96,7 @@ export function ChatHeader({ conversation }: { conversation: Conversation }) {
               setEditing(true)
             }}
             className="min-w-0 truncate text-left text-sm font-semibold hover:text-muted-foreground"
-            title="Click to rename"
+            title={t("chat.clickRename")}
           >
             {conversation.title}
           </button>
@@ -116,7 +118,7 @@ export function ChatHeader({ conversation }: { conversation: Conversation }) {
             </Badge>
           </TooltipTrigger>
           <TooltipContent side="bottom">
-            <p className="text-xs">Conversation ID: {conversation.id}</p>
+            <p className="text-xs">{t("chat.conversationId", { id: conversation.id })}</p>
           </TooltipContent>
         </Tooltip>
 
@@ -130,17 +132,16 @@ export function ChatHeader({ conversation }: { conversation: Conversation }) {
               />
               {conversation.message_count}
               <span className="hidden text-muted-foreground md:inline">
-                messages
+                {t("chat.messagesShort", { count: conversation.message_count })}
               </span>
             </Badge>
           </TooltipTrigger>
           <TooltipContent side="bottom">
             <div className="flex flex-col gap-0.5 text-xs">
-              <span>{conversation.message_count} messages</span>
-              <span>{conversation.tool_call_count} tool calls</span>
+              <span>{t("chat.messages", { count: conversation.message_count })}</span>
+              <span>{t("chat.toolCalls", { count: conversation.tool_call_count })}</span>
               <span>
-                {formatTokenCount(conversation.input_tokens)} in /{" "}
-                {formatTokenCount(conversation.output_tokens)} out tokens
+                {t("chat.tokens", { input: formatTokenCount(conversation.input_tokens), output: formatTokenCount(conversation.output_tokens) })}
               </span>
             </div>
           </TooltipContent>
@@ -152,7 +153,11 @@ export function ChatHeader({ conversation }: { conversation: Conversation }) {
             variant="ghost"
             size="icon-sm"
             onClick={() => void togglePin(conversation.id)}
-            aria-label={conversation.pinned ? "Unpin" : "Pin"}
+            aria-label={
+              conversation.pinned
+                ? t("notifications.unpin")
+                : t("notifications.pin")
+            }
           >
             <HugeiconsIcon
               icon={Pin02Icon}
@@ -167,7 +172,7 @@ export function ChatHeader({ conversation }: { conversation: Conversation }) {
               void archiveConversation(conversation.id).catch(() => {})
             }
             disabled={conversation.status === "archived"}
-            aria-label="Archive"
+            aria-label={t("common.archive")}
           >
             <HugeiconsIcon icon={Archive02Icon} strokeWidth={2} />
           </Button>

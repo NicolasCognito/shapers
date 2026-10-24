@@ -6,6 +6,8 @@ import {
 } from "pocketbase"
 import { toast } from "sonner"
 
+import i18n from "@/i18n"
+
 import { pb } from "@/lib/pocketbase"
 
 export type Priority = "none" | "low" | "medium" | "high" | "urgent"
@@ -268,7 +270,7 @@ function toProject(
     name: record.name,
     description: record.description || undefined,
     ownerId: record.owner,
-    ownerName: owner?.name || owner?.email || "Unknown owner",
+    ownerName: owner?.name || owner?.email || i18n.t("boardStore.unknownOwner"),
     ownerAvatar:
       owner?.avatar && owner ? pb.files.getURL(owner, owner.avatar) : undefined,
     archived: record.archived,
@@ -329,7 +331,7 @@ function toMember(record: MemberRecord): Member {
     projectId: record.project,
     userId: record.user,
     role: record.role,
-    name: user?.name || user?.email || "Unknown member",
+    name: user?.name || user?.email || i18n.t("boardStore.unknownMember"),
     avatar:
       user?.avatar && user ? pb.files.getURL(user, user.avatar) : undefined,
   }
@@ -447,7 +449,7 @@ async function loadBoardPage(
   existingTemplates?: BoardTemplate[]
 ) {
   const userId = pb.authStore.record?.id
-  if (!userId) throw new Error("Authentication is required")
+  if (!userId) throw new Error(i18n.t("boardStore.authenticationIsRequired"))
   const orderFilter = focusedProjectId
     ? pb.filter(
         "user = {:user} && project.archived = false && project = {:p}",
@@ -640,7 +642,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         )
       }
     } catch (error) {
-      const message = messageFromError(error, "Could not load the board")
+      const message = messageFromError(error, i18n.t("boardStore.couldNotLoadTheBoard"))
       set({ error: message })
       toast.error(message)
     } finally {
@@ -660,7 +662,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         )
       }
     } catch (error) {
-      const message = messageFromError(error, "Could not load the board")
+      const message = messageFromError(error, i18n.t("boardStore.couldNotLoadTheBoard"))
       set({ error: message })
       toast.error(message)
     } finally {
@@ -707,7 +709,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
       }))
       return project
     } catch (error) {
-      const message = messageFromError(error, "Could not open the project")
+      const message = messageFromError(error, i18n.t("boardStore.couldNotOpenTheProject"))
       set({ error: message })
       toast.error(message)
       return null
@@ -730,7 +732,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         if (error instanceof ClientResponseError && error.status === 404) {
           return null
         }
-        const message = messageFromError(error, "Could not open the task")
+        const message = messageFromError(error, i18n.t("boardStore.couldNotOpenTheTask"))
         set({ error: message })
         toast.error(message)
         return null
@@ -784,7 +786,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         )
       }
     } catch (error) {
-      const message = messageFromError(error, "Could not create the project")
+      const message = messageFromError(error, i18n.t("boardStore.couldNotCreateTheProject"))
       set({ error: message })
       toast.error(message)
       throw new Error(message, { cause: error })
@@ -821,7 +823,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
           state.openedProject?.id === id ? updated : state.openedProject,
       }))
     } catch (error) {
-      const message = messageFromError(error, "Could not update the project")
+      const message = messageFromError(error, i18n.t("boardStore.couldNotUpdateTheProject"))
       set({ error: message })
       toast.error(message)
       throw new Error(message, { cause: error })
@@ -844,9 +846,9 @@ export const useBoardStore = create<BoardState>((set, get) => ({
           snapshot.projects.map((project) => project.id)
         )
       }
-      toast.success("Project archived.")
+      toast.success(i18n.t("boardStore.projectArchived"))
     } catch (error) {
-      const message = messageFromError(error, "Could not archive the project")
+      const message = messageFromError(error, i18n.t("boardStore.couldNotArchiveTheProject"))
       set({ error: message })
       toast.error(message)
       throw new Error(message, { cause: error })
@@ -870,7 +872,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         )
       }
     } catch (error) {
-      const message = messageFromError(error, "Could not delete the project")
+      const message = messageFromError(error, i18n.t("boardStore.couldNotDeleteTheProject"))
       set({ error: message })
       toast.error(message)
       throw new Error(message, { cause: error })
@@ -963,7 +965,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         )
       }
     } catch (error) {
-      const message = messageFromError(error, "Could not reorder projects")
+      const message = messageFromError(error, i18n.t("boardStore.couldNotReorderProjects"))
       set({ error: message })
       toast.error(message)
       throw new Error(message, { cause: error })
@@ -990,7 +992,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     } catch (error) {
       const message = messageFromError(
         error,
-        "Could not transfer project ownership"
+        i18n.t("boardStore.couldNotTransferProjectOwnership")
       )
       set({ error: message })
       toast.error(message)
@@ -1022,7 +1024,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
       }))
       const message = messageFromError(
         error,
-        "Could not save the project display state"
+        i18n.t("boardStore.couldNotSaveTheProjectDisplayState")
       )
       set({ error: message })
       toast.error(message)
@@ -1048,7 +1050,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         })
       set((state) => ({ states: upsertById(state.states, toState(record)) }))
     } catch (error) {
-      const message = messageFromError(error, "Could not add the state")
+      const message = messageFromError(error, i18n.t("boardStore.couldNotAddTheState"))
       set({ error: message })
       toast.error(message)
       throw new Error(message, { cause: error })
@@ -1062,7 +1064,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         .update<StateRecord>(id, patch)
       set((state) => ({ states: upsertById(state.states, toState(record)) }))
     } catch (error) {
-      const message = messageFromError(error, "Could not update the state")
+      const message = messageFromError(error, i18n.t("boardStore.couldNotUpdateTheState"))
       set({ error: message })
       toast.error(message)
       throw new Error(message, { cause: error })
@@ -1078,7 +1080,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     } catch (error) {
       const message = messageFromError(
         error,
-        "Move or delete the tasks in this state first"
+        i18n.t("boardStore.moveOrDeleteTheTasksInThisStateFirst")
       )
       set({ error: message })
       toast.error(message)
@@ -1117,7 +1119,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
       const snapshot = await loadBoardPage(get().projectPage, get().templates)
       set({
         ...snapshot,
-        error: messageFromError(error, "Could not reorder states"),
+        error: messageFromError(error, i18n.t("boardStore.couldNotReorderStates")),
       })
       if (connectionWanted) {
         await connectRealtime(
@@ -1139,7 +1141,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         })
       set((state) => ({ labels: upsertById(state.labels, toLabel(record)) }))
     } catch (error) {
-      const message = messageFromError(error, "Could not add the label")
+      const message = messageFromError(error, i18n.t("boardStore.couldNotAddTheLabel"))
       set({ error: message })
       toast.error(message)
       throw new Error(message, { cause: error })
@@ -1153,7 +1155,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         .update<LabelRecord>(id, patch)
       set((state) => ({ labels: upsertById(state.labels, toLabel(record)) }))
     } catch (error) {
-      const message = messageFromError(error, "Could not update the label")
+      const message = messageFromError(error, i18n.t("boardStore.couldNotUpdateTheLabel"))
       set({ error: message })
       toast.error(message)
       throw new Error(message, { cause: error })
@@ -1179,7 +1181,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         })),
       }))
     } catch (error) {
-      const message = messageFromError(error, "Could not delete the label")
+      const message = messageFromError(error, i18n.t("boardStore.couldNotDeleteTheLabel"))
       set({ error: message })
       toast.error(message)
       throw new Error(message, { cause: error })
@@ -1200,7 +1202,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         )
       set((state) => ({ members: upsertById(state.members, toMember(record)) }))
     } catch (error) {
-      const message = messageFromError(error, "Could not add the member")
+      const message = messageFromError(error, i18n.t("boardStore.couldNotAddTheMember"))
       set({ error: message })
       toast.error(message)
       throw new Error(message, { cause: error })
@@ -1218,7 +1220,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         )
       set((state) => ({ members: upsertById(state.members, toMember(record)) }))
     } catch (error) {
-      const message = messageFromError(error, "Could not update the member")
+      const message = messageFromError(error, i18n.t("boardStore.couldNotUpdateTheMember"))
       set({ error: message })
       toast.error(message)
       throw new Error(message, { cause: error })
@@ -1232,7 +1234,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         members: state.members.filter((member) => member.id !== id),
       }))
     } catch (error) {
-      const message = messageFromError(error, "Could not remove the member")
+      const message = messageFromError(error, i18n.t("boardStore.couldNotRemoveTheMember"))
       set({ error: message })
       toast.error(message)
       throw new Error(message, { cause: error })
@@ -1261,7 +1263,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
       })
       set((state) => ({ todos: upsertById(state.todos, toTodo(record)) }))
     } catch (error) {
-      const message = messageFromError(error, "Could not create the task")
+      const message = messageFromError(error, i18n.t("boardStore.couldNotCreateTheTask"))
       set({ error: message })
       toast.error(message)
       throw new Error(message, { cause: error })
@@ -1281,7 +1283,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         openedTask: state.openedTask?.id === id ? updated : state.openedTask,
       }))
     } catch (error) {
-      const message = messageFromError(error, "Could not update the task")
+      const message = messageFromError(error, i18n.t("boardStore.couldNotUpdateTheTask"))
       set({ error: message })
       toast.error(message)
       throw new Error(message, { cause: error })
@@ -1297,9 +1299,9 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         todos: state.todos.filter((item) => item.id !== id),
         openedTask: state.openedTask?.id === id ? null : state.openedTask,
       }))
-      toast.success("Task archived.")
+      toast.success(i18n.t("boardStore.taskArchived"))
     } catch (error) {
-      const message = messageFromError(error, "Could not archive the task")
+      const message = messageFromError(error, i18n.t("boardStore.couldNotArchiveTheTask"))
       set({ error: message })
       toast.error(message)
       throw new Error(message, { cause: error })
@@ -1319,9 +1321,9 @@ export const useBoardStore = create<BoardState>((set, get) => ({
           ? upsertById(state.todos, restored)
           : state.todos,
       }))
-      toast.success("Task restored.")
+      toast.success(i18n.t("boardStore.taskRestored"))
     } catch (error) {
-      const message = messageFromError(error, "Could not restore the task")
+      const message = messageFromError(error, i18n.t("boardStore.couldNotRestoreTheTask"))
       set({ error: message })
       toast.error(message)
       throw new Error(message, { cause: error })
@@ -1336,7 +1338,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         openedTask: state.openedTask?.id === id ? null : state.openedTask,
       }))
     } catch (error) {
-      const message = messageFromError(error, "Could not delete the task")
+      const message = messageFromError(error, i18n.t("boardStore.couldNotDeleteTheTask"))
       set({ error: message })
       toast.error(message)
       throw new Error(message, { cause: error })
@@ -1372,7 +1374,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     } catch (error) {
       set((state) => ({
         todos: upsertById(state.todos, dragged),
-        error: messageFromError(error, "Could not move the task"),
+        error: messageFromError(error, i18n.t("boardStore.couldNotMoveTheTask")),
       }))
     }
   },
@@ -1381,20 +1383,24 @@ export const useBoardStore = create<BoardState>((set, get) => ({
 export const PRIORITY_META: {
   value: Priority
   label: string
+  /** i18n key; render with t(labelKey). */
+  labelKey: string
   color: string
 }[] = [
-  { value: "none", label: "None", color: "#94a3b8" },
-  { value: "low", label: "Low", color: "#64748b" },
-  { value: "medium", label: "Medium", color: "#3b82f6" },
-  { value: "high", label: "High", color: "#f59e0b" },
-  { value: "urgent", label: "Urgent", color: "#ef4444" },
+  { value: "none", label: "None", labelKey: "priority.none", color: "#94a3b8" },
+  { value: "low", label: "Low", labelKey: "priority.low", color: "#64748b" },
+  { value: "medium", label: "Medium", labelKey: "priority.medium", color: "#3b82f6" },
+  { value: "high", label: "High", labelKey: "priority.high", color: "#f59e0b" },
+  { value: "urgent", label: "Urgent", labelKey: "priority.urgent", color: "#ef4444" },
 ]
 
 export const STATE_CATEGORY_META: {
   value: StateCategory
   label: string
+  /** i18n key; render with t(labelKey). */
+  labelKey: string
 }[] = [
-  { value: "pending", label: "Pending" },
-  { value: "active", label: "Active" },
-  { value: "completed", label: "Completed" },
+  { value: "pending", label: "Pending", labelKey: "stateCategory.pending" },
+  { value: "active", label: "Active", labelKey: "stateCategory.active" },
+  { value: "completed", label: "Completed", labelKey: "stateCategory.completed" },
 ]

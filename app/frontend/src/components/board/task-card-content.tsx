@@ -15,6 +15,7 @@ import {
   isOverdue,
   type DateLocale,
 } from "@/lib/date-format"
+import { useTranslation } from "react-i18next"
 import { cn } from "@/lib/utils"
 import { PRIORITY_META, type Priority } from "@/store/board"
 
@@ -41,7 +42,7 @@ export type TaskCardContentProps = {
   dueDate?: string
   documentCount: number
   completed?: boolean
-  /** Only the public preview varies this; the board always reads in English. */
+  /** The public preview passes its own; the board follows the UI language. */
   locale?: DateLocale
   /** Rendered next to the labels, e.g. the board's archive button. */
   action?: ReactNode
@@ -62,12 +63,15 @@ export function TaskCardContent({
   dueDate,
   documentCount,
   completed,
-  locale = "en",
+  locale,
   action,
 }: TaskCardContentProps) {
+  const { t, i18n } = useTranslation()
+  const dateLocale: DateLocale =
+    locale ?? (i18n.language?.startsWith("sl") ? "sl" : "en")
   const priorityMeta = PRIORITY_META.find((item) => item.value === priority)
   const overdue = !completed && isOverdue(dueDate)
-  const span = formatTaskSpan(startDate, dueDate, locale)
+  const span = formatTaskSpan(startDate, dueDate, dateLocale)
 
   return (
     <>
@@ -133,7 +137,7 @@ export function TaskCardContent({
                 className="size-1.5 rounded-full"
                 style={{ backgroundColor: priorityMeta.color }}
               />
-              {priorityMeta.label}
+              {t(priorityMeta.labelKey)}
             </Badge>
           )}
 
@@ -160,7 +164,7 @@ export function TaskCardContent({
           {documentCount > 0 && (
             <span
               className="flex items-center gap-0.5 text-[10px] text-muted-foreground"
-              title={`${documentCount} linked document${documentCount === 1 ? "" : "s"}`}
+              title={t("taskCard.linkedDocs", { count: documentCount })}
             >
               <HugeiconsIcon
                 icon={File01Icon}

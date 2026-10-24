@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { Trans, useTranslation } from "react-i18next"
 
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -52,6 +53,7 @@ import {
   type StateCategory,
 } from "@/store/board"
 import { pb } from "@/lib/pocketbase"
+import i18n from "@/i18n"
 import { useAuthStore, type User } from "@/store/auth"
 
 type ProjectSheetProps = {
@@ -133,6 +135,7 @@ function OwnerSection({
   currentUser: User | null
   onTransferred: () => void
 }) {
+  const { t } = useTranslation()
   const transferProjectOwner = useBoardStore((s) => s.transferProjectOwner)
   const [userOptions, setUserOptions] = useState<UserOption[]>([])
   const [selectedUserId, setSelectedUserId] = useState("")
@@ -175,7 +178,7 @@ function OwnerSection({
 
   return (
     <div className="flex flex-col gap-2">
-      <FieldLabel>Owner</FieldLabel>
+      <FieldLabel>{t("common.owner")}</FieldLabel>
       <div className="flex items-center gap-2 rounded-xl border p-3">
         <Avatar size="sm">
           {owner.avatar && (
@@ -192,14 +195,14 @@ function OwnerSection({
         <span className="min-w-0 flex-1 truncate text-sm font-medium">
           {owner.name}
         </span>
-        <span className="text-xs text-muted-foreground">Owner</span>
+        <span className="text-xs text-muted-foreground">{t("common.owner")}</span>
       </div>
 
       {project && transferTargets.length > 0 && (
         <div className="flex items-center gap-2 rounded-xl border border-dashed p-3">
           <Select value={selectedUserId} onValueChange={setSelectedUserId}>
             <SelectTrigger className="min-w-0 flex-1">
-              <SelectValue placeholder="Select the new owner..." />
+              <SelectValue placeholder={t("projectSheet.selectNewOwner")} />
             </SelectTrigger>
             <SelectContent>
               {transferTargets.map((user) => (
@@ -215,7 +218,7 @@ function OwnerSection({
             disabled={!selectedUserId}
             onClick={() => setConfirmTransfer(true)}
           >
-            Transfer ownership
+            {t("projectSheet.transfer")}
           </Button>
         </div>
       )}
@@ -223,28 +226,28 @@ function OwnerSection({
       <AlertDialog open={confirmTransfer} onOpenChange={setConfirmTransfer}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Transfer project ownership?</AlertDialogTitle>
+            <AlertDialogTitle>{t("projectSheet.transferTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
               {selectedUser ? (
-                <>
-                  <strong>{selectedUser.name}</strong> will become the project
-                  owner. You will become a regular member and will no longer be
-                  able to edit project settings.
-                </>
+                <Trans
+                  i18nKey="projectSheet.transferDesc"
+                  values={{ name: selectedUser.name }}
+                  components={{ strong: <strong /> }}
+                />
               ) : (
-                "Select a new owner before continuing."
+                t("projectSheet.selectOwnerFirst")
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={transferring}>
-              Cancel
+              {t("common.cancel")}
             </AlertDialogCancel>
             <AlertDialogAction
               disabled={!selectedUser || transferring}
               onClick={() => void handleTransfer()}
             >
-              Transfer ownership
+              {t("projectSheet.transfer")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -258,6 +261,7 @@ export function ProjectSheet({
   onOpenChange,
   project,
 }: ProjectSheetProps) {
+  const { t } = useTranslation()
   const isEdit = project !== null
 
   const templates = useBoardStore((s) => s.templates)
@@ -362,21 +366,21 @@ export function ProjectSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-lg!">
         <SheetHeader>
-          <SheetTitle>{isEdit ? "Edit project" : "Add project"}</SheetTitle>
+          <SheetTitle>{isEdit ? t("projectSheet.editProject") : t("projectSheet.addProject")}</SheetTitle>
           <SheetDescription>
             {isEdit
-              ? "Update project details, workflow, labels and members."
-              : "Create a project from a template or start from scratch."}
+              ? t("projectSheet.editDesc")
+              : t("projectSheet.addDesc")}
           </SheetDescription>
         </SheetHeader>
 
         <div className="flex flex-col gap-5 overflow-y-auto px-6">
           {/* Name */}
           <div className="flex flex-col gap-2">
-            <FieldLabel htmlFor="project-name">Name</FieldLabel>
+            <FieldLabel htmlFor="project-name">{t("common.name")}</FieldLabel>
             <Input
               id="project-name"
-              placeholder="Project name..."
+              placeholder={t("projectSheet.namePlaceholder")}
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
@@ -384,10 +388,10 @@ export function ProjectSheet({
 
           {/* Description */}
           <div className="flex flex-col gap-2">
-            <FieldLabel htmlFor="project-description">Description</FieldLabel>
+            <FieldLabel htmlFor="project-description">{t("common.description")}</FieldLabel>
             <Textarea
               id="project-description"
-              placeholder="Description (optional)..."
+              placeholder={t("projectSheet.descPlaceholder")}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
@@ -396,7 +400,7 @@ export function ProjectSheet({
           {/* Template (add mode only) */}
           {!isEdit && (
             <div className="flex flex-col gap-2">
-              <FieldLabel>Template</FieldLabel>
+              <FieldLabel>{t("projectSheet.template")}</FieldLabel>
               <Select value={templateId} onValueChange={handleTemplateChange}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
@@ -407,7 +411,7 @@ export function ProjectSheet({
                       {t.name}
                     </SelectItem>
                   ))}
-                  <SelectItem value={BLANK_TEMPLATE}>Blank project</SelectItem>
+                  <SelectItem value={BLANK_TEMPLATE}>{t("projectSheet.blank")}</SelectItem>
                 </SelectContent>
               </Select>
               {templateId !== BLANK_TEMPLATE && (
@@ -427,9 +431,9 @@ export function ProjectSheet({
 
           <Tabs defaultValue="states" className="gap-3">
             <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="states">States</TabsTrigger>
-              <TabsTrigger value="labels">Labels</TabsTrigger>
-              <TabsTrigger value="members">Members</TabsTrigger>
+              <TabsTrigger value="states">{t("projectSheet.states")}</TabsTrigger>
+              <TabsTrigger value="labels">{t("common.labels")}</TabsTrigger>
+              <TabsTrigger value="members">{t("common.members")}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="states">
@@ -478,20 +482,24 @@ export function ProjectSheet({
               onClick={() => setConfirmDelete(true)}
             >
               <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
-              Delete
+              {t("common.delete")}
             </Button>
           ) : (
             <div />
           )}
           <div className="flex gap-2">
             <SheetClose asChild>
-              <Button variant="ghost">Cancel</Button>
+              <Button variant="ghost">{t("common.cancel")}</Button>
             </SheetClose>
             <Button
               onClick={() => void handleSave()}
               disabled={!name.trim() || saving}
             >
-              {saving ? "Saving…" : isEdit ? "Save changes" : "Create project"}
+              {saving
+                ? t("projectSheet.saving")
+                : isEdit
+                  ? t("task.saveChanges")
+                  : t("projectSheet.create")}
             </Button>
           </div>
         </SheetFooter>
@@ -500,19 +508,22 @@ export function ProjectSheet({
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete project?</AlertDialogTitle>
+            <AlertDialogTitle>{t("projectColumn.deleteTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete <strong>{project?.name}</strong> and
-              all tasks inside it. This action cannot be undone.
+              <Trans
+                i18nKey="projectSheet.deleteDesc"
+                values={{ name: project?.name }}
+                components={{ strong: <strong /> }}
+              />
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
               onClick={() => void handleDelete()}
             >
-              Delete
+              {t("common.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -579,6 +590,7 @@ function StateListEditor({
   newState: StateDraft
   setNewState: (s: StateDraft) => void
 }) {
+  const { t } = useTranslation()
   const updateDraft = (id: string, key: keyof StateDraft, value: string) => {
     setDrafts(drafts.map((d) => (d.id === id ? { ...d, [key]: value } : d)))
   }
@@ -606,7 +618,7 @@ function StateListEditor({
 
   return (
     <div className="flex flex-col gap-2">
-      <FieldLabel>Workflow states</FieldLabel>
+      <FieldLabel>{t("projectSheet.workflowStates")}</FieldLabel>
       <div className="flex flex-col gap-2">
         {drafts.map((draft, index) => (
           <StateRow
@@ -651,6 +663,7 @@ function StateRow({
   onMove?: (direction: -1 | 1) => void
   onAdd?: () => void
 }) {
+  const { t } = useTranslation()
   return (
     <div
       className={cn(
@@ -663,10 +676,14 @@ function StateRow({
           value={draft.color}
           onChange={(v) => onUpdate("color", v)}
           size={24}
-          aria-label="State color"
+          aria-label={t("projectSheet.stateColor")}
         />
         <Input
-          placeholder={isNew ? "New state name" : "State name"}
+          placeholder={
+            isNew
+              ? t("projectSheet.newStateName")
+              : t("projectSheet.stateName")
+          }
           value={draft.name}
           onChange={(e) => onUpdate("name", e.target.value)}
           onKeyDown={(e) => {
@@ -684,7 +701,7 @@ function StateRow({
         <SelectContent>
           {STATE_CATEGORY_META.map((c) => (
             <SelectItem key={c.value} value={c.value}>
-              {c.label}
+              {t(c.labelKey)}
             </SelectItem>
           ))}
         </SelectContent>
@@ -697,7 +714,7 @@ function StateRow({
               size="icon-sm"
               disabled={index === 0}
               onClick={() => onMove(-1)}
-              aria-label="Move up"
+              aria-label={t("projectSheet.moveUp")}
             >
               <HugeiconsIcon icon={ArrowUp01Icon} strokeWidth={2} />
             </Button>
@@ -706,7 +723,7 @@ function StateRow({
               size="icon-sm"
               disabled={index === total - 1}
               onClick={() => onMove(1)}
-              aria-label="Move down"
+              aria-label={t("projectSheet.moveDown")}
             >
               <HugeiconsIcon icon={ArrowDown01Icon} strokeWidth={2} />
             </Button>
@@ -715,7 +732,7 @@ function StateRow({
         {isNew ? (
           <Button size="sm" disabled={!draft.name.trim()} onClick={onAdd}>
             <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
-            Add
+            {t("common.add")}
           </Button>
         ) : (
           <Button
@@ -723,7 +740,7 @@ function StateRow({
             size="icon-sm"
             className="text-destructive hover:text-destructive"
             onClick={onRemove}
-            aria-label="Delete state"
+            aria-label={t("projectSheet.deleteState")}
           >
             <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
           </Button>
@@ -738,6 +755,7 @@ function StateRow({
 // ---------------------------------------------------------------------------
 
 function StatesEditSection({ project }: { project: Project }) {
+  const { t } = useTranslation()
   const states = useBoardStore((s) => s.states)
   const todos = useBoardStore((s) => s.todos)
   const addState = useBoardStore((s) => s.addState)
@@ -805,7 +823,7 @@ function StatesEditSection({ project }: { project: Project }) {
 
   return (
     <div className="flex flex-col gap-2">
-      <FieldLabel>Workflow states</FieldLabel>
+      <FieldLabel>{t("projectSheet.workflowStates")}</FieldLabel>
       <div className="flex flex-col gap-2">
         {projectStates.map((state, index) => {
           const draft = { ...state, ...drafts[state.id] }
@@ -820,7 +838,7 @@ function StatesEditSection({ project }: { project: Project }) {
                   value={draft.color}
                   onChange={(v) => updateDraft(state.id, "color", v)}
                   size={24}
-                  aria-label={`${state.name} color`}
+                  aria-label={t("projectSheet.colorOf", { name: state.name })}
                 />
                 <Input
                   value={draft.name}
@@ -839,7 +857,7 @@ function StatesEditSection({ project }: { project: Project }) {
                 <SelectContent>
                   {STATE_CATEGORY_META.map((c) => (
                     <SelectItem key={c.value} value={c.value}>
-                      {c.label}
+                      {t(c.labelKey)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -852,7 +870,7 @@ function StatesEditSection({ project }: { project: Project }) {
                   onClick={() =>
                     void reorderState(state.id, -1).catch(() => {})
                   }
-                  aria-label="Move up"
+                  aria-label={t("projectSheet.moveUp")}
                 >
                   <HugeiconsIcon icon={ArrowUp01Icon} strokeWidth={2} />
                 </Button>
@@ -861,7 +879,7 @@ function StatesEditSection({ project }: { project: Project }) {
                   size="icon-sm"
                   disabled={index === projectStates.length - 1}
                   onClick={() => void reorderState(state.id, 1).catch(() => {})}
-                  aria-label="Move down"
+                  aria-label={t("projectSheet.moveDown")}
                 >
                   <HugeiconsIcon icon={ArrowDown01Icon} strokeWidth={2} />
                 </Button>
@@ -871,7 +889,7 @@ function StatesEditSection({ project }: { project: Project }) {
                   disabled={!draft.name.trim() || savingId === state.id}
                   onClick={() => void handleSave(state.id)}
                 >
-                  Save
+                  {t("common.save")}
                 </Button>
                 <Button
                   variant="ghost"
@@ -880,21 +898,20 @@ function StatesEditSection({ project }: { project: Project }) {
                   disabled={taskCount > 0}
                   title={
                     taskCount > 0
-                      ? `${taskCount} tasks must be moved first`
-                      : "Delete"
+                      ? t("projectSheet.movedFirstShort", { count: taskCount })
+                      : t("common.delete")
                   }
                   onClick={() =>
                     void removeState(state.id).catch(() => undefined)
                   }
-                  aria-label="Delete state"
+                  aria-label={t("projectSheet.deleteState")}
                 >
                   <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
                 </Button>
               </div>
               {taskCount > 0 && (
                 <p className="text-xs text-muted-foreground md:col-span-3">
-                  {taskCount} task{taskCount === 1 ? "" : "s"} must be moved or
-                  deleted first.
+                  {t("projectSheet.movedFirst", { count: taskCount })}
                 </p>
               )}
             </div>
@@ -910,7 +927,7 @@ function StatesEditSection({ project }: { project: Project }) {
           onAdd={() => void handleAdd()}
         />
         {savingId === "new" && (
-          <p className="text-xs text-muted-foreground">Adding state…</p>
+          <p className="text-xs text-muted-foreground">{t("projectSheet.addingState")}</p>
         )}
       </div>
     </div>
@@ -960,6 +977,7 @@ function LabelListEditor({
   newLabel: LabelDraft
   setNewLabel: (l: LabelDraft) => void
 }) {
+  const { t } = useTranslation()
   const updateDraft = (id: string, key: keyof LabelDraft, value: string) => {
     setDrafts(drafts.map((d) => (d.id === id ? { ...d, [key]: value } : d)))
   }
@@ -980,7 +998,7 @@ function LabelListEditor({
 
   return (
     <div className="flex flex-col gap-2">
-      <FieldLabel>Labels</FieldLabel>
+      <FieldLabel>{t("common.labels")}</FieldLabel>
       <div className="flex flex-col gap-2">
         {drafts.map((draft) => (
           <LabelRow
@@ -1015,6 +1033,7 @@ function LabelRow({
   onRemove?: () => void
   onAdd?: () => void
 }) {
+  const { t } = useTranslation()
   return (
     <div
       className={cn(
@@ -1026,10 +1045,14 @@ function LabelRow({
         value={draft.color}
         onChange={(v) => onUpdate("color", v)}
         size={24}
-        aria-label="Label color"
+        aria-label={t("projectSheet.labelColor")}
       />
       <Input
-        placeholder={isNew ? "New label name" : "Label name"}
+        placeholder={
+          isNew
+            ? t("projectSheet.newLabelName")
+            : t("projectSheet.labelName")
+        }
         value={draft.name}
         onChange={(e) => onUpdate("name", e.target.value)}
         onKeyDown={(e) => {
@@ -1039,7 +1062,7 @@ function LabelRow({
       {isNew ? (
         <Button size="sm" disabled={!draft.name.trim()} onClick={onAdd}>
           <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
-          Add
+          {t("common.add")}
         </Button>
       ) : (
         <Button
@@ -1047,7 +1070,7 @@ function LabelRow({
           size="icon-sm"
           className="text-destructive hover:text-destructive"
           onClick={onRemove}
-          aria-label="Delete label"
+          aria-label={t("projectSheet.deleteLabel")}
         >
           <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
         </Button>
@@ -1061,6 +1084,7 @@ function LabelRow({
 // ---------------------------------------------------------------------------
 
 function LabelsEditSection({ project }: { project: Project }) {
+  const { t } = useTranslation()
   const labels = useBoardStore((s) => s.labels)
   const todos = useBoardStore((s) => s.todos)
   const addLabel = useBoardStore((s) => s.addLabel)
@@ -1145,7 +1169,7 @@ function LabelsEditSection({ project }: { project: Project }) {
 
   return (
     <div className="flex flex-col gap-2">
-      <FieldLabel>Labels</FieldLabel>
+      <FieldLabel>{t("common.labels")}</FieldLabel>
       <div className="flex flex-col gap-2">
         {projectLabels.map((label) => {
           const draft = { ...label, ...drafts[label.id] }
@@ -1161,14 +1185,14 @@ function LabelsEditSection({ project }: { project: Project }) {
                 value={draft.color}
                 onChange={(v) => updateDraft(label.id, "color", v)}
                 size={24}
-                aria-label={`${label.name} color`}
+                aria-label={t("projectSheet.colorOf", { name: label.name })}
               />
               <Input
                 value={draft.name}
                 onChange={(e) => updateDraft(label.id, "name", e.target.value)}
               />
               <span className="w-14 shrink-0 text-right text-xs text-muted-foreground tabular-nums">
-                {taskCount} task{taskCount === 1 ? "" : "s"}
+                {t("projectSheet.taskCount", { count: taskCount })}
               </span>
               <Button
                 variant="ghost"
@@ -1176,7 +1200,7 @@ function LabelsEditSection({ project }: { project: Project }) {
                 disabled={!draft.name.trim() || savingId === label.id}
                 onClick={() => void handleSave(label.id)}
               >
-                Save
+                {t("common.save")}
               </Button>
               <Button
                 variant="ghost"
@@ -1186,7 +1210,7 @@ function LabelsEditSection({ project }: { project: Project }) {
                 onClick={() =>
                   setPendingDelete({ id: label.id, name: label.name })
                 }
-                aria-label={`Delete ${label.name}`}
+                aria-label={t("projectSheet.deleteNamed", { name: label.name })}
               >
                 <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
               </Button>
@@ -1208,19 +1232,22 @@ function LabelsEditSection({ project }: { project: Project }) {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete label?</AlertDialogTitle>
+            <AlertDialogTitle>{t("projectSheet.deleteLabelTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              The label <strong>{pendingDelete?.name}</strong> will be removed
-              from this project and all tasks using it.
+              <Trans
+                i18nKey="projectSheet.deleteLabelDesc"
+                values={{ name: pendingDelete?.name }}
+                components={{ strong: <strong /> }}
+              />
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
               onClick={() => void handleDelete()}
             >
-              Delete label
+              {t("projectSheet.deleteLabel")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1242,6 +1269,7 @@ function MembersAddSection({
   setDrafts: (members: MemberDraft[]) => void
   ownerId?: string
 }) {
+  const { t } = useTranslation()
   const [userOptions, setUserOptions] = useState<UserOption[]>([])
   const [selectedUserId, setSelectedUserId] = useState("")
   const [selectedRole, setSelectedRole] = useState<MemberRole>("member")
@@ -1283,7 +1311,7 @@ function MembersAddSection({
 
   return (
     <div className="flex flex-col gap-2">
-      <FieldLabel>Members</FieldLabel>
+      <FieldLabel>{t("common.members")}</FieldLabel>
       <div className="flex flex-col gap-2">
         {drafts.map((member) => (
           <div
@@ -1317,7 +1345,7 @@ function MembersAddSection({
               <SelectContent>
                 {ROLE_OPTIONS.map((r) => (
                   <SelectItem key={r.value} value={r.value}>
-                    {r.label}
+                    {t(r.labelKey)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -1327,7 +1355,7 @@ function MembersAddSection({
               size="icon-sm"
               className="text-destructive hover:text-destructive"
               onClick={() => handleRemove(member.id)}
-              aria-label={`Remove ${member.name}`}
+              aria-label={t("projectSheet.removeNamed", { name: member.name })}
             >
               <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
             </Button>
@@ -1339,7 +1367,7 @@ function MembersAddSection({
           <div className="flex items-center gap-2 rounded-xl border border-dashed p-3">
             <Select value={selectedUserId} onValueChange={setSelectedUserId}>
               <SelectTrigger className="min-w-0 flex-1">
-                <SelectValue placeholder="Select a user..." />
+                <SelectValue placeholder={t("projectSheet.selectUser")} />
               </SelectTrigger>
               <SelectContent>
                 {availableUsers.map((u) => (
@@ -1359,14 +1387,14 @@ function MembersAddSection({
               <SelectContent>
                 {ROLE_OPTIONS.map((r) => (
                   <SelectItem key={r.value} value={r.value}>
-                    {r.label}
+                    {t(r.labelKey)}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <Button size="sm" disabled={!selectedUserId} onClick={handleAdd}>
               <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
-              Add
+              {t("common.add")}
             </Button>
           </div>
         )}
@@ -1379,13 +1407,14 @@ function MembersAddSection({
 // Members section (edit mode)
 // ---------------------------------------------------------------------------
 
-const ROLE_OPTIONS: { value: MemberRole; label: string }[] = [
-  { value: "admin", label: "Admin" },
-  { value: "member", label: "Member" },
-  { value: "viewer", label: "Viewer" },
+const ROLE_OPTIONS: { value: MemberRole; label: string; labelKey: string }[] = [
+  { value: "admin", label: "Admin", labelKey: "projectSheet.role.admin" },
+  { value: "member", label: "Member", labelKey: "projectSheet.role.member" },
+  { value: "viewer", label: "Viewer", labelKey: "projectSheet.role.viewer" },
 ]
 
 function MembersSection({ project }: { project: Project }) {
+  const { t } = useTranslation()
   const members = useBoardStore((s) => s.members)
   const addMember = useBoardStore((s) => s.addMember)
   const updateMember = useBoardStore((s) => s.updateMember)
@@ -1431,7 +1460,7 @@ function MembersSection({ project }: { project: Project }) {
 
   return (
     <div className="flex flex-col gap-2">
-      <FieldLabel>Members</FieldLabel>
+      <FieldLabel>{t("common.members")}</FieldLabel>
       <div className="flex flex-col gap-2">
         {projectMembers.map((member) => (
           <div
@@ -1467,7 +1496,7 @@ function MembersSection({ project }: { project: Project }) {
               <SelectContent>
                 {ROLE_OPTIONS.map((r) => (
                   <SelectItem key={r.value} value={r.value}>
-                    {r.label}
+                    {t(r.labelKey)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -1477,7 +1506,7 @@ function MembersSection({ project }: { project: Project }) {
               size="icon-sm"
               className="text-destructive hover:text-destructive"
               onClick={() => void removeMember(member.id).catch(() => {})}
-              aria-label={`Remove ${member.name}`}
+              aria-label={t("projectSheet.removeNamed", { name: member.name })}
             >
               <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
             </Button>
@@ -1489,7 +1518,7 @@ function MembersSection({ project }: { project: Project }) {
           <div className="flex items-center gap-2 rounded-xl border border-dashed p-3">
             <Select value={selectedUserId} onValueChange={setSelectedUserId}>
               <SelectTrigger className="min-w-0 flex-1">
-                <SelectValue placeholder="Select a user..." />
+                <SelectValue placeholder={t("projectSheet.selectUser")} />
               </SelectTrigger>
               <SelectContent>
                 {availableUsers.map((u) => (
@@ -1509,7 +1538,7 @@ function MembersSection({ project }: { project: Project }) {
               <SelectContent>
                 {ROLE_OPTIONS.map((r) => (
                   <SelectItem key={r.value} value={r.value}>
-                    {r.label}
+                    {t(r.labelKey)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -1520,7 +1549,7 @@ function MembersSection({ project }: { project: Project }) {
               onClick={() => void handleAdd()}
             >
               <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
-              Add
+              {t("common.add")}
             </Button>
           </div>
         )}
@@ -1538,7 +1567,7 @@ async function loadUsers(setUsers: (users: UserOption[]) => void) {
     setUsers(
       records.map((r) => ({
         id: r.id,
-        name: r.name || r.email || "Unknown",
+        name: r.name || r.email || i18n.t("common.unknown"),
         avatar: r.avatar ? pb.files.getURL(r, r.avatar) : undefined,
       }))
     )

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useState } from "react"
 import { useNavigate } from "react-router"
 import { toast } from "sonner"
@@ -28,6 +29,13 @@ import { pb } from "@/lib/pocketbase"
 import { useMemoriesStore, type MemoryCategory } from "@/store/memories"
 
 import { ToolInput } from "./tool-input"
+
+import i18n from "@/i18n"
+
+// Module-level helpers translate at call time, so they follow the language.
+const t = (key: string, options?: Record<string, unknown>) =>
+  i18n.t(key, options)
+
 
 type ToolMemory = {
   id: string
@@ -73,6 +81,7 @@ export function MemoryToolCard({
   messageId: string
   runActive: boolean
 }) {
+  useTranslation()
   const navigate = useNavigate()
   const refreshMemories = useMemoriesStore((state) => state.initialize)
   const [updatedResult, setUpdatedResult] = useState<MemoryToolResult | null>(
@@ -88,19 +97,19 @@ export function MemoryToolCard({
 
   const title = loading
     ? forget
-      ? "Forgetting memory..."
-      : "Saving memory..."
+      ? t("chat.memory.forgetting")
+      : t("chat.memory.saving")
     : failed
-      ? "Memory action failed"
+      ? t("chat.memory.failed")
       : result?.action === "undone"
-        ? "Memory change undone"
+        ? t("chat.memory.undone")
         : forget
-          ? "Memory forgotten"
+          ? t("chat.memory.forgotten")
           : origin === "automatic"
-            ? "Chat automatically remembered this"
+            ? t("chat.memory.auto")
             : result?.action === "unchanged"
-              ? "Already remembered"
-              : "Remembered as requested"
+              ? t("chat.memory.already")
+              : t("chat.memory.remembered")
 
   const undo = async () => {
     if (!result || !["created", "updated"].includes(result.action)) return
@@ -112,10 +121,10 @@ export function MemoryToolCard({
       )
       setUpdatedResult(undone)
       await refreshMemories(true)
-      toast.success("Memory change undone")
+      toast.success(t("chat.memory.undone"))
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Could not undo memory change"
+        error instanceof Error ? error.message : t("chat.memory.undoFailed")
       )
     } finally {
       setUndoing(false)
@@ -174,7 +183,7 @@ export function MemoryToolCard({
                   disabled={undoing}
                 >
                   <HugeiconsIcon icon={Undo03Icon} strokeWidth={2} />
-                  {undoing ? "Undoing..." : "Undo"}
+                  {undoing ? t("chat.memory.undoing") : t("chat.memory.undo")}
                 </Button>
               )}
             <Button
@@ -183,7 +192,7 @@ export function MemoryToolCard({
               onClick={() => navigate("/settings?manage=memory")}
             >
               <HugeiconsIcon icon={Settings02Icon} strokeWidth={2} />
-              Manage
+              {t("chat.memory.manage")}
             </Button>
           </div>
         )}

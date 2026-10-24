@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useDroppable } from "@dnd-kit/core"
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 
@@ -24,6 +25,7 @@ export function StatusColumn({
   onEditTask,
   onArchiveTask,
 }: StatusColumnProps) {
+  const { t } = useTranslation()
   const { setNodeRef, isOver } = useDroppable({
     id: `state:${state.id}`,
     data: { type: "state", projectId: state.projectId, stateId: state.id },
@@ -46,7 +48,7 @@ export function StatusColumn({
           variant="ghost"
           size="icon-xs"
           onClick={() => onAddTask(state.id)}
-          aria-label={`Add task to ${state.name}`}
+          aria-label={t("statusColumn.addTaskTo", { name: state.name })}
         >
           <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
         </Button>
@@ -78,7 +80,7 @@ export function StatusColumn({
             onClick={() => onAddTask(state.id)}
             className="flex flex-1 items-center justify-center rounded-lg border border-dashed py-4 text-xs text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
           >
-            + Add task
+            + {t("statusColumn.addTask")}
           </button>
         )}
       </div>

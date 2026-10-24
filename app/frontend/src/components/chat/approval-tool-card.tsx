@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import {
   AlertTriangleIcon,
   CheckCircleIcon,
@@ -66,6 +67,7 @@ export function ApprovalToolCard({
   runActive: boolean
   messageStatus?: string
 }) {
+  const { t } = useTranslation()
   const [submittingDecision, setSubmittingDecision] = useState<boolean | null>(
     null
   )
@@ -112,7 +114,7 @@ export function ApprovalToolCard({
       setRequestError(
         error instanceof Error
           ? error.message
-          : "Could not submit the approval decision."
+          : t("approval.submitFailed")
       )
     }
   }
@@ -147,23 +149,24 @@ export function ApprovalToolCard({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="text-sm font-medium">
-              {approval.title || "Approve tool action?"}
+              {approval.title || t("approval.defaultTitle")}
             </div>
             {awaiting && !expired && (
-              <Badge variant="secondary">Awaiting approval</Badge>
+              <Badge variant="secondary">{t("approval.awaiting")}</Badge>
             )}
             {awaiting && expired && (
-              <Badge variant="outline">Approval expired</Badge>
+              <Badge variant="outline">{t("approval.expired")}</Badge>
             )}
             {responded && approved && (
-              <Badge variant="secondary">Approved</Badge>
+              <Badge variant="secondary">{t("approval.approved")}</Badge>
             )}
-            {denied && <Badge variant="secondary">Rejected</Badge>}
-            {completed && <Badge variant="secondary">Completed</Badge>}
-            {failed && <Badge variant="destructive">Failed</Badge>}
+            {denied && <Badge variant="secondary">{t("approval.rejected")}</Badge>}
+            {completed && <Badge variant="secondary">{t("approval.completed")}</Badge>}
+            {failed && <Badge variant="destructive">{t("approval.failed")}</Badge>}
           </div>
           <div className="mt-1 text-xs text-muted-foreground">
-            {approval.summary || "Review this action before it runs."}
+            {approval.summary ||
+            t("approval.defaultSummary")}
           </div>
         </div>
         <ChevronDownIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
@@ -209,7 +212,7 @@ export function ApprovalToolCard({
               {submittingDecision === false && (
                 <Loader2Icon className="animate-spin" />
               )}
-              Reject
+              {t("approval.reject")}
             </Button>
             <Button
               type="button"
@@ -221,7 +224,7 @@ export function ApprovalToolCard({
               {submittingDecision === true && (
                 <Loader2Icon className="animate-spin" />
               )}
-              {presentation.confirmLabel || "Approve"}
+              {presentation.confirmLabel || t("approval.approve")}
             </Button>
           </div>
         )}
@@ -229,19 +232,22 @@ export function ApprovalToolCard({
         {responded && approved && !completed && !failed && (
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Loader2Icon className="size-3.5 animate-spin" />
-            {presentation.pendingMessage || "Applying approved action…"}
+            {presentation.pendingMessage ||
+              t("approval.applying")}
           </div>
         )}
         {denied && (
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <XCircleIcon className="size-3.5" />
-            {presentation.deniedMessage || "Action cancelled."}
+            {presentation.deniedMessage ||
+              t("approval.cancelled")}
           </div>
         )}
         {completed && (
           <div className="flex items-center gap-2 text-xs text-green-700 dark:text-green-400">
             <CheckCircleIcon className="size-3.5" />
-            {presentation.successMessage || "Action completed."}
+            {presentation.successMessage ||
+              t("approval.done")}
           </div>
         )}
         {failed && (
@@ -249,7 +255,7 @@ export function ApprovalToolCard({
             {part.state === "output-error" && part.errorText
               ? part.errorText
               : presentation.failureMessage ||
-                "The approved action could not be completed."}
+                t("approval.couldNotComplete")}
           </div>
         )}
         {requestError && (

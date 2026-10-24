@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/hover-card"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
+import i18n from "@/i18n"
 
 const PERCENT_MAX = 100
 const ICON_RADIUS = 10
@@ -89,7 +90,7 @@ const ContextIcon = () => {
 
   return (
     <svg
-      aria-label="Model context usage"
+      aria-label={i18n.t("aiElements.contextUsage")}
       height="20"
       role="img"
       style={{ color: "currentcolor" }}
@@ -219,7 +220,7 @@ export const ContextCacheUsage = () => {
   const { usage, estimated } = useContextValue()
   if (!usage) return null
   return (
-    <UsageRow label="Cache hit" tokens={usage.cacheReadTokens} unknown={estimated} />
+    <UsageRow label={i18n.t("aiElements.cacheHit")} tokens={usage.cacheReadTokens} unknown={estimated} />
   )
 }
 
@@ -228,7 +229,7 @@ export const ContextCacheCreationUsage = () => {
   if (!usage) return null
   return (
     <UsageRow
-      label="Cache write"
+      label={i18n.t("aiElements.cacheWrite")}
       tokens={usage.cacheCreationTokens}
       unknown={estimated}
     />
@@ -244,11 +245,11 @@ export const ContextTotalsUsage = () => {
   return (
     <>
       <UsageRow
-        label="Total input"
+        label={i18n.t("aiElements.totalInput")}
         tokens={totals.inputTokens}
         unknown={inputUnknown}
       />
-      <UsageRow label="Total output" tokens={totals.outputTokens} />
+      <UsageRow label={i18n.t("aiElements.totalOutput")} tokens={totals.outputTokens} />
     </>
   )
 }
@@ -262,7 +263,7 @@ export const ContextCompactionThreshold = ({
   if (maxTokens <= 0) return null
   return (
     <div className="flex items-center justify-between text-xs">
-      <span className="text-muted-foreground">Compacts at</span>
+      <span className="text-muted-foreground">{i18n.t("aiElements.compactsAt")}</span>
       <span>
         {compactNumber.format(Math.round(maxTokens * threshold))} (
         {Math.round(threshold * 100)}%)

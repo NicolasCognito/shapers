@@ -1,9 +1,15 @@
 import { useEffect, useState } from "react"
 
+import { useTranslation } from "react-i18next"
 import { ClientResponseError, type RecordModel } from "pocketbase"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { pb } from "@/lib/pocketbase"
+import i18n from "@/i18n"
+
+// Module-level helpers translate at call time, so they follow the language.
+const t = (key: string, options?: Record<string, unknown>) =>
+  i18n.t(key, options)
 
 type OwnerSnapshot = { id: string; name: string }
 type SubjectSnapshot = { id?: string; name?: string; role?: string }
@@ -51,7 +57,7 @@ function toProjectOperationLog(
   const actor = record.expand?.actor
   return {
     id: record.id,
-    actorName: actor?.name || actor?.email || record.actor_name || "System",
+    actorName: actor?.name || actor?.email || record.actor_name || t("activity.system"),
     actorAvatar: actor?.avatar
       ? pb.files.getURL(actor, actor.avatar)
       : undefined,
@@ -70,18 +76,23 @@ function subject(log: ProjectOperationLog, field: string) {
 }
 
 function text(value: unknown) {
-  if (typeof value === "string") return value || "none"
+  const none = t("activity.none")
+  if (typeof value === "string") return value || none
   if (typeof value === "number") return String(value)
-  return "none"
+  return none
 }
 
 function describeLog(log: ProjectOperationLog) {
+  const unknown = t("common.unknown")
   switch (log.action) {
     case "transfer_owner": {
       const owner = log.changes.owner as
         { from?: OwnerSnapshot; to?: OwnerSnapshot } | undefined
       return [
-        `transferred ownership from ${owner?.from?.name || "Unknown"} to ${owner?.to?.name || "Unknown"}`,
+        t("activity.project.transferOwner", {
+          from: owner?.from?.name || unknown,
+          to: owner?.to?.name || unknown,
+        }),
       ]
     }
     case "update_project": {
@@ -89,78 +100,91 @@ function describeLog(log: ProjectOperationLog) {
       const name = change(log, "name")
       if (name.from !== undefined || name.to !== undefined) {
         descriptions.push(
-          `renamed the project from “${text(name.from)}” to “${text(name.to)}”`
+          t("activity.project.renamed", { from: text(name.from), to: text(name.to) })
         )
       }
       if (change(log, "description").changed) {
-        descriptions.push("updated the project description")
+        descriptions.push(t("activity.project.descUpdated"))
       }
       const archived = change(log, "archived")
       if (archived.to === true) {
-        descriptions.push("archived the project")
+        descriptions.push(t("activity.project.archived"))
       } else if (archived.to === false) {
-        descriptions.push("restored the project")
+        descriptions.push(t("activity.project.restored"))
       }
       return descriptions
     }
     case "create_state":
-      return [`added state “${subject(log, "state").name || "Unknown"}”`]
+      return [t("activity.project.stateAdded", { name: subject(log, "state").name || unknown })]
     case "delete_state":
-      return [`removed state “${subject(log, "state").name || "Unknown"}”`]
+      return [t("activity.project.stateRemoved", { name: subject(log, "state").name || unknown })]
     case "update_state": {
-      const state = subject(log, "state").name || "Unknown"
+      const state = subject(log, "state").name || unknown
       const descriptions: string[] = []
       const name = change(log, "name")
       if (name.from !== undefined || name.to !== undefined) {
         descriptions.push(
-          `renamed state “${text(name.from)}” to “${text(name.to)}”`
+          t("activity.project.stateRenamed", { from: text(name.from), to: text(name.to) })
         )
       }
       if (change(log, "color").from !== undefined) {
-        descriptions.push(`changed the color of state “${state}”`)
+        descriptions.push(t("activity.project.stateColor", { name: state }))
       }
       const category = change(log, "category")
       if (category.from !== undefined || category.to !== undefined) {
         descriptions.push(
-          `changed state “${state}” category from ${text(category.from)} to ${text(category.to)}`
+          t("activity.project.stateCategory", {
+            name: state,
+            from: text(category.from),
+            to: text(category.to),
+          })
         )
       }
       if (change(log, "sort_order").from !== undefined) {
-        descriptions.push(`reordered state “${state}”`)
+        descriptions.push(t("activity.project.stateReordered", { name: state }))
       }
       return descriptions
     }
     case "create_label":
-      return [`added label “${subject(log, "label").name || "Unknown"}”`]
+      return [t("activity.project.labelAdded", { name: subject(log, "label").name || unknown })]
     case "delete_label":
-      return [`removed label “${subject(log, "label").name || "Unknown"}”`]
+      return [t("activity.project.labelRemoved", { name: subject(log, "label").name || unknown })]
     case "update_label": {
-      const label = subject(log, "label").name || "Unknown"
+      const label = subject(log, "label").name || unknown
       const descriptions: string[] = []
       const name = change(log, "name")
       if (name.from !== undefined || name.to !== undefined) {
         descriptions.push(
-          `renamed label “${text(name.from)}” to “${text(name.to)}”`
+          t("activity.project.labelRenamed", { from: text(name.from), to: text(name.to) })
         )
       }
       if (change(log, "color").from !== undefined) {
-        descriptions.push(`changed the color of label “${label}”`)
+        descriptions.push(t("activity.project.labelColor", { name: label }))
       }
       return descriptions
     }
     case "add_member": {
       const member = subject(log, "member")
-      return [`added ${member.name || "Unknown"} as ${member.role || "member"}`]
+      return [
+        t("activity.project.memberAdded", {
+          name: member.name || unknown,
+          role: member.role || t("activity.project.memberRole"),
+        }),
+      ]
     }
     case "remove_member": {
       const member = subject(log, "member")
-      return [`removed member ${member.name || "Unknown"}`]
+      return [t("activity.project.memberRemoved", { name: member.name || unknown })]
     }
     case "update_member": {
       const member = subject(log, "member")
       const role = change(log, "role")
       return [
-        `changed ${member.name || "Unknown"} role from ${text(role.from)} to ${text(role.to)}`,
+        t("activity.project.memberRole2", {
+          name: member.name || unknown,
+          from: text(role.from),
+          to: text(role.to),
+        }),
       ]
     }
   }
@@ -169,7 +193,7 @@ function describeLog(log: ProjectOperationLog) {
 function formatTime(value: string) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
-  return date.toLocaleString(undefined, {
+  return date.toLocaleString(i18n.language, {
     month: "short",
     day: "numeric",
     hour: "2-digit",
@@ -178,6 +202,7 @@ function formatTime(value: string) {
 }
 
 export function ProjectActivity({ projectId }: { projectId: string }) {
+  useTranslation()
   const [logs, setLogs] = useState<ProjectOperationLog[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -232,18 +257,17 @@ export function ProjectActivity({ projectId }: { projectId: string }) {
   return (
     <div className="flex flex-col gap-3 border-t pt-5">
       <div>
-        <p className="text-sm font-medium">Project activity</p>
+        <p className="text-sm font-medium">{t("activity.projectTitle")}</p>
         <p className="mt-1 text-xs text-muted-foreground">
-          Project, workflow, label, member, and ownership changes recorded by
-          the server.
+          {t("activity.projectDesc")}
         </p>
       </div>
 
       {loading ? (
-        <p className="text-xs text-muted-foreground">Loading activity…</p>
+        <p className="text-xs text-muted-foreground">{t("activity.loading")}</p>
       ) : logs.length === 0 ? (
         <p className="text-xs text-muted-foreground">
-          No project activity recorded yet.
+          {t("activity.projectEmpty")}
         </p>
       ) : (
         <div className="flex flex-col gap-4">

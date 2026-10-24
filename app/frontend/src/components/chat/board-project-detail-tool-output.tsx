@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { ChevronDownIcon, ViewIcon } from "@hugeicons/core-free-icons"
 import {
@@ -21,6 +22,13 @@ import { workspaceRecordUrl } from "@/lib/workspace-navigation"
 import type { DynamicToolUIPart } from "ai"
 import type { ReactNode } from "react"
 import { useNavigate } from "react-router"
+
+import i18n from "@/i18n"
+
+// Module-level helpers translate at call time, so they follow the language.
+const t = (key: string, options?: Record<string, unknown>) =>
+  i18n.t(key, options)
+
 
 type ProjectState = {
   id: string
@@ -69,10 +77,10 @@ type ProjectDetail = {
 }
 
 const statusLabels: Partial<Record<DynamicToolUIPart["state"], string>> = {
-  "input-available": "Running",
-  "input-streaming": "Pending",
-  "output-available": "Completed",
-  "output-error": "Error",
+  "input-available": "toolStatus.running",
+  "input-streaming": "toolStatus.pending",
+  "output-available": "toolStatus.completed",
+  "output-error": "toolStatus.error",
 }
 
 const statusIcons: Partial<Record<DynamicToolUIPart["state"], ReactNode>> = {
@@ -89,7 +97,7 @@ function getStatusBadge(state: DynamicToolUIPart["state"]) {
   return (
     <Badge className="gap-1.5 rounded-full text-xs" variant="secondary">
       {icon}
-      {label}
+      {t(label)}
     </Badge>
   )
 }
@@ -143,10 +151,10 @@ function ParticipantChip({ participant }: { participant: ProjectParticipant }) {
 }
 
 const capabilityLabels: { key: keyof ProjectCapabilities; label: string }[] = [
-  { key: "canEditProject", label: "Edit Project" },
-  { key: "canManageWorkflow", label: "Manage Workflow" },
-  { key: "canManageMembers", label: "Manage Members" },
-  { key: "canEditTasks", label: "Edit Tasks" },
+  { key: "canEditProject", label: "chat.detailTool.canEditProject" },
+  { key: "canManageWorkflow", label: "chat.detailTool.canManageWorkflow" },
+  { key: "canManageMembers", label: "chat.detailTool.canManageMembers" },
+  { key: "canEditTasks", label: "chat.detailTool.canEditTasks" },
 ]
 
 type BoardProjectDetailToolPart = DynamicToolUIPart
@@ -156,6 +164,7 @@ export function BoardProjectDetailToolCard({
 }: {
   part: BoardProjectDetailToolPart
 }) {
+  useTranslation()
   const project = parseProject(part.output)
   const isError = part.state === "output-error"
   const isLoading =
@@ -183,7 +192,7 @@ export function BoardProjectDetailToolCard({
             strokeWidth={2}
             className="size-4 shrink-0 text-muted-foreground"
           />
-          <span className="text-sm font-medium">Project Details</span>
+          <span className="text-sm font-medium">{t("chat.detailTool.title")}</span>
           {getStatusBadge(part.state)}
         </div>
         <HugeiconsIcon
@@ -201,7 +210,7 @@ export function BoardProjectDetailToolCard({
           <div className="rounded-md border bg-muted/20 px-3 py-2">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <ClockIcon className="size-3.5 animate-spin" />
-              <span>Loading project...</span>
+              <span>{t("chat.detailTool.loading")}</span>
             </div>
             <div className="mt-2 h-1 overflow-hidden rounded-full bg-muted">
               <div className="h-full w-1/2 animate-pulse rounded-full bg-primary/60" />
@@ -212,7 +221,7 @@ export function BoardProjectDetailToolCard({
         {/* Error */}
         {isError && (
           <div className="rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive">
-            {part.errorText || "Tool execution failed"}
+            {part.errorText || t("toolStatus.failed")}
           </div>
         )}
 
@@ -231,7 +240,7 @@ export function BoardProjectDetailToolCard({
                   </span>
                   {project.archived && (
                     <Badge variant="outline" className="text-xs font-normal">
-                      Archived
+                      {t("toolStatus.archived")}
                     </Badge>
                   )}
                 </div>
@@ -241,7 +250,9 @@ export function BoardProjectDetailToolCard({
                       {project.currentActorRole}
                     </Badge>
                   )}
-                  <span className="tabular-nums">{totalTasks} tasks</span>
+                  <span className="tabular-nums">
+                    {t("chat.tasksCount", { count: totalTasks })}
+                  </span>
                 </div>
               </div>
 
@@ -300,7 +311,7 @@ export function BoardProjectDetailToolCard({
             {members.length > 0 && (
               <div className="border-t px-3 py-2">
                 <div className="mb-1.5 text-xs font-medium text-muted-foreground">
-                  Members
+                  {t("common.members")}
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   <ParticipantChip participant={project.owner} />
@@ -314,7 +325,7 @@ export function BoardProjectDetailToolCard({
             {/* Capabilities */}
             <div className="border-t px-3 py-2">
               <div className="mb-1.5 text-xs font-medium text-muted-foreground">
-                Your Capabilities
+                {t("chat.detailTool.capabilities")}
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {capabilityLabels.map(({ key, label }) => {
@@ -332,7 +343,7 @@ export function BoardProjectDetailToolCard({
                       {enabled && (
                         <CheckCircleIcon className="size-3 shrink-0" />
                       )}
-                      {label}
+                      {t(label)}
                     </div>
                   )
                 })}
@@ -344,7 +355,7 @@ export function BoardProjectDetailToolCard({
         {/* Empty result */}
         {part.state === "output-available" && !project && (
           <div className="rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
-            Project not found
+            {t("chat.detailTool.notFound")}
           </div>
         )}
       </CollapsibleContent>

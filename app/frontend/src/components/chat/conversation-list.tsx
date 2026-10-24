@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router"
 
@@ -60,6 +61,7 @@ function ConversationItem({
   isResponding: boolean
   onSelect: () => void
 }) {
+  const { t } = useTranslation()
   const togglePin = useChatStore((s) => s.togglePin)
   const archiveConversation = useChatStore((s) => s.archiveConversation)
   const deleteConversation = useChatStore((s) => s.deleteConversation)
@@ -151,7 +153,7 @@ function ConversationItem({
                 className="inline-flex items-center gap-1 font-medium text-primary"
               >
                 <Spinner className="size-3" />
-                Responding
+                {t("chat.responding")}
               </span>
             )}
             {isResponding && (
@@ -159,16 +161,16 @@ function ConversationItem({
             )}
             <span>{formatRelativeTime(conversation.updated)}</span>
             <span className="text-muted-foreground/50">·</span>
-            <span>{conversation.message_count} msgs</span>
+            <span>{t("chat.msgsShort", { count: conversation.message_count })}</span>
             {conversation.tool_call_count > 0 && (
               <>
                 <span className="text-muted-foreground/50">·</span>
-                <span>{conversation.tool_call_count} tools</span>
+                <span>{t("chat.toolsShort", { count: conversation.tool_call_count })}</span>
               </>
             )}
             {conversation.status === "archived" && (
               <Badge variant="secondary" className="h-4 px-1 text-[10px]">
-                Archived
+                {t("chat.archivedBadge")}
               </Badge>
             )}
           </div>
@@ -193,7 +195,7 @@ function ConversationItem({
             >
               <DropdownMenuItem onClick={() => void togglePin(conversation.id)}>
                 <HugeiconsIcon icon={Pin02Icon} strokeWidth={2} />
-                {conversation.pinned ? "Unpin" : "Pin"}
+                {conversation.pinned ? t("notifications.unpin") : t("notifications.pin")}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => {
@@ -202,7 +204,7 @@ function ConversationItem({
                 }}
               >
                 <HugeiconsIcon icon={Edit01Icon} strokeWidth={2} />
-                Rename
+                {t("chat.rename")}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() =>
@@ -211,7 +213,7 @@ function ConversationItem({
                 disabled={conversation.status === "archived"}
               >
                 <HugeiconsIcon icon={Archive02Icon} strokeWidth={2} />
-                Archive
+                {t("common.archive")}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
@@ -219,7 +221,7 @@ function ConversationItem({
                 onClick={() => setConfirmDelete(true)}
               >
                 <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
-                Delete
+                {t("common.delete")}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -229,20 +231,19 @@ function ConversationItem({
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete conversation?</AlertDialogTitle>
+            <AlertDialogTitle>{t("chat.deleteTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently remove "{conversation.title}" and all its
-              messages. This action cannot be undone.
+              {t("chat.deleteDesc", { title: conversation.title })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() =>
                 void deleteConversation(conversation.id).catch(() => {})
               }
             >
-              Delete
+              {t("common.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -287,6 +288,7 @@ function ConversationGroup({
 }
 
 export function ConversationList() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const conversations = useChatStore((s) => s.conversations)
   const activeConversationId = useChatStore((s) => s.activeConversationId)
@@ -341,13 +343,13 @@ export function ConversationList() {
       {/* Header */}
       <div className="flex flex-col gap-2 border-b p-3">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-semibold">Conversations</span>
+          <span className="text-sm font-semibold">{t("chat.conversations")}</span>
           <div className="flex items-center gap-0.5">
             <Button
               variant="ghost"
               size="icon-sm"
               onClick={() => setArchivedOpen(true)}
-              aria-label="View archived"
+              aria-label={t("chat.viewArchived")}
               className="cursor-pointer"
             >
               <HugeiconsIcon icon={Archive02Icon} strokeWidth={2} />
@@ -356,7 +358,7 @@ export function ConversationList() {
               variant="ghost"
               size="icon-sm"
               onClick={handleNew}
-              aria-label="New conversation"
+              aria-label={t("chat.newConversation")}
               className="cursor-pointer"
             >
               <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} />
@@ -370,7 +372,7 @@ export function ConversationList() {
             className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
           />
           <Input
-            placeholder="Search conversations..."
+            placeholder={t("chat.search")}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="h-8 pl-8 text-sm"
@@ -383,14 +385,14 @@ export function ConversationList() {
         {hasResults ? (
           <div className="flex flex-col gap-1">
             <ConversationGroup
-              label="Pinned"
+              label={t("notifications.pinned")}
               conversations={pinned}
               activeId={activeConversationId}
               respondingConversationIds={respondingConversationIds}
               onSelect={handleSelect}
             />
             <ConversationGroup
-              label="Recent"
+              label={t("notifications.recent")}
               conversations={recent}
               activeId={activeConversationId}
               respondingConversationIds={respondingConversationIds}
@@ -404,10 +406,10 @@ export function ConversationList() {
               strokeWidth={2}
               className="size-6 opacity-50"
             />
-            <p>No conversations found</p>
+            <p>{t("chat.noneFound")}</p>
             {query && (
               <Button variant="ghost" size="sm" onClick={() => setQuery("")}>
-                Clear search
+                {t("chat.clearSearch")}
               </Button>
             )}
           </div>
@@ -419,7 +421,7 @@ export function ConversationList() {
           <PaginationContent>
             <PaginationItem>
               <PaginationPrevious
-                text="Prev"
+                text={t("notifications.prev")}
                 onClick={() => void setPage(page - 1)}
                 className={
                   page <= 1 || loading
@@ -433,7 +435,7 @@ export function ConversationList() {
             </span>
             <PaginationItem>
               <PaginationNext
-                text="Next"
+                text={t("notifications.next")}
                 onClick={() => void setPage(page + 1)}
                 className={
                   page >= totalPages || loading

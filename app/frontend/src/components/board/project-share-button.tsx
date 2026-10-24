@@ -1,3 +1,6 @@
+import { Trans, useTranslation } from "react-i18next"
+
+import i18n from "@/i18n"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
@@ -57,6 +60,7 @@ type ShareExpiry = "keep" | "never" | "7" | "30"
  * this project is public.
  */
 export function ShareProjectButton({ project }: { project: Project }) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   // Tied to the project it describes, so a re-render for another project never
   // shows the previous project's link as if it were this one's.
@@ -100,9 +104,9 @@ export function ShareProjectButton({ project }: { project: Project }) {
       )
       setLoaded({ projectId: project.id, share: updated })
       setExpiry(updated.expires ? "keep" : "never")
-      toast.success(share ? "Link updated." : "Link created.")
+      toast.success(share ? t("share.updated") : t("share.created"))
     } catch {
-      toast.error("Could not update the share link.")
+      toast.error(t("share.updateFailed"))
     } finally {
       setWorking(false)
     }
@@ -116,9 +120,9 @@ export function ShareProjectButton({ project }: { project: Project }) {
       })
       setLoaded({ projectId: project.id, share: null })
       setExpiry("never")
-      toast.success("Link revoked.")
+      toast.success(t("share.revoked"))
     } catch {
-      toast.error("Could not revoke the share link.")
+      toast.error(t("share.revokeFailed"))
     } finally {
       setWorking(false)
     }
@@ -133,9 +137,9 @@ export function ShareProjectButton({ project }: { project: Project }) {
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(url)
-      toast.success("Link copied.")
+      toast.success(t("share.copied"))
     } catch {
-      toast.error("Could not copy to clipboard.")
+      toast.error(t("share.copyFailed"))
     }
   }
 
@@ -149,7 +153,9 @@ export function ShareProjectButton({ project }: { project: Project }) {
               variant="ghost"
               size="icon-xs"
               aria-label={
-                share ? `${project.name} is shared publicly` : "Share project"
+                share
+                  ? t("share.sharedNamed", { name: project.name })
+                  : t("share.shareProject")
               }
               onClick={() => setOpen(true)}
               className={cn(
@@ -160,33 +166,30 @@ export function ShareProjectButton({ project }: { project: Project }) {
             </Button>
           </TooltipTrigger>
           <TooltipContent side="top">
-            {share ? "Shared publicly" : "Share project"}
+            {share ? t("share.sharedPublicly") : t("share.shareProject")}
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
 
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Share project</DialogTitle>
+          <DialogTitle>{t("share.shareProject")}</DialogTitle>
           <DialogDescription>
-            Anyone with the link sees this project as it stands right now,
-            without signing in.
+            {t("share.desc")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="rounded-lg border border-border/60 p-3 text-xs text-muted-foreground">
           <p>
-            <span className="font-medium text-foreground">Visible:</span> task
-            titles and descriptions, states, labels, dates, and member names
-            with their avatars.
+            <span className="font-medium text-foreground">{t("share.visible")}</span>{" "}
+            {t("share.visibleList")}
           </p>
           <p className="mt-1">
-            <span className="font-medium text-foreground">Not visible:</span>{" "}
-            archived tasks, activity records, who a task is assigned to, and
-            member emails and roles.
+            <span className="font-medium text-foreground">{t("share.notVisible")}</span>{" "}
+            {t("share.notVisibleList")}
           </p>
           <p className="mt-1">
-            Archiving or deleting the project takes the link down immediately.
+            {t("share.takedown")}
           </p>
         </div>
 
@@ -207,8 +210,8 @@ export function ShareProjectButton({ project }: { project: Project }) {
                   <Button
                     variant="outline"
                     size="icon"
-                    aria-label="Copy link"
-                    title="Copy link"
+                    aria-label={t("share.copyLink")}
+                    title={t("share.copyLink")}
                     onClick={() => void copy()}
                   >
                     <HugeiconsIcon icon={Copy01Icon} strokeWidth={2} />
@@ -216,8 +219,8 @@ export function ShareProjectButton({ project }: { project: Project }) {
                   <Button
                     variant="outline"
                     size="icon"
-                    aria-label="Open in a new tab"
-                    title="Open in a new tab"
+                    aria-label={t("share.openNewTab")}
+                    title={t("share.openNewTab")}
                     onClick={() =>
                       window.open(url, "_blank", "noopener,noreferrer")
                     }
@@ -232,15 +235,16 @@ export function ShareProjectButton({ project }: { project: Project }) {
                     className="mt-0.5"
                   />
                   <span>
-                    Add <code className="font-mono">?lang=zh</code> so the page
-                    reads its dates in Chinese (中文日期格式). Without it the
-                    dates read in English.
+                    <Trans
+                      i18nKey="share.zhDates"
+                      components={{ code: <code className="font-mono" /> }}
+                    />
                   </span>
                 </Label>
               </div>
             )}
             <div className="flex flex-col gap-2">
-              <Label>Expires</Label>
+              <Label>{t("share.expires")}</Label>
               <Select
                 value={expiry}
                 onValueChange={(value) => {
@@ -255,12 +259,12 @@ export function ShareProjectButton({ project }: { project: Project }) {
                 <SelectContent>
                   {share?.expires && (
                     <SelectItem value="keep">
-                      {formatShareExpiry(share.expires)}
+                      {formatShareExpiry(share.expires, t)}
                     </SelectItem>
                   )}
-                  <SelectItem value="never">No expiry</SelectItem>
-                  <SelectItem value="7">7 days from now</SelectItem>
-                  <SelectItem value="30">30 days from now</SelectItem>
+                  <SelectItem value="never">{t("share.noExpiry")}</SelectItem>
+                  <SelectItem value="7">{t("share.in7")}</SelectItem>
+                  <SelectItem value="30">{t("share.in30")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -273,16 +277,16 @@ export function ShareProjectButton({ project }: { project: Project }) {
               variant="outline"
               disabled={working}
               onClick={() => void revoke()}
-              title="The current link stops working and cannot be restored."
+              title={t("share.revokeHint")}
             >
-              Revoke link
+              {t("share.revoke")}
             </Button>
           ) : (
             <Button
               disabled={working || !current}
               onClick={() => void publish(expiry)}
             >
-              {working ? "Creating…" : "Create link"}
+              {working ? t("share.creating") : t("share.create")}
             </Button>
           )}
         </DialogFooter>
@@ -302,8 +306,11 @@ function shareExpiryValue(
   return expires.toISOString()
 }
 
-function formatShareExpiry(value: string): string {
+function formatShareExpiry(
+  value: string,
+  t: (key: string, options?: Record<string, unknown>) => string
+): string {
   const parsed = new Date(value.replace(" ", "T"))
-  if (Number.isNaN(parsed.getTime())) return "Keep current expiry"
-  return `Keep ${parsed.toLocaleDateString()}`
+  if (Number.isNaN(parsed.getTime())) return t("share.keepExpiry")
+  return t("share.keepDate", { date: parsed.toLocaleDateString(i18n.language) })
 }

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useCallback, useEffect, useState } from "react"
 import { useNavigate, useSearchParams } from "react-router"
 
@@ -74,13 +75,14 @@ import {
   type NotificationTypeFilter,
 } from "@/store/notifications"
 
-const TYPE_LABELS: Record<NotificationType, string> = {
-  model_share: "Model share",
-  task_due: "Task due",
-  calendar_event: "Calendar event",
+const TYPE_KEYS: Record<NotificationType, string> = {
+  model_share: "notifications.type.model_share",
+  task_due: "notifications.type.task_due",
+  calendar_event: "notifications.type.calendar_event",
 }
 
 export function NotificationsPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const requestedNotificationId = requestedRecordId(searchParams)
@@ -205,10 +207,12 @@ export function NotificationsPage() {
         <div className="space-y-3 border-b p-3">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-sm font-semibold">Notifications</h1>
+              <h1 className="text-sm font-semibold">{t("header.notifications")}</h1>
               <p className="text-xs text-muted-foreground">
-                {totalItems} {hasActiveFilters ? "matching" : "active"} ·{" "}
-                {unreadCount} unread
+                {hasActiveFilters
+                  ? t("notifications.matchingCount", { count: totalItems })
+                  : t("notifications.activeCount", { count: totalItems })}{" "}
+                · {t("header.unread", { count: unreadCount })}
               </p>
             </div>
             <div className="flex items-center gap-0.5">
@@ -218,13 +222,13 @@ export function NotificationsPage() {
                 disabled={unreadCount === 0}
                 onClick={() => void markAllRead()}
               >
-                Mark all read
+                {t("notifications.markAllRead")}
               </Button>
               <Button
                 variant="ghost"
                 size="icon-sm"
                 onClick={() => setArchivedOpen(true)}
-                aria-label="View archived notifications"
+                aria-label={t("notifications.viewArchived")}
               >
                 <HugeiconsIcon icon={Archive02Icon} strokeWidth={2} />
               </Button>
@@ -239,7 +243,7 @@ export function NotificationsPage() {
             <Input
               value={searchInput}
               onChange={(event) => setSearchInput(event.target.value)}
-              placeholder="Search notifications…"
+              placeholder={t("notifications.search")}
               className="h-8 pl-8"
             />
           </div>
@@ -251,12 +255,12 @@ export function NotificationsPage() {
               }
             >
               <SelectTrigger className="h-8 flex-1 text-xs">
-                <SelectValue placeholder="Status" />
+                <SelectValue placeholder={t("notifications.statusFilter")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All statuses</SelectItem>
-                <SelectItem value="unread">Unread</SelectItem>
-                <SelectItem value="read">Read</SelectItem>
+                <SelectItem value="all">{t("notifications.allStatuses")}</SelectItem>
+                <SelectItem value="unread">{t("notifications.unread")}</SelectItem>
+                <SelectItem value="read">{t("notifications.read")}</SelectItem>
               </SelectContent>
             </Select>
             <Select
@@ -266,13 +270,13 @@ export function NotificationsPage() {
               }
             >
               <SelectTrigger className="h-8 flex-1 text-xs">
-                <SelectValue placeholder="Type" />
+                <SelectValue placeholder={t("notifications.typeFilter")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All types</SelectItem>
-                {Object.entries(TYPE_LABELS).map(([value, label]) => (
+                <SelectItem value="all">{t("notifications.allTypes")}</SelectItem>
+                {Object.entries(TYPE_KEYS).map(([value, label]) => (
                   <SelectItem key={value} value={value}>
-                    {label}
+                    {t(label)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -292,12 +296,12 @@ export function NotificationsPage() {
                 strokeWidth={2}
                 className="size-8 opacity-40"
               />
-              <p className="text-sm">No matching notifications</p>
+              <p className="text-sm">{t("notifications.noMatching")}</p>
             </div>
           ) : (
             <div className="space-y-3">
               <NotificationGroup
-                label="Pinned"
+                label={t("notifications.pinned")}
                 items={pinnedItems}
                 activeId={activeId}
                 onSelect={selectNotification}
@@ -308,7 +312,7 @@ export function NotificationsPage() {
                 onDelete={setDeleteTarget}
               />
               <NotificationGroup
-                label="Recent"
+                label={t("notifications.recent")}
                 items={recentItems}
                 activeId={activeId}
                 onSelect={selectNotification}
@@ -327,7 +331,7 @@ export function NotificationsPage() {
             <PaginationContent>
               <PaginationItem>
                 <PaginationPrevious
-                  text="Prev"
+                  text={t("notifications.prev")}
                   onClick={() => void loadPage(Math.max(1, page - 1))}
                   className={
                     page <= 1 || loading
@@ -341,7 +345,7 @@ export function NotificationsPage() {
               </span>
               <PaginationItem>
                 <PaginationNext
-                  text="Next"
+                  text={t("notifications.next")}
                   onClick={() => void loadPage(Math.min(totalPages, page + 1))}
                   className={
                     page >= totalPages || loading
@@ -385,7 +389,7 @@ export function NotificationsPage() {
               strokeWidth={2}
               className="size-9 opacity-40"
             />
-            <p className="text-sm">Select a notification to view details</p>
+            <p className="text-sm">{t("notifications.selectOne")}</p>
           </div>
         )}
       </main>
@@ -400,16 +404,15 @@ export function NotificationsPage() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete notification?</AlertDialogTitle>
+            <AlertDialogTitle>{t("notifications.deleteTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              “{deleteTarget?.title}” will be permanently deleted. This action
-              cannot be undone.
+              {t("notifications.deleteDesc", { title: deleteTarget?.title })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction onClick={() => void removeNotification()}>
-              Delete
+              {t("common.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -435,6 +438,7 @@ function NotificationGroup({
   onArchive: (notification: AppNotification) => Promise<void>
   onDelete: (notification: AppNotification) => void
 }) {
+  const { t } = useTranslation()
   if (items.length === 0) return null
   return (
     <section>
@@ -455,7 +459,7 @@ function NotificationGroup({
                 <Button
                   variant="ghost"
                   size="icon-xs"
-                  aria-label="Notification actions"
+                  aria-label={t("notifications.actions")}
                   className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100"
                 >
                   <HugeiconsIcon icon={MoreHorizontalIcon} strokeWidth={2} />
@@ -466,11 +470,11 @@ function NotificationGroup({
                   onClick={() => void onTogglePin(notification)}
                 >
                   <HugeiconsIcon icon={Pin02Icon} strokeWidth={2} />
-                  {notification.pinned ? "Unpin" : "Pin"}
+                  {notification.pinned ? t("notifications.unpin") : t("notifications.pin")}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => void onArchive(notification)}>
                   <HugeiconsIcon icon={Archive02Icon} strokeWidth={2} />
-                  Archive
+                  {t("notifications.archive")}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -478,7 +482,7 @@ function NotificationGroup({
                   onClick={() => onDelete(notification)}
                 >
                   <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
-                  Delete
+                  {t("common.delete")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -503,6 +507,7 @@ function ArchivedNotificationsDialog({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
+  const { t } = useTranslation()
   const [items, setItems] = useState<ArchivedNotificationRecord[]>([])
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -531,7 +536,7 @@ function ArchivedNotificationsDialog({
       toast.error(
         error instanceof Error
           ? error.message
-          : "Could not load archived notifications"
+          : t("notifications.loadArchivedFailed")
       )
     } finally {
       setLoading(false)
@@ -562,11 +567,10 @@ function ArchivedNotificationsDialog({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <HugeiconsIcon icon={Archive02Icon} className="size-4" />
-              Archived notifications
+              {t("notifications.archivedTitle")}
             </DialogTitle>
             <DialogDescription>
-              Restore notifications to the active list or permanently delete
-              them.
+              {t("notifications.archivedDesc")}
             </DialogDescription>
           </DialogHeader>
           <div className="max-h-[50vh] space-y-1 overflow-y-auto">
@@ -576,7 +580,7 @@ function ArchivedNotificationsDialog({
               </div>
             ) : items.length === 0 ? (
               <p className="py-10 text-center text-sm text-muted-foreground">
-                No archived notifications.
+                {t("notifications.noArchived")}
               </p>
             ) : (
               items.map((notification) => (
@@ -589,14 +593,14 @@ function ArchivedNotificationsDialog({
                       {notification.title}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {TYPE_LABELS[notification.type]} ·{" "}
+                      {t(TYPE_KEYS[notification.type])} ·{" "}
                       {formatRelativeTime(notification.updated)}
                     </p>
                   </div>
                   <Button
                     variant="ghost"
                     size="icon-sm"
-                    aria-label="Restore notification"
+                    aria-label={t("notifications.restore")}
                     onClick={() => void restoreItem(notification.id)}
                   >
                     <HugeiconsIcon icon={ArchiveRestoreIcon} strokeWidth={2} />
@@ -604,7 +608,7 @@ function ArchivedNotificationsDialog({
                   <Button
                     variant="ghost"
                     size="icon-sm"
-                    aria-label="Delete notification"
+                    aria-label={t("notifications.deleteTitle")}
                     onClick={() => setDeleteTarget(notification)}
                   >
                     <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
@@ -618,7 +622,7 @@ function ArchivedNotificationsDialog({
               <PaginationContent>
                 <PaginationItem>
                   <PaginationPrevious
-                    text="Prev"
+                    text={t("notifications.prev")}
                     onClick={() => setPage((value) => Math.max(1, value - 1))}
                     className={
                       page <= 1 || loading
@@ -632,7 +636,7 @@ function ArchivedNotificationsDialog({
                 </span>
                 <PaginationItem>
                   <PaginationNext
-                    text="Next"
+                    text={t("notifications.next")}
                     onClick={() =>
                       setPage((value) => Math.min(totalPages, value + 1))
                     }
@@ -655,17 +659,16 @@ function ArchivedNotificationsDialog({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Delete notification permanently?
+              {t("notifications.deletePermTitle")}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              “{deleteTarget?.title}” will be permanently deleted. This action
-              cannot be undone.
+              {t("notifications.deleteDesc", { title: deleteTarget?.title })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction onClick={() => void removeItem()}>
-              Delete
+              {t("common.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -685,6 +688,7 @@ function NotificationDetail({
   onOpenTask: () => void
   onOpenEvent: () => void
 }) {
+  const { t } = useTranslation()
   const [responding, setResponding] = useState(false)
   const shareStatus = notification.data.shareStatus ?? "pending"
 
@@ -700,7 +704,7 @@ function NotificationDetail({
   return (
     <>
       <div className="flex h-14 items-center justify-between border-b px-5">
-        <span className="text-sm font-semibold">Notification details</span>
+        <span className="text-sm font-semibold">{t("notifications.details")}</span>
         <span className="text-xs text-muted-foreground">
           {formatRelativeTime(notification.created)}
         </span>
@@ -710,14 +714,14 @@ function NotificationDetail({
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <Badge variant="secondary">
-                {TYPE_LABELS[notification.type]}
+                {t(TYPE_KEYS[notification.type])}
               </Badge>
               {notification.pinned && (
                 <Badge variant="outline">
-                  <HugeiconsIcon icon={Pin02Icon} strokeWidth={2} /> Pinned
+                  <HugeiconsIcon icon={Pin02Icon} strokeWidth={2} /> {t("notifications.pinned")}
                 </Badge>
               )}
-              {!notification.readAt && <Badge>Unread</Badge>}
+              {!notification.readAt && <Badge>{t("notifications.unreadBadge")}</Badge>}
             </div>
             <h2 className="text-2xl font-semibold tracking-tight">
               {notification.title}
@@ -733,8 +737,7 @@ function NotificationDetail({
                 {notification.data.modelName}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Shared by {notification.data.senderName}. Accepting creates an
-                independent model configuration.
+                {t("notifications.sharedBy", { name: notification.data.senderName })}
               </p>
               {shareStatus === "pending" ? (
                 <div className="mt-4 flex gap-2">
@@ -746,7 +749,7 @@ function NotificationDetail({
                       icon={CheckmarkCircle02Icon}
                       strokeWidth={2}
                     />{" "}
-                    Accept
+                    {t("notifications.accept")}
                   </Button>
                   <Button
                     variant="outline"
@@ -754,7 +757,7 @@ function NotificationDetail({
                     onClick={() => void respond("reject")}
                   >
                     <HugeiconsIcon icon={CancelCircleIcon} strokeWidth={2} />{" "}
-                    Reject
+                    {t("notifications.reject")}
                   </Button>
                 </div>
               ) : (
@@ -762,7 +765,7 @@ function NotificationDetail({
                   className="mt-4 capitalize"
                   variant={shareStatus === "accepted" ? "default" : "secondary"}
                 >
-                  {shareStatus}
+                  {shareStatus === "accepted" ? t("notifications.accepted") : t("notifications.rejected")}
                 </Badge>
               )}
             </div>
@@ -770,13 +773,13 @@ function NotificationDetail({
 
           {notification.type === "task_due" && (
             <Button onClick={onOpenTask}>
-              View task{" "}
+              {t("notifications.viewTask")}{" "}
               <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} />
             </Button>
           )}
           {notification.type === "calendar_event" && (
             <Button onClick={onOpenEvent}>
-              View event{" "}
+              {t("notifications.viewEvent")}{" "}
               <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} />
             </Button>
           )}

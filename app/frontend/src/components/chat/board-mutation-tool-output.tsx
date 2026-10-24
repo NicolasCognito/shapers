@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   ChevronDownIcon,
@@ -32,6 +33,13 @@ import { parseBatchToolResult } from "@/lib/tool-batch"
 import { BatchToolResultSummary } from "./batch-tool-result"
 import { ToolInput } from "./tool-input"
 
+import i18n from "@/i18n"
+
+// Module-level helpers translate at call time, so they follow the language.
+const t = (key: string, options?: Record<string, unknown>) =>
+  i18n.t(key, options)
+
+
 type BoardMutationResult = {
   ok?: boolean
   action?: string
@@ -43,21 +51,24 @@ type BoardMutationResult = {
 }
 
 /** Maps each mutation tool name to a display label and icon. */
-const toolMeta: Record<string, { label: string; icon: typeof Edit01Icon }> = {
-  board_create_project: { label: "Create Project", icon: PlusSignIcon },
-  board_update_project: { label: "Update Project", icon: Edit01Icon },
-  board_upsert_state: { label: "Upsert State", icon: Layers01Icon },
-  board_upsert_label: { label: "Upsert Label", icon: Tag01Icon },
-  board_upsert_member: { label: "Upsert Member", icon: UserGroupIcon },
-  board_create_task: { label: "Create Task", icon: PlusSignIcon },
-  board_update_task: { label: "Update Task", icon: Edit01Icon },
+const toolMeta: Record<
+  string,
+  { label: string; icon: typeof Edit01Icon; fallback?: string }
+> = {
+  board_create_project: { label: "chat.boardTool.createProject", icon: PlusSignIcon },
+  board_update_project: { label: "chat.boardTool.updateProject", icon: Edit01Icon },
+  board_upsert_state: { label: "chat.boardTool.upsertState", icon: Layers01Icon },
+  board_upsert_label: { label: "chat.boardTool.upsertLabel", icon: Tag01Icon },
+  board_upsert_member: { label: "chat.boardTool.upsertMember", icon: UserGroupIcon },
+  board_create_task: { label: "chat.boardTool.createTask", icon: PlusSignIcon },
+  board_update_task: { label: "chat.boardTool.updateTask", icon: Edit01Icon },
 }
 
 const statusLabels: Partial<Record<DynamicToolUIPart["state"], string>> = {
-  "input-available": "Running",
-  "input-streaming": "Pending",
-  "output-available": "Completed",
-  "output-error": "Error",
+  "input-available": "toolStatus.running",
+  "input-streaming": "toolStatus.pending",
+  "output-available": "toolStatus.completed",
+  "output-error": "toolStatus.error",
 }
 
 const statusIcons: Partial<Record<DynamicToolUIPart["state"], ReactNode>> = {
@@ -74,7 +85,7 @@ function getStatusBadge(state: DynamicToolUIPart["state"]) {
   return (
     <Badge className="gap-1.5 rounded-full text-xs" variant="secondary">
       {icon}
-      {label}
+      {t(label)}
     </Badge>
   )
 }
@@ -95,10 +106,11 @@ function parseResult(output: unknown): BoardMutationResult | null {
 function actionText(result: BoardMutationResult): string {
   const action = result.action || "updated"
   const resource = result.resourceType || "resource"
-  return `${action} ${resource}`
+  return t("chat.boardTool.actionText", { action, resource })
 }
 
 export function BoardMutationToolCard({ part }: { part: DynamicToolUIPart }) {
+  useTranslation()
   const navigate = useNavigate()
   const batch = parseBatchToolResult<BoardMutationResult>(part.output)
   const result = batch ? null : parseResult(part.output)
@@ -106,7 +118,8 @@ export function BoardMutationToolCard({ part }: { part: DynamicToolUIPart }) {
     part.state === "input-streaming" || part.state === "input-available"
   const failed = part.state === "output-error" || result?.ok === false
   const meta = toolMeta[part.toolName] ?? {
-    label: part.toolName.replace(/^board_/, "").replace(/_/g, " "),
+    label: "",
+    fallback: part.toolName.replace(/^board_/, "").replace(/_/g, " "),
     icon: KanbanIcon,
   }
   const targetId =
@@ -138,7 +151,9 @@ export function BoardMutationToolCard({ part }: { part: DynamicToolUIPart }) {
                   : "text-green-600"
             )}
           />
-          <span className="text-sm font-medium">{meta.label}</span>
+          <span className="text-sm font-medium">
+            {meta.label ? t(meta.label) : meta.fallback}
+          </span>
           {getStatusBadge(part.state)}
           {batch && <Badge variant="outline">{batch.total}</Badge>}
         </div>
@@ -157,7 +172,7 @@ export function BoardMutationToolCard({ part }: { part: DynamicToolUIPart }) {
           <div className="rounded-md border bg-muted/20 px-3 py-2">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <ClockIcon className="size-3.5 animate-spin" />
-              <span>Applying changes…</span>
+              <span>{t("chat.boardTool.applying")}</span>
             </div>
           </div>
         )}
@@ -165,7 +180,7 @@ export function BoardMutationToolCard({ part }: { part: DynamicToolUIPart }) {
         {/* Error */}
         {failed && !loading && (
           <div className="rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive">
-            {part.errorText || "The change was not saved."}
+            {part.errorText || t("chat.boardTool.notSaved")}
           </div>
         )}
 
@@ -174,7 +189,7 @@ export function BoardMutationToolCard({ part }: { part: DynamicToolUIPart }) {
           <BatchToolResultSummary
             batch={batch}
             getLabel={(item) =>
-              `${item.name || item.id}${item.changed === false ? " — no changes" : ""}`
+              `${item.name || item.id}${item.changed === false ? t("chat.boardTool.noChanges") : ""}`
             }
           />
         )}
@@ -185,7 +200,7 @@ export function BoardMutationToolCard({ part }: { part: DynamicToolUIPart }) {
               <CheckCircleIcon className="size-4 shrink-0 text-green-600" />
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium">
-                  {result.name || "Resource"}{" "}
+                  {result.name || t("chat.boardTool.resource")}{" "}
                   <span className="font-normal text-muted-foreground">
                     {actionText(result)}
                   </span>
@@ -207,7 +222,7 @@ export function BoardMutationToolCard({ part }: { part: DynamicToolUIPart }) {
                 )
               }
             >
-              Open Board
+              {t("chat.boardTool.openBoard")}
             </Button>
           </div>
         )}

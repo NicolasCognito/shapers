@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { File01Icon } from "@hugeicons/core-free-icons"
 
@@ -30,6 +31,7 @@ export function PublicTaskDialog({
   locale,
   onOpenChange,
 }: PublicTaskDialogProps) {
+  const { t } = useTranslation()
   const priority = task
     ? PRIORITY_META.find((item) => item.value === task.priority)
     : undefined
@@ -43,7 +45,7 @@ export function PublicTaskDialog({
             <DialogHeader>
               <DialogTitle className="pr-6 text-left">{task.title}</DialogTitle>
               <DialogDescription className="sr-only">
-                Task details
+                {t("publicTask.details")}
               </DialogDescription>
             </DialogHeader>
 
@@ -71,7 +73,7 @@ export function PublicTaskDialog({
                     className="size-2 rounded-full"
                     style={{ backgroundColor: priority.color }}
                   />
-                  {priority.label}
+                  {t(priority.labelKey)}
                 </Badge>
               )}
               {span && (
@@ -102,7 +104,7 @@ export function PublicTaskDialog({
             {task.documents.length > 0 && (
               <div className="flex flex-col gap-1.5">
                 <h4 className="text-xs font-medium text-muted-foreground">
-                  Documents
+                  {t("common.documents")}
                 </h4>
                 {task.documents.map((document, index) =>
                   document.slug ? (
@@ -136,7 +138,7 @@ export function PublicTaskDialog({
                         {document.title}
                       </span>
                       <span className="shrink-0 text-[11px]">
-                        Not shared by the author
+                        {t("publicTask.notShared")}
                       </span>
                     </div>
                   )

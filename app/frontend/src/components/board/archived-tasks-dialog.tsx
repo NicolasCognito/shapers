@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useCallback, useEffect, useState } from "react"
 
 import { Archive02Icon, ArchiveRestoreIcon } from "@hugeicons/core-free-icons"
@@ -45,6 +46,7 @@ export function ArchivedTasksDialog({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
+  const { t } = useTranslation()
   const restoreTodo = useBoardStore((store) => store.restoreTodo)
   const [items, setItems] = useState<ArchivedTaskRecord[]>([])
   const [page, setPage] = useState(1)
@@ -74,7 +76,7 @@ export function ArchivedTasksDialog({
       .catch((error) => {
         if (isRequestAbort(error)) return
         toast.error(
-          extractErrorMessage(error, "Could not load archived tasks.")
+          extractErrorMessage(error, t("archivedTasks.loadFailed"))
         )
       })
       .finally(() => setLoading(false))
@@ -112,10 +114,10 @@ export function ArchivedTasksDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <HugeiconsIcon icon={Archive02Icon} className="size-4" />
-            Archived tasks
+            {t("archivedTasks.title")}
           </DialogTitle>
           <DialogDescription>
-            Restore tasks to their original state in {project.name}.
+            {t("archivedTasks.desc", { name: project.name })}
           </DialogDescription>
         </DialogHeader>
 
@@ -126,7 +128,7 @@ export function ArchivedTasksDialog({
             </div>
           ) : items.length === 0 ? (
             <p className="py-10 text-center text-sm text-muted-foreground">
-              No archived tasks.
+              {t("archivedTasks.empty")}
             </p>
           ) : (
             items.map((task) => (
@@ -137,7 +139,7 @@ export function ArchivedTasksDialog({
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{task.title}</p>
                   <p className="truncate text-xs text-muted-foreground">
-                    {task.expand?.state?.name || "Original state"}
+                    {task.expand?.state?.name || t("archivedTasks.originalState")}
                     {task.description ? ` · ${task.description}` : ""}
                   </p>
                 </div>
@@ -145,8 +147,8 @@ export function ArchivedTasksDialog({
                   variant="ghost"
                   size="icon-sm"
                   disabled={restoringId !== null}
-                  aria-label={`Restore ${task.title}`}
-                  title="Restore task"
+                  aria-label={t("archivedTasks.restoreNamed", { title: task.title })}
+                  title={t("archivedTasks.restoreTask")}
                   onClick={() => void restore(task.id)}
                 >
                   <HugeiconsIcon icon={ArchiveRestoreIcon} strokeWidth={2} />
@@ -161,7 +163,7 @@ export function ArchivedTasksDialog({
             <PaginationContent>
               <PaginationItem>
                 <PaginationPrevious
-                  text="Prev"
+                  text={t("notifications.prev")}
                   onClick={() => {
                     setLoading(true)
                     setPage((value) => Math.max(1, value - 1))
@@ -178,7 +180,7 @@ export function ArchivedTasksDialog({
               </span>
               <PaginationItem>
                 <PaginationNext
-                  text="Next"
+                  text={t("notifications.next")}
                   onClick={() => {
                     setLoading(true)
                     setPage((value) => Math.min(totalPages, value + 1))

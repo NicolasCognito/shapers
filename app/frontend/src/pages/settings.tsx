@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -22,6 +23,7 @@ import { ModelCopyDialog } from "@/components/model-copy-dialog"
 import { ModelSheet } from "@/components/model-sheet"
 import { MemorySettingsCard } from "@/components/memory-settings-card"
 import { useTheme } from "@/components/theme-provider"
+import { LanguageSwitcher } from "@/components/language-switcher"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -62,6 +64,7 @@ import { formatTokenSize } from "@/lib/token-size"
 import { usePreferencesStore } from "@/store/preferences"
 
 export function SettingsPage() {
+  const { t } = useTranslation()
   const models = useLlmSettingsStore((state) => state.models)
   const loading = useLlmSettingsStore((state) => state.loading)
   const initialized = useLlmSettingsStore((state) => state.initialized)
@@ -122,9 +125,9 @@ export function SettingsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("settings.title")}</h1>
         <p className="text-sm text-muted-foreground">
-          Manage your preferences and configure model providers.
+          {t("settings.subtitle")}
         </p>
       </div>
 
@@ -142,7 +145,7 @@ export function SettingsPage() {
             className="ml-auto"
             onClick={() => setNotice(null)}
           >
-            Dismiss
+            {t("settings.dismiss")}
           </Button>
         </div>
       )}
@@ -161,7 +164,7 @@ export function SettingsPage() {
             className="ml-auto"
             onClick={clearError}
           >
-            Dismiss
+            {t("settings.dismiss")}
           </Button>
         </div>
       )}
@@ -177,9 +180,9 @@ export function SettingsPage() {
               />
             </div>
             <div className="min-w-0 flex-1">
-              <CardTitle>Large Language Model</CardTitle>
+              <CardTitle>{t("settings.llmTitle")}</CardTitle>
               <CardDescription>
-                Manage the model configurations available to your account.
+                {t("settings.llmDesc")}
               </CardDescription>
             </div>
             <Button size="sm" onClick={openAddSheet}>
@@ -188,7 +191,7 @@ export function SettingsPage() {
                 strokeWidth={2}
                 className="size-4"
               />
-              Add model
+              {t("settings.addModel")}
             </Button>
           </div>
         </CardHeader>
@@ -212,7 +215,7 @@ export function SettingsPage() {
                 <HugeiconsIcon icon={AlertCircleIcon} strokeWidth={2} />
               </div>
               <div>
-                <p className="text-sm font-medium">Could not load models</p>
+                <p className="text-sm font-medium">{t("settings.loadModelsFailed")}</p>
                 <p className="mt-1 text-xs text-muted-foreground">{error}</p>
               </div>
               <Button
@@ -220,7 +223,7 @@ export function SettingsPage() {
                 size="sm"
                 onClick={() => void initialize(true)}
               >
-                Retry
+                {t("settings.retry")}
               </Button>
             </div>
           ) : models.length === 0 ? (
@@ -232,26 +235,26 @@ export function SettingsPage() {
                   className="size-5"
                 />
               </div>
-              <p className="text-sm font-medium">No models configured</p>
+              <p className="text-sm font-medium">{t("settings.noModels")}</p>
               <p className="text-xs text-muted-foreground">
-                Add a model configuration to get started.
+                {t("settings.noModelsHint")}
               </p>
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="pl-6">Model</TableHead>
+                  <TableHead className="pl-6">{t("settings.colModel")}</TableHead>
                   <TableHead className="hidden md:table-cell">
-                    Protocol
+                    {t("settings.colProtocol")}
                   </TableHead>
                   <TableHead className="hidden sm:table-cell">
-                    Max output
+                    {t("settings.colMaxOutput")}
                   </TableHead>
                   <TableHead className="hidden sm:table-cell">
-                    Context
+                    {t("settings.colContext")}
                   </TableHead>
-                  <TableHead className="pr-6 text-right">Actions</TableHead>
+                  <TableHead className="pr-6 text-right">{t("settings.colActions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -263,7 +266,7 @@ export function SettingsPage() {
                           {model.name}
                           {model.sharedFrom && (
                             <Badge variant="outline" className="font-normal">
-                              Shared by {model.sharedFromName || "another user"}
+                              {t("settings.sharedBy", { name: model.sharedFromName || t("settings.anotherUser") })}
                             </Badge>
                           )}
                         </span>
@@ -306,7 +309,7 @@ export function SettingsPage() {
                               : undefined
                           }
                           aria-label={
-                            model.isDefault ? "Default model" : "Set as default"
+                            model.isDefault ? t("settings.defaultModel") : t("settings.setDefault")
                           }
                           aria-pressed={model.isDefault}
                         >
@@ -317,7 +320,7 @@ export function SettingsPage() {
                             variant="ghost"
                             size="icon-sm"
                             onClick={() => openCopyDialog(model)}
-                            aria-label="Share with users"
+                            aria-label={t("settings.shareWithUsers")}
                           >
                             <HugeiconsIcon icon={Share08Icon} strokeWidth={2} />
                           </Button>
@@ -326,7 +329,7 @@ export function SettingsPage() {
                           variant="ghost"
                           size="icon-sm"
                           onClick={() => openEditSheet(model)}
-                          aria-label="Edit model"
+                          aria-label={t("settings.editModel")}
                         >
                           <HugeiconsIcon icon={Edit01Icon} strokeWidth={2} />
                         </Button>
@@ -335,7 +338,7 @@ export function SettingsPage() {
                           size="icon-sm"
                           onClick={() => setDeleteModel(model)}
                           className="text-muted-foreground hover:text-destructive"
-                          aria-label="Delete model"
+                          aria-label={t("settings.deleteModel")}
                         >
                           <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
                         </Button>
@@ -376,9 +379,7 @@ export function SettingsPage() {
         }}
         model={copySource}
         onShared={(count) =>
-          setNotice(
-            `Share invitation sent to ${count} user${count === 1 ? "" : "s"}.`
-          )
+          setNotice(t("settings.shareSent", { count }))
         }
       />
 
@@ -390,14 +391,13 @@ export function SettingsPage() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete model configuration?</AlertDialogTitle>
+            <AlertDialogTitle>{t("settings.deleteTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              “{deleteModel?.name}” will be permanently removed from your
-              account. Copies previously sent to other users are not affected.
+              {t("settings.deleteDesc", { name: deleteModel?.name })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleting}>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
               disabled={deleting}
@@ -406,7 +406,7 @@ export function SettingsPage() {
                 void handleDelete()
               }}
             >
-              {deleting ? "Deleting..." : "Delete"}
+              {deleting ? t("settings.deleting") : t("common.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -416,12 +416,13 @@ export function SettingsPage() {
 }
 
 const THEME_OPTIONS = [
-  { value: "light" as const, label: "Light", icon: Sun03Icon },
-  { value: "dark" as const, label: "Dark", icon: Moon02Icon },
-  { value: "system" as const, label: "System", icon: ComputerIcon },
+  { value: "light" as const, labelKey: "settings.themeLight", icon: Sun03Icon },
+  { value: "dark" as const, labelKey: "settings.themeDark", icon: Moon02Icon },
+  { value: "system" as const, labelKey: "settings.themeSystem", icon: ComputerIcon },
 ]
 
 function AppearanceCard() {
+  const { t } = useTranslation()
   const { theme, setTheme } = useTheme()
   const persistTheme = usePreferencesStore((state) => state.updateTheme)
 
@@ -432,7 +433,7 @@ function AppearanceCard() {
       await persistTheme(value)
     } catch {
       setTheme(previous)
-      toast.error("Could not update your theme")
+      toast.error(t("settings.themeFailed"))
     }
   }
 
@@ -448,16 +449,16 @@ function AppearanceCard() {
             />
           </div>
           <div>
-            <CardTitle>Appearance</CardTitle>
+            <CardTitle>{t("settings.appearance")}</CardTitle>
             <CardDescription>
-              Your personal theme preference for this account.
+              {t("settings.appearanceDesc")}
             </CardDescription>
           </div>
         </div>
       </CardHeader>
       <CardContent>
         <div className="flex flex-col gap-2">
-          <Label>Appearance</Label>
+          <Label>{t("settings.theme")}</Label>
           <div className="flex gap-2">
             {THEME_OPTIONS.map((option) => {
               const active = theme === option.value
@@ -479,14 +480,20 @@ function AppearanceCard() {
                     strokeWidth={2}
                     className="size-4"
                   />
-                  {option.label}
+                  {t(option.labelKey)}
                 </button>
               )
             })}
           </div>
           <p className="text-xs text-muted-foreground">
-            Choose how the interface looks. System follows your OS preference.
+            {t("settings.themeHint")}
           </p>
+        </div>
+        <div className="mt-6 flex flex-col gap-2">
+          <Label>{t("common.language")}</Label>
+          <div>
+            <LanguageSwitcher />
+          </div>
         </div>
       </CardContent>
     </Card>

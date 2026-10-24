@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useMemo, useState, type ReactNode } from "react"
 import { isToday } from "date-fns"
 
@@ -37,6 +38,7 @@ const MAX_VISIBLE_TASKS = 6
  * would otherwise push the days after it far down the page.
  */
 function TaskGrid({ items }: { items: ReactNode[] }) {
+  const { t } = useTranslation()
   const [expanded, setExpanded] = useState(false)
   const hidden = items.length - MAX_VISIBLE_TASKS
   const visible = expanded || hidden <= 0 ? items : items.slice(0, MAX_VISIBLE_TASKS)
@@ -50,7 +52,9 @@ function TaskGrid({ items }: { items: ReactNode[] }) {
           onClick={() => setExpanded((current) => !current)}
           className="mt-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
         >
-          {expanded ? "Show less" : `+${hidden} more`}
+          {expanded
+            ? t("timeline.showLess")
+            : t("timeline.more", { count: hidden })}
         </button>
       )}
     </>
@@ -69,6 +73,7 @@ export function TimelineDays({
   locale,
   onSelect,
 }: TimelineDaysProps) {
+  const { t } = useTranslation()
   const completedStates = useMemo(
     () =>
       new Set(
@@ -147,11 +152,11 @@ export function TimelineDays({
                 {formatDate(date, "weekdayLong", locale)}
               </h3>
               <span className="text-xs text-muted-foreground">
-                {done} of {entries.length} done
+                {t("timeline.doneOf", { done, total: entries.length })}
               </span>
               {today && (
                 <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
-                  Today
+                  {t("timeline.today")}
                 </span>
               )}
             </header>
@@ -181,7 +186,7 @@ export function TimelineDays({
                         {entry.task.title}
                       </span>
                       <span className="shrink-0 text-[10px] text-muted-foreground">
-                        Day {entry.day} of {entry.total}
+                        {t("timeline.dayOf", { day: entry.day, total: entry.total })}
                       </span>
                     </button>
                   )
@@ -222,7 +227,7 @@ export function TimelineDays({
       {unscheduled.length > 0 && (
         <section className="py-2">
           <header className="mb-2 flex items-baseline gap-2">
-            <h3 className="text-sm font-semibold">Unscheduled</h3>
+            <h3 className="text-sm font-semibold">{t("timeline.unscheduled")}</h3>
             <span className="text-xs text-muted-foreground">
               {unscheduled.length}
             </span>

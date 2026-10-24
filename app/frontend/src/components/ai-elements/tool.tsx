@@ -7,6 +7,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { cn } from "@/lib/utils"
+import i18n from "@/i18n"
 import type { DynamicToolUIPart, ToolUIPart } from "ai"
 import {
   CheckCircleIcon,
@@ -47,13 +48,13 @@ export type ToolHeaderProps = {
 )
 
 const statusLabels: Record<ToolPart["state"], string> = {
-  "approval-requested": "Awaiting Approval",
-  "approval-responded": "Responded",
-  "input-available": "Running",
-  "input-streaming": "Pending",
-  "output-available": "Completed",
-  "output-denied": "Denied",
-  "output-error": "Error",
+  "approval-requested": "aiElements.toolState.awaiting",
+  "approval-responded": "aiElements.toolState.responded",
+  "input-available": "toolStatus.running",
+  "input-streaming": "toolStatus.pending",
+  "output-available": "toolStatus.completed",
+  "output-denied": "aiElements.toolState.denied",
+  "output-error": "toolStatus.error",
 }
 
 const statusIcons: Record<ToolPart["state"], ReactNode> = {
@@ -69,7 +70,7 @@ const statusIcons: Record<ToolPart["state"], ReactNode> = {
 const getStatusBadge = (status: ToolPart["state"]) => (
   <Badge className="gap-1.5 rounded-full text-xs" variant="secondary">
     {statusIcons[status]}
-    {statusLabels[status]}
+    {i18n.t(statusLabels[status])}
   </Badge>
 )
 
@@ -121,7 +122,7 @@ export type ToolInputProps = ComponentProps<"div"> & {
 export const ToolInput = ({ className, input, ...props }: ToolInputProps) => (
   <div className={cn("space-y-2 overflow-hidden", className)} {...props}>
     <h4 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-      Parameters
+      {i18n.t("toolInput.parameters")}
     </h4>
     <div className="rounded-md bg-muted/50">
       <CodeBlock code={compactJsonForDisplay(input)} language="json" />
@@ -155,7 +156,9 @@ export const ToolOutput = ({
   return (
     <div className={cn("space-y-2", className)} {...props}>
       <h4 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-        {errorText ? "Error" : "Result"}
+        {errorText
+          ? i18n.t("toolStatus.error")
+          : i18n.t("aiElements.result")}
       </h4>
       <div
         className={cn(
@@ -178,5 +181,5 @@ function compactJsonForDisplay(value: unknown): string {
 
 function compactTextForDisplay(value: string): string {
   if (value.length <= DISPLAY_CHAR_LIMIT) return value
-  return `${value.slice(0, DISPLAY_CHAR_LIMIT)}\n... (${value.length} chars total, shortened in UI only)`
+  return `${value.slice(0, DISPLAY_CHAR_LIMIT)}\n${i18n.t("aiElements.shortened", { count: value.length })}`
 }

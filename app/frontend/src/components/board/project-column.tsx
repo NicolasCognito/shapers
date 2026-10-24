@@ -1,3 +1,4 @@
+import { Trans, useTranslation } from "react-i18next"
 import { useState } from "react"
 
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -70,6 +71,7 @@ export function ProjectColumn({
   onEditTask,
   onEditProject,
 }: ProjectColumnProps) {
+  const { t } = useTranslation()
   const toggleCollapse = useBoardStore((store) => store.toggleProjectCollapse)
   const archiveProject = useBoardStore((store) => store.archiveProject)
   const removeProject = useBoardStore((store) => store.removeProject)
@@ -105,9 +107,9 @@ export function ProjectColumn({
       await navigator.clipboard.writeText(
         `Projects:${project.id}:${project.name}`
       )
-      toast.success("Project ID and name copied.")
+      toast.success(t("projectColumn.copied"))
     } catch {
-      toast.error("Could not copy project ID and name.")
+      toast.error(t("projectColumn.copyFailed"))
     }
   }
 
@@ -165,7 +167,7 @@ export function ProjectColumn({
             size="icon-xs"
             disabled={!canMoveUp || loading || !project.preferenceId}
             onClick={() => void moveProject(project.id, -1).catch(() => {})}
-            aria-label={`Move ${project.name} up`}
+            aria-label={t("projectColumn.moveUp", { name: project.name })}
           >
             <HugeiconsIcon icon={ArrowUp01Icon} strokeWidth={2} />
           </Button>
@@ -174,7 +176,7 @@ export function ProjectColumn({
             size="icon-xs"
             disabled={!canMoveDown || loading || !project.preferenceId}
             onClick={() => void moveProject(project.id, 1).catch(() => {})}
-            aria-label={`Move ${project.name} down`}
+            aria-label={t("projectColumn.moveDown", { name: project.name })}
           >
             <HugeiconsIcon icon={ArrowDown01Icon} strokeWidth={2} />
           </Button>
@@ -185,14 +187,14 @@ export function ProjectColumn({
                   type="button"
                   variant="ghost"
                   size="icon-xs"
-                  aria-label="Copy project ID and name"
+                  aria-label={t("projectColumn.copyRef")}
                   onClick={() => void copyProjectReference()}
                 >
                   <HugeiconsIcon icon={Copy01Icon} strokeWidth={2} />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="top">
-                Copy project ID and name
+                {t("projectColumn.copyRef")}
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -203,13 +205,13 @@ export function ProjectColumn({
                   type="button"
                   variant="ghost"
                   size="icon-xs"
-                  aria-label={`View archived tasks in ${project.name}`}
+                  aria-label={t("projectColumn.viewArchivedIn", { name: project.name })}
                   onClick={() => setArchivedTasksOpen(true)}
                 >
                   <HugeiconsIcon icon={Archive02Icon} strokeWidth={2} />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="top">Archived tasks</TooltipContent>
+              <TooltipContent side="top">{t("projectColumn.archivedTasks")}</TooltipContent>
             </Tooltip>
           </TooltipProvider>
           {isOwner && <ShareProjectButton project={project} />}
@@ -219,7 +221,7 @@ export function ProjectColumn({
                 <Button
                   variant="ghost"
                   size="icon-sm"
-                  aria-label="Project options"
+                  aria-label={t("projectColumn.options")}
                 >
                   <HugeiconsIcon icon={MoreHorizontalIcon} strokeWidth={2} />
                 </Button>
@@ -227,7 +229,7 @@ export function ProjectColumn({
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => onEditProject?.(project)}>
                   <HugeiconsIcon icon={Settings02Icon} strokeWidth={2} />
-                  Edit project
+                  {t("projectColumn.editProject")}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() =>
@@ -235,14 +237,14 @@ export function ProjectColumn({
                   }
                 >
                   <HugeiconsIcon icon={Archive02Icon} strokeWidth={2} />
-                  Archive project
+                  {t("projectColumn.archiveProject")}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   variant="destructive"
                   onClick={() => setDeleteOpen(true)}
                 >
                   <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
-                  Delete project
+                  {t("projectColumn.deleteProject")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -283,10 +285,10 @@ export function ProjectColumn({
           <div className="flex min-h-32 w-full flex-col items-center justify-center gap-3 rounded-xl border border-dashed bg-muted/20 p-6 text-center">
             <div>
               <p className="text-sm font-medium">
-                This project has no workflow yet
+                {t("projectColumn.noWorkflow")}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Add at least one state before creating tasks.
+                {t("projectColumn.noWorkflowHint")}
               </p>
             </div>
             {isOwner && (
@@ -295,7 +297,7 @@ export function ProjectColumn({
                 variant="secondary"
                 onClick={() => onEditProject?.(project)}
               >
-                Edit project
+                {t("projectColumn.editProject")}
               </Button>
             )}
           </div>
@@ -305,21 +307,23 @@ export function ProjectColumn({
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete project?</AlertDialogTitle>
+            <AlertDialogTitle>{t("projectColumn.deleteTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete <strong>{project.name}</strong> and
-              all {projectTodos.length} task
-              {projectTodos.length === 1 ? "" : "s"} inside it. This action
-              cannot be undone.
+              <Trans
+                i18nKey="projectColumn.deleteDesc"
+                count={projectTodos.length}
+                values={{ name: project.name }}
+                components={{ strong: <strong /> }}
+              />
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
               onClick={() => void removeProject(project.id).catch(() => {})}
             >
-              Delete
+              {t("common.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

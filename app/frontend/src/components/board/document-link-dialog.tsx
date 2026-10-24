@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useEffect, useMemo, useState } from "react"
 
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -44,6 +45,7 @@ export function DocumentLinkDialog({
   onOpenChange,
   onConfirm,
 }: DocumentLinkDialogProps) {
+  const { t } = useTranslation()
   const [options, setOptions] = useState<DocOption[]>([])
   const [chosen, setChosen] = useState<Set<string>>(new Set())
   const [query, setQuery] = useState("")
@@ -85,7 +87,7 @@ export function DocumentLinkDialog({
           setError(
             loadError instanceof Error
               ? loadError.message
-              : "Could not load documents"
+              : t("docLink.loadFailed")
           )
       })
       .finally(() => {
@@ -122,9 +124,9 @@ export function DocumentLinkDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Link documents</DialogTitle>
+          <DialogTitle>{t("docLink.title")}</DialogTitle>
           <DialogDescription>
-            Choose documents from this project to link to the task.
+            {t("docLink.desc")}
           </DialogDescription>
         </DialogHeader>
 
@@ -148,7 +150,7 @@ export function DocumentLinkDialog({
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search documents..."
+            placeholder={t("docLink.search")}
             className="pl-9"
           />
         </div>
@@ -161,8 +163,8 @@ export function DocumentLinkDialog({
           ) : visibleOptions.length === 0 ? (
             <p className="py-10 text-center text-sm text-muted-foreground">
               {options.length === 0
-                ? "This project has no documents yet."
-                : "No documents match your search."}
+                ? t("docLink.empty")
+                : t("docLink.noMatch")}
             </p>
           ) : (
             visibleOptions.map((option) => {
@@ -199,7 +201,7 @@ export function DocumentLinkDialog({
                     className="size-4 shrink-0 text-muted-foreground"
                   />
                   <span className="min-w-0 flex-1 truncate text-sm font-medium">
-                    {option.title || "Untitled document"}
+                    {option.title || t("task.untitledDoc")}
                   </span>
                 </button>
               )
@@ -209,10 +211,10 @@ export function DocumentLinkDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button onClick={handleConfirm}>
-            {`Link ${chosen.size} document${chosen.size === 1 ? "" : "s"}`}
+            {t("docLink.link", { count: chosen.size })}
           </Button>
         </DialogFooter>
       </DialogContent>

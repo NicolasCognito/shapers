@@ -1,3 +1,5 @@
+import i18n from "@/i18n"
+
 // Lightweight relative-time formatter for the chat UI.
 
 export function formatRelativeTime(iso: string): string {
@@ -9,12 +11,12 @@ export function formatRelativeTime(iso: string): string {
   const hour = 60 * min
   const day = 24 * hour
 
-  if (diff < min) return "just now"
-  if (diff < hour) return `${Math.floor(diff / min)}m ago`
-  if (diff < day) return `${Math.floor(diff / hour)}h ago`
-  if (diff < 7 * day) return `${Math.floor(diff / day)}d ago`
+  if (diff < min) return i18n.t("time.justNow")
+  if (diff < hour) return i18n.t("time.minAgo", { count: Math.floor(diff / min) })
+  if (diff < day) return i18n.t("time.hourAgo", { count: Math.floor(diff / hour) })
+  if (diff < 7 * day) return i18n.t("time.dayAgo", { count: Math.floor(diff / day) })
 
-  return new Date(iso).toLocaleDateString(undefined, {
+  return new Date(iso).toLocaleDateString(i18n.language, {
     month: "short",
     day: "numeric",
   })
