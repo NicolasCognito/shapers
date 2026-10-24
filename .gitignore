@@ -1,0 +1,14 @@
+# Local PocketBase sandbox (binary + data)
+pocketbase/
+pb_data/
+
+# Dependencies / build output
+node_modules/
+.pnpm-store/
+*.exe
+.env
+.env.*
+!.env.example
+.DS_Store
+.idea/
+.vscode/
