@@ -21,3 +21,4 @@ qa/scripts/
 qa/*.log
 qa/execution-log.txt
 qa/codex-last-message.md
+qa/retest-execution-log.txt
