@@ -77,7 +77,7 @@ export function WeekBars({
               style={{ height }}
               title={`${format(parseISO(w.week_start), "d MMM", { locale })}: ${fmtHours(w.hours)}`}
             >
-              <span className="mb-1 text-[10px] tabular-nums text-muted-foreground opacity-0 group-hover:opacity-100">
+              <span className="mb-1 text-[10px] whitespace-nowrap tabular-nums text-muted-foreground opacity-0 group-hover:opacity-100">
                 {fmtHours(w.hours)}
               </span>
               <div

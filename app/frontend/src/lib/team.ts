@@ -250,5 +250,11 @@ export const teamApi = {
 }
 
 export const pct = (v: number) => `${Math.round(v * 100)}%`
-export const fmtHours = (h: number) =>
-  `${Number.isInteger(h) ? h : h.toFixed(1)} h`
+/** 51.5 → "51 h 30 min", 0.25 → "15 min", 3 → "3 h" (same units in EN and SL). */
+export const fmtHours = (h: number) => {
+  const total = Math.round(h * 60)
+  const hrs = Math.floor(total / 60)
+  const min = total % 60
+  if (hrs === 0) return `${min} min`
+  return min === 0 ? `${hrs} h` : `${hrs} h ${min} min`
+}

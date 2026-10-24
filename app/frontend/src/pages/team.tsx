@@ -441,8 +441,8 @@ function MembersTab({
                         }
                         className="flex-1"
                       />
-                      <span className="w-20 text-right text-xs tabular-nums">
-                        {fmtHours(m.this_week)}/{m.weekly_hours}
+                      <span className="w-32 text-right text-xs whitespace-nowrap tabular-nums">
+                        {fmtHours(m.this_week)} / {m.weekly_hours} h
                       </span>
                     </div>
                   </td>
