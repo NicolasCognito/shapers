@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
@@ -114,8 +115,9 @@ func UpsertMeeting(app core.App, in MeetingInput, userByEmail map[string]string)
 	return true, app.Save(rec)
 }
 
+// usersByEmail maps roster members (users with a tier) by email.
 func usersByEmail(app core.App) (map[string]string, error) {
-	recs, err := app.FindAllRecords(colUsers)
+	recs, err := app.FindRecordsByFilter(colUsers, "tier != ''", "", 0, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -157,6 +159,7 @@ func SyncGoogleCalendar(app core.App) (int, error) {
 
 	client := &http.Client{Timeout: 20 * time.Second}
 	count, pageToken := 0, ""
+	seen := map[string]bool{}
 	for {
 		q := url.Values{
 			"key":          {key},
@@ -196,6 +199,7 @@ func SyncGoogleCalendar(app core.App) (int, error) {
 			if ev.RecurringID != "" || id == "" {
 				id = "gcal:" + ev.ID
 			}
+			seen[id] = true
 			ok, err := UpsertMeeting(app, MeetingInput{
 				ExternalID: id, Title: ev.Summary, Description: ev.Description,
 				Location: ev.Location, Start: ev.Start.DateTime, End: ev.End.DateTime,
@@ -208,6 +212,7 @@ func SyncGoogleCalendar(app core.App) (int, error) {
 			}
 		}
 		if body.NextPageToken == "" {
+			pruneRemovedMeetings(app, seen)
 			return count, nil
 		}
 		pageToken = body.NextPageToken
@@ -256,4 +261,24 @@ func ParseICS(data string) []MeetingInput {
 		}
 	}
 	return out
+}
+
+// pruneRemovedMeetings deletes future meetings that are no longer in the
+// calendar (deleted or cancelled there). Past meetings stay: attendance is
+// attached to them. Runs only after a complete sync, so a failed page never
+// wipes anything.
+func pruneRemovedMeetings(app core.App, seen map[string]bool) {
+	future, err := app.FindRecordsByFilter(colMeetings, "start_at > {:now}", "", 0, 0, dbx.Params{"now": dbTime(time.Now())})
+	if err != nil {
+		return
+	}
+	for _, m := range future {
+		if seen[m.GetString("external_id")] {
+			continue
+		}
+		slackMeetingCancelled(app, m)
+		if err := app.Delete(m); err != nil {
+			slog.Warn("calendar: remove meeting", "id", m.Id, "error", err)
+		}
+	}
 }

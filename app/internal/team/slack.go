@@ -219,6 +219,7 @@ func postMeetingNotices(app core.App) {
 	if err != nil {
 		return
 	}
+	followUpReschedules(app, ch)
 	for _, m := range meetings {
 		start := m.GetDateTime("start_at").Time()
 		for _, kind := range []string{"announce", "remind"} {
@@ -242,8 +243,63 @@ func postMeetingNotices(app core.App) {
 			r.Set("kind", kind)
 			r.Set("channel", ch)
 			r.Set("ts", out.TS)
+			r.Set("start_at", m.GetDateTime("start_at"))
 			_ = app.Save(r)
 		}
+	}
+}
+
+func meetingWhen(t time.Time) string {
+	t = t.In(Location)
+	return t.Format("Mon 2 Jan, 15:04")
+}
+
+// followUpReschedules adds a note to the channel when a meeting that was
+// already announced moved to another time. The original post stays as is.
+func followUpReschedules(app core.App, ch string) {
+	posts, err := app.FindRecordsByFilter(colSlackPosts, "kind = 'announce'", "", 0, 0)
+	if err != nil {
+		return
+	}
+	for _, p := range posts {
+		m, err := app.FindRecordById(colMeetings, p.GetString("meeting"))
+		if err != nil {
+			continue
+		}
+		was, now := p.GetDateTime("start_at").Time(), m.GetDateTime("start_at").Time()
+		if was.IsZero() || was.Equal(now) || now.Before(time.Now()) {
+			continue
+		}
+		text := fmt.Sprintf("⚠️ *Rescheduled:* *%s* · %s\nwas %s, now *%s*", m.GetString("series"), m.GetString("title"), meetingWhen(was), meetingWhen(now))
+		if err := slack.call("chat.postMessage", url.Values{"channel": {ch}, "text": {text}}, nil); err != nil {
+			slog.Warn("slack: reschedule note", "error", err)
+			continue
+		}
+		p.Set("start_at", m.GetDateTime("start_at"))
+		_ = app.Save(p)
+		// A reminder already sent for the old time no longer applies.
+		if r, err := app.FindFirstRecordByFilter(colSlackPosts, "meeting = {:m} && kind = 'remind'", dbx.Params{"m": m.Id}); err == nil {
+			_ = app.Delete(r)
+		}
+	}
+}
+
+// slackMeetingCancelled posts a note when an announced meeting disappears
+// from the calendar.
+func slackMeetingCancelled(app core.App, m *core.Record) {
+	if slack == nil {
+		return
+	}
+	if _, err := app.FindFirstRecordByFilter(colSlackPosts, "meeting = {:m}", dbx.Params{"m": m.Id}); err != nil {
+		return // never announced: nothing to correct
+	}
+	ch, err := slack.channel()
+	if err != nil {
+		return
+	}
+	text := fmt.Sprintf("❌ *Cancelled:* *%s* · %s (%s)", m.GetString("series"), m.GetString("title"), meetingWhen(m.GetDateTime("start_at").Time()))
+	if err := slack.call("chat.postMessage", url.Values{"channel": {ch}, "text": {text}}, nil); err != nil {
+		slog.Warn("slack: cancel note", "error", err)
 	}
 }
 
