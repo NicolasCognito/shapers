@@ -107,7 +107,7 @@ function ActiveChat({ conversation }: { conversation: ChatConversation }) {
     <div className="flex min-w-0 flex-1 flex-col">
       <ChatHeader conversation={conversation} />
       <Conversation>
-        <ConversationContent className="w-full px-4 md:px-16 lg:px-24">
+        <ConversationContent className="w-full px-4 @3xl:px-16 @5xl:px-24">
           {!loadingMessages && messages.length === 0 ? (
             <ConversationEmptyState
               title={t("chat.noMessages")}

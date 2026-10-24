@@ -39,6 +39,7 @@ func IsDestructive(name string) bool {
 // Shapers hides those pages, so Jarvis must not write into them.
 func (f *Factory) ForActor(actorID string) []fantasy.AgentTool {
 	return []fantasy.AgentTool{
+		newNavigateTool(),
 		newTeamMyWeekTool(f.app, actorID),
 		newTeamLogHoursTool(f.app, actorID),
 		newTeamRequestHoursTool(f.app, actorID),

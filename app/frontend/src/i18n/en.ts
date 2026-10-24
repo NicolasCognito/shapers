@@ -456,7 +456,17 @@ export const en = {
     unknownMember: "Unknown member",
     unknownOwner: "Unknown owner",
   },
+  dock: {
+    open: "Open Jarvis",
+    ask: "Ask Jarvis",
+    full: "Open full chat",
+    close: "Close",
+  },
   chat: {
+    navigate: {
+      opening: "Opening…",
+      opened: "Opened",
+    },
     voice: {
       listening: "Listening…",
       processing: "Recognising…",

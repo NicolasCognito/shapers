@@ -4,6 +4,7 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { AppHeader } from "@/components/app-header"
 import { ChatRunMonitor } from "@/components/chat/chat-run-monitor"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
+import { JarvisDock } from "@/components/chat/jarvis-dock"
 
 export function DashboardLayout() {
   const { pathname } = useLocation()
@@ -29,6 +30,7 @@ export function DashboardLayout() {
           )}
         </main>
       </SidebarInset>
+      {!pathname.startsWith("/chat") && <JarvisDock />}
     </SidebarProvider>
   )
 }

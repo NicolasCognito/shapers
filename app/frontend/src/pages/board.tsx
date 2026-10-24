@@ -25,6 +25,7 @@ export function BoardPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const requestedTaskId = requestedRecordId(searchParams) || undefined
+  const requestedProjectId = searchParams.get("project")
   const [projectSheetOpen, setProjectSheetOpen] = useState(false)
   const [archivedOpen, setArchivedOpen] = useState(false)
   const [editingProject, setEditingProject] = useState<Project | null>(null)
@@ -78,6 +79,14 @@ export function BoardPage() {
     openTask,
     requestedTaskId,
   ])
+
+  // /board?project=<id> (links, Jarvis) opens that project's board.
+  useEffect(() => {
+    if (!initialized || !requestedProjectId) return
+    void focusProject(requestedProjectId).then(() =>
+      navigate("/board", { replace: true })
+    )
+  }, [initialized, requestedProjectId, focusProject, navigate])
 
   const handleAddProject = () => {
     setEditingProject(null)

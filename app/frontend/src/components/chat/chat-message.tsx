@@ -43,6 +43,7 @@ import {
   CalendarMutationToolCard,
 } from "./calendar-tool-output"
 import { ApprovalToolCard } from "./approval-tool-card"
+import { NavigateToolCard } from "./navigate-tool-output"
 import { MemoryToolCard } from "./memory-tool-output"
 import { ToolInput } from "./tool-input"
 
@@ -220,6 +221,9 @@ function ToolCard({
   }
   if (docItemToolNames.has(part.toolName)) {
     return <DocsItemToolCard part={part} />
+  }
+  if (part.toolName === "ui_navigate") {
+    return <NavigateToolCard part={part} />
   }
   if (part.toolName === "calendar_search_events") {
     return <CalendarSearchToolCard part={part} />

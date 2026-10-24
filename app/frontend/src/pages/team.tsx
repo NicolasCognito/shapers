@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { format, parseISO } from "date-fns"
-import { Navigate } from "react-router"
+import { Navigate, useSearchParams } from "react-router"
 import { useTranslation } from "react-i18next"
 
 import { MemberDetailView } from "@/components/team/member-detail"
@@ -47,7 +47,13 @@ export function TeamPage() {
   const { t } = useTranslation()
   const locale = useDateLocale()
   const [data, setData] = useState<Overview | null>(null)
-  const [selected, setSelected] = useState<string | null>(null)
+  // The open member lives in the URL (?member=id) so Jarvis and links can open it.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const selected = searchParams.get("member")
+  const setSelected = useCallback(
+    (id: string | null) => setSearchParams(id ? { member: id } : {}, { replace: !id }),
+    [setSearchParams]
+  )
   const [rollCall, setRollCall] = useState<string | null>(null)
 
   const load = useCallback(() => {

@@ -466,7 +466,17 @@ export const sl = {
     unknownMember: "Neznan član",
     unknownOwner: "Neznan lastnik",
   },
+  dock: {
+    open: "Odpri Jarvisa",
+    ask: "Vprašaj Jarvisa",
+    full: "Odpri celoten klepet",
+    close: "Zapri",
+  },
   chat: {
+    navigate: {
+      opening: "Odpiram …",
+      opened: "Odprto",
+    },
     voice: {
       listening: "Poslušam …",
       processing: "Prepoznavam …",
