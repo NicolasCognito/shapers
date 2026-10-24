@@ -9,6 +9,7 @@ import {
   ArrowExpand01Icon,
   ArrowLeft01Icon,
   Cancel01Icon,
+  MinusSignIcon,
   Clock01Icon,
   SparklesIcon,
 } from "@hugeicons/core-free-icons"
@@ -34,12 +35,13 @@ import { cn } from "@/lib/utils"
 const SESSION_KEY = "shapers.jarvisDock" // sessionStorage: { open, id }
 const NEW_TITLE = "New conversation"
 
-type Session = { open: boolean; id: string | null }
+// minimized: the panel is folded into the launcher but the chat goes on.
+type Session = { open: boolean; id: string | null; minimized?: boolean }
 
 function readSession(): Session {
   try {
     const v = JSON.parse(sessionStorage.getItem(SESSION_KEY) ?? "null")
-    if (v && typeof v.open === "boolean") return { open: v.open, id: v.id ?? null }
+    if (v && typeof v.open === "boolean") return { open: v.open, id: v.id ?? null, minimized: !!v.minimized }
   } catch {
     /* ignore */
   }
@@ -83,7 +85,7 @@ export function JarvisDock() {
 
   // Open: resume this session's chat, or start a new one.
   useEffect(() => {
-    if (!session.open) return
+    if (!session.open || session.minimized) return
     void initModels()
     if (conversation?.id === session.id && conversation) return
     if (session.id) {
@@ -95,13 +97,13 @@ export function JarvisDock() {
       void startNew()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session.open])
+  }, [session.open, session.minimized])
 
   // Tell the run monitor which chat is on screen, so it doesn't toast about it.
   const setDockConversation = useChatStore((s) => s.setDockConversation)
   useEffect(() => {
-    setDockConversation(session.open ? (conversation?.id ?? null) : null)
-  }, [session.open, conversation?.id, setDockConversation])
+    setDockConversation(session.open && !session.minimized ? (conversation?.id ?? null) : null)
+  }, [session.open, session.minimized, conversation?.id, setDockConversation])
 
   const close = async () => {
     const c = conversation
@@ -137,16 +139,18 @@ export function JarvisDock() {
     update({ open: true, id: c.id })
   }
 
-  if (!session.open) {
+  if (!session.open || session.minimized) {
+    const resume = session.open && session.minimized
     return (
       <button
         type="button"
-        onClick={() => update({ open: true, id: null })}
+        onClick={() => update(resume ? { ...session, minimized: false } : { open: true, id: null })}
         className="fixed right-4 bottom-4 z-40 flex items-center gap-2 rounded-full bg-primary py-3 pr-5 pl-4 text-sm font-medium text-primary-foreground shadow-lg transition-transform hover:scale-105 md:right-6 md:bottom-6"
-        aria-label={t("dock.open")}
+        aria-label={resume ? t("dock.restore") : t("dock.open")}
       >
         <HugeiconsIcon icon={SparklesIcon} strokeWidth={2} className="size-5" />
-        {t("dock.ask")}
+        {resume ? t("dock.continue") : t("dock.ask")}
+        {resume && <span className="size-2 rounded-full bg-emerald-400" aria-hidden />}
       </button>
     )
   }
@@ -199,6 +203,15 @@ export function JarvisDock() {
             </Link>
           </Button>
         )}
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => update({ ...session, minimized: true })}
+          aria-label={t("dock.minimize")}
+          title={t("dock.minimize")}
+        >
+          <HugeiconsIcon icon={MinusSignIcon} strokeWidth={2} />
+        </Button>
         <Button variant="ghost" size="icon-sm" onClick={() => void close()} aria-label={t("dock.close")} title={t("dock.close")}>
           <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} />
         </Button>

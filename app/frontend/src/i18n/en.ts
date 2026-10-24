@@ -463,6 +463,9 @@ export const en = {
     unknownOwner: "Unknown owner",
   },
   dock: {
+    minimize: "Minimize (keep the chat)",
+    restore: "Open Jarvis chat",
+    continue: "Jarvis",
     fromPanel: "Panel",
     fromPanelHint: "Started from the Jarvis panel",
     newAt: "New chat · {{time}}",

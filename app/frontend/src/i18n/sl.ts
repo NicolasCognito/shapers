@@ -473,6 +473,9 @@ export const sl = {
     unknownOwner: "Neznan lastnik",
   },
   dock: {
+    minimize: "Pomanjšaj (pogovor ostane)",
+    restore: "Odpri pogovor z Jarvisom",
+    continue: "Jarvis",
     fromPanel: "Plošča",
     fromPanelHint: "Začeto na plošči Jarvis",
     newAt: "Nov pogovor · {{time}}",
