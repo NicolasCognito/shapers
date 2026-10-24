@@ -20,15 +20,14 @@ import (
 func TestFactoryRegistersOnlyProductionTools(t *testing.T) {
 	factory := NewFactory(nil)
 	registered := factory.ForActor("actor-1")
-	if len(registered) != 35 {
-		t.Fatalf("expected thirty-five production tools, got %d", len(registered))
+	if len(registered) != 22 {
+		t.Fatalf("expected twenty-two production tools, got %d", len(registered))
 	}
 	names := map[string]bool{}
 	for _, tool := range registered {
 		names[tool.Info().Name] = true
 	}
 	for _, name := range []string{
-		"contacts_search",
 		"board_search_projects",
 		"board_get_project",
 		"board_search_tasks",
@@ -46,18 +45,6 @@ func TestFactoryRegistersOnlyProductionTools(t *testing.T) {
 		"calendar_create_event",
 		"calendar_update_event",
 		"calendar_delete_event",
-		"reading_search",
-		"reading_upsert",
-		"reading_get",
-		"reading_summarize",
-		"docs_search",
-		"docs_get",
-		"docs_list_folders",
-		"docs_ensure_folder",
-		"docs_upsert",
-		"docs_move",
-		"docs_replace",
-		"docs_write_chunk",
 		"team_my_week",
 		"team_log_hours",
 		"team_who_is_behind",

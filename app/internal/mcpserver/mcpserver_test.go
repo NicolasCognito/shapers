@@ -174,8 +174,8 @@ func TestNewServerForKeyFiltersDestructiveTools(t *testing.T) {
 			t.Fatalf("destructive tool %q exposed without scope", name)
 		}
 	}
-	if !restricted["contacts_search"] {
-		t.Fatalf("expected contacts_search to be exposed, got: %v", restricted)
+	if !restricted["board_search_tasks"] {
+		t.Fatalf("expected board_search_tasks to be exposed, got: %v", restricted)
 	}
 	if restricted["system_memory_upsert"] || restricted["system_memory_forget"] {
 		t.Fatalf("Chat-only memory tools must not be exposed through MCP: %v", restricted)

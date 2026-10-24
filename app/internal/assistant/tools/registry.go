@@ -34,6 +34,8 @@ func IsDestructive(name string) bool {
 	return destructiveTools[name]
 }
 
+// Contacts, Reading and Docs tools exist upstream but are not registered:
+// Shapers hides those pages, so Jarvis must not write into them.
 func (f *Factory) ForActor(actorID string) []fantasy.AgentTool {
 	return []fantasy.AgentTool{
 		newTeamMyWeekTool(f.app, actorID),
@@ -41,7 +43,6 @@ func (f *Factory) ForActor(actorID string) []fantasy.AgentTool {
 		newTeamWhoIsBehindTool(f.app, actorID),
 		newTeamMemberTool(f.app, actorID),
 		newTeamAttendanceTool(f.app, actorID),
-		newContactsSearchTool(f.app, actorID),
 		newBoardSearchProjectsTool(f.app, actorID),
 		newBoardGetProjectTool(f.app, actorID),
 		newBoardSearchTasksTool(f.app, actorID),
@@ -59,18 +60,6 @@ func (f *Factory) ForActor(actorID string) []fantasy.AgentTool {
 		newCalendarCreateEventTool(f.app, actorID),
 		newCalendarUpdateEventTool(f.app, actorID),
 		newCalendarDeleteEventTool(f.app, actorID),
-		newReadingSearchTool(f.app, actorID),
-		newReadingUpsertTool(f.app, actorID),
-		newReadingGetTool(f.app, actorID),
-		newReadingSummarizeTool(f.app, actorID),
-		newDocsSearchTool(f.app, actorID),
-		newDocsGetTool(f.app, actorID),
-		newDocsListFoldersTool(f.app, actorID),
-		newDocsEnsureFolderTool(f.app, actorID),
-		newDocsUpsertTool(f.app, actorID),
-		newDocsMoveTool(f.app, actorID),
-		newDocsReplaceTool(f.app, actorID),
-		newDocsWriteChunkTool(f.app, actorID),
 	}
 }
 
