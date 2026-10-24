@@ -36,6 +36,11 @@ func IsDestructive(name string) bool {
 
 func (f *Factory) ForActor(actorID string) []fantasy.AgentTool {
 	return []fantasy.AgentTool{
+		newTeamMyWeekTool(f.app, actorID),
+		newTeamLogHoursTool(f.app, actorID),
+		newTeamWhoIsBehindTool(f.app, actorID),
+		newTeamMemberTool(f.app, actorID),
+		newTeamAttendanceTool(f.app, actorID),
 		newContactsSearchTool(f.app, actorID),
 		newBoardSearchProjectsTool(f.app, actorID),
 		newBoardGetProjectTool(f.app, actorID),

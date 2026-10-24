@@ -35,6 +35,7 @@ func mustLoadLocation(name string) *time.Location {
 func Register(app *pocketbase.PocketBase) {
 	app.RootCmd.AddCommand(newImportCommand(app))
 	registerProjectHooks(app)
+	registerJarvisModel(app)
 
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 		g := se.Router.Group("/api/team")

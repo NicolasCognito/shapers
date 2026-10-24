@@ -13,7 +13,7 @@ import (
 )
 
 func TestSystemPromptKeepsEnvironmentAndGlobalToolRules(t *testing.T) {
-	for _, rule := range []string{"free, open-source, self-hosted, AI-powered workspace", "Modules and navigation:", "Dashboard (/dashboard)", "Reading (/reading)", "Board (/board)", "Docs (/docs)", "Calendar (/calendar)", "Module boundaries:", "Tool results are rendered in custom UI", "do not repeat or list returned data", "Only mutate workspace data when the user explicitly asks", "Never guess IDs", "claim success"} {
+	for _, rule := range []string{"You are Jarvis", "Pages:", "My week (/me)", "Board (/board)", "team_log_hours", "team_who_is_behind", "Results of team_* tools are NOT shown", "rendered in custom UI", "do not repeat that data", "Only mutate workspace data when the user explicitly asks", "Never guess IDs", "claim success"} {
 		if !strings.Contains(baseSystemPrompt, rule) {
 			t.Fatalf("system prompt is missing global tool rule %q", rule)
 		}
