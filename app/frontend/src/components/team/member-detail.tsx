@@ -22,6 +22,7 @@ import {
 } from "@/components/team/widgets"
 import { useDateLocale } from "@/i18n"
 import { extractErrorMessage } from "@/lib/error"
+import { can } from "@/lib/permissions"
 import { cn } from "@/lib/utils"
 import {
   fmtHours,
@@ -449,6 +450,7 @@ function RecentLogs({
   const locale = useDateLocale()
   const [logs, setLogs] = useState<HourLog[]>([])
   const [tick, setTick] = useState(0)
+  const isHoursAdmin = !editable && can("hours.manage")
   useEffect(() => {
     teamApi
       .myLogs(userId)
@@ -474,18 +476,32 @@ function RecentLogs({
             <span className="min-w-0 flex-1 truncate text-muted-foreground">
               {l.note}
             </span>
-            {editable && l.source !== "import" && (
+            {((editable && l.source !== "import") || isHoursAdmin) && (
               <Button
                 size="sm"
                 variant="ghost"
                 className="h-6 px-2 text-xs"
                 onClick={async () => {
-                  await teamApi.deleteLog(l.id)
-                  setTick((t) => t + 1)
-                  onChanged()
+                  if (
+                    !editable &&
+                    !window.confirm(
+                      t("memberDetail.confirmDeleteHours", {
+                        hours: fmtHours(l.hours),
+                        date: format(parseISO(l.date), "d MMM", { locale }),
+                      })
+                    )
+                  )
+                    return
+                  try {
+                    await teamApi.deleteLog(l.id)
+                    setTick((t) => t + 1)
+                    onChanged()
+                  } catch (e) {
+                    toast.error(extractErrorMessage(e, t("memberDetail.deleteFailed")))
+                  }
                 }}
               >
-                {t("memberDetail.undo")}
+                {editable ? t("memberDetail.undo") : t("memberDetail.deleteHours")}
               </Button>
             )}
           </div>

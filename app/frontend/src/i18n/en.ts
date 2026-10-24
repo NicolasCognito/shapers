@@ -222,6 +222,9 @@ export const en = {
     recordAttendance: "Record attendance",
   },
   memberDetail: {
+    deleteHours: "Delete",
+    confirmDeleteHours: "Delete {{hours}} logged on {{date}}? The member will see their total drop.",
+    deleteFailed: "Could not delete",
     restored: "Task counts as done again",
     restoreFailed: "Could not restore",
     cancelPrompt:

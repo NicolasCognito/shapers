@@ -320,3 +320,62 @@ func AttendanceReport(app core.App, actorID, series string) (map[string]any, err
 	}
 	return map[string]any{"scope": "team", "by_series": seriesTotals, "recent_meetings": rows}, nil
 }
+
+// ---------- deleting hour logs ----------
+
+type HourLogView struct {
+	ID     string  `json:"id"`
+	Date   string  `json:"date"`
+	Hours  float64 `json:"hours"`
+	Note   string  `json:"note"`
+	Source string  `json:"source"`
+}
+
+func toLogView(r *core.Record) HourLogView {
+	return HourLogView{
+		ID: r.Id, Date: r.GetDateTime("date").Time().In(Location).Format("2006-01-02"),
+		Hours: r.GetFloat("hours"), Note: r.GetString("note"), Source: r.GetString("source"),
+	}
+}
+
+// FindMyHourLogs lists the actor's hour logs on a date (YYYY-MM-DD), or the
+// five most recent when date is empty.
+func FindMyHourLogs(app core.App, actorID, date string) ([]HourLogView, error) {
+	filter, params := "user = {:u}", dbx.Params{"u": actorID}
+	limit := 5
+	if date != "" {
+		d, err := time.ParseInLocation("2006-01-02", date, Location)
+		if err != nil {
+			return nil, errors.New("date must be YYYY-MM-DD")
+		}
+		filter += " && date >= {:from} && date < {:to}"
+		params["from"], params["to"] = dbTime(d), dbTime(d.AddDate(0, 0, 1))
+		limit = 50
+	}
+	recs, err := app.FindRecordsByFilter(colHours, filter, "-date,-created", limit, 0, params)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]HourLogView, 0, len(recs))
+	for _, r := range recs {
+		out = append(out, toLogView(r))
+	}
+	return out, nil
+}
+
+// HourLogForDelete loads a log the actor may delete: their own, or anyone's for admins.
+func HourLogForDelete(app core.App, actorID, logID string) (*core.Record, error) {
+	rec, err := app.FindRecordById(colHours, logID)
+	if err != nil {
+		return nil, errors.New("hour entry not found")
+	}
+	if rec.GetString("user") != actorID {
+		actor, err := findUser(app, actorID)
+		if err != nil || !Can(actor, PermHoursManage) {
+			return nil, errors.New("you can only delete your own hours")
+		}
+	}
+	return rec, nil
+}
+
+func ViewHourLog(r *core.Record) HourLogView { return toLogView(r) }

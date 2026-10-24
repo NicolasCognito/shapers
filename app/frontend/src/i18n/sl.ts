@@ -226,6 +226,9 @@ export const sl = {
     recordAttendance: "Vnesi prisotnost",
   },
   memberDetail: {
+    deleteHours: "Izbriši",
+    confirmDeleteHours: "Izbrišem {{hours}}, vpisane {{date}}? Član bo videl nižji seštevek.",
+    deleteFailed: "Brisanje ni uspelo",
     restored: "Naloga se znova šteje kot opravljena",
     restoreFailed: "Obnovitev ni uspela",
     cancelPrompt:

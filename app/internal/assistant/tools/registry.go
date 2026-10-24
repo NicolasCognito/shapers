@@ -26,6 +26,7 @@ func NewFactory(app core.App) *Factory {
 var destructiveTools = map[string]bool{
 	"board_delete_task":     true,
 	"calendar_delete_event": true,
+	"team_delete_hours":     true,
 }
 
 // IsDestructive reports whether the named tool performs an approval-gated
@@ -41,6 +42,7 @@ func (f *Factory) ForActor(actorID string) []fantasy.AgentTool {
 		newTeamMyWeekTool(f.app, actorID),
 		newTeamLogHoursTool(f.app, actorID),
 		newTeamRequestHoursTool(f.app, actorID),
+		newTeamDeleteHoursTool(f.app, actorID),
 		newTeamWhoIsBehindTool(f.app, actorID),
 		newTeamMemberTool(f.app, actorID),
 		newTeamAttendanceTool(f.app, actorID),

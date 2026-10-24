@@ -2,11 +2,13 @@ package tools
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"charm.land/fantasy"
 	"github.com/pocketbase/pocketbase/core"
 
+	workagent "github.com/xusenlin/workavera/internal/agent"
 	"github.com/xusenlin/workavera/internal/team"
 )
 
@@ -115,6 +117,59 @@ func newTeamAttendanceTool(app core.App, actorID string) fantasy.AgentTool {
 		func(ctx context.Context, input teamAttendanceInput, _ fantasy.ToolCall) (fantasy.ToolResponse, error) {
 			result, err := team.AttendanceReport(app, actorID, input.Series)
 			return calendarToolResult(app, actorID, "team attendance", result, err)
+		},
+	)
+}
+
+type teamDeleteHoursInput struct {
+	LogID string `json:"logId,omitempty" description:"Exact hour entry ID returned by an earlier call of this tool; omit to look entries up first"`
+	Date  string `json:"date,omitempty" description:"Day of the entry, YYYY-MM-DD; with no logId, lists that day's entries (or the 5 most recent when omitted)"`
+}
+
+func newTeamDeleteHoursTool(app core.App, actorID string) fantasy.AgentTool {
+	return fantasy.NewAgentTool(
+		"team_delete_hours",
+		"Delete one of the current user's hour entries logged by mistake. First call it without logId (optionally with date) to list candidate entries with their IDs; if exactly one matches what the user described, call again with that logId. Deleting always pauses for user approval. If approval is denied, do not retry unless the user asks again.",
+		func(ctx context.Context, input teamDeleteHoursInput, call fantasy.ToolCall) (fantasy.ToolResponse, error) {
+			if input.LogID == "" {
+				logs, err := team.FindMyHourLogs(app, actorID, input.Date)
+				return calendarToolResult(app, actorID, "team find hours", map[string]any{"entries": logs, "next": "call again with the logId to delete"}, err)
+			}
+			rec, err := team.HourLogForDelete(app, actorID, input.LogID)
+			if err != nil {
+				return calendarToolResult(app, actorID, "team delete hours", nil, err)
+			}
+			v := team.ViewHourLog(rec)
+			approved, err := workagent.RequireApproval(ctx, workagent.ApprovalRequest{
+				ToolCallID: call.ID,
+				ToolName:   call.Name,
+				Title:      "Delete hours?",
+				Summary:    fmt.Sprintf("Delete %.2g h logged on %s.", v.Hours, v.Date),
+				Target:     map[string]any{"type": "hour_log", "id": v.ID, "name": v.Note},
+				Details: []workagent.ApprovalDetail{
+					{Label: "Date", Value: v.Date},
+					{Label: "Hours", Value: fmt.Sprintf("%.2g", v.Hours)},
+					{Label: "Note", Value: v.Note},
+				},
+				Presentation: workagent.ApprovalPresentation{
+					ConfirmLabel:   "Delete",
+					ConfirmVariant: "destructive",
+					PendingMessage: "Deleting hours…",
+					SuccessMessage: "Hours deleted.",
+					DeniedMessage:  "Kept the hours.",
+					FailureMessage: "The hours could not be deleted.",
+				},
+			})
+			if err != nil {
+				return fantasy.ToolResponse{}, err
+			}
+			if !approved {
+				return calendarToolResult(app, actorID, "team delete hours", map[string]any{"ok": false, "reason": "user_denied", "entry": v}, nil)
+			}
+			if err := app.Delete(rec); err != nil {
+				return calendarToolResult(app, actorID, "team delete hours", nil, err)
+			}
+			return calendarToolResult(app, actorID, "team delete hours", map[string]any{"ok": true, "deleted": v}, nil)
 		},
 	)
 }
