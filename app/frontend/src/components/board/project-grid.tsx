@@ -228,7 +228,14 @@ export function ProjectGrid({
                   {t("board.yours", { count: item.mine })}
                 </span>
               )}
-              {t("board.open", { count: item.open })}
+              <span
+                className={cn(
+                  item.open > 0 &&
+                    "rounded-md bg-amber-500/10 px-1.5 py-0.5 font-medium text-amber-700 ring-1 ring-amber-500/25 dark:text-amber-300"
+                )}
+              >
+                {t("board.open", { count: item.open })}
+              </span>
             </span>
           )
           return view === "grid" ? (
@@ -240,6 +247,7 @@ export function ProjectGrid({
               onKeyDown={(e) => e.key === "Enter" && onOpen(item.id)}
               className={cn(
                 "flex cursor-pointer flex-col gap-2 rounded-xl border bg-card p-4 text-left transition-colors hover:bg-muted/40",
+                item.open > 0 && "border-amber-500/30",
                 item.mine > 0 && "border-l-4 border-l-sky-500"
               )}
             >
