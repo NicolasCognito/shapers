@@ -467,6 +467,8 @@ export const sl = {
     unknownOwner: "Neznan lastnik",
   },
   dock: {
+    fromPanel: "Plošča",
+    fromPanelHint: "Začeto na plošči Jarvis",
     newAt: "Nov pogovor · {{time}}",
     history: "Zgodovina",
     back: "Nazaj",

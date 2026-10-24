@@ -4,6 +4,7 @@ import { useNavigate } from "react-router"
 
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
+  SparklesIcon,
   Archive02Icon,
   Delete02Icon,
   Edit01Icon,
@@ -147,6 +148,15 @@ function ConversationItem({
 
         {!renaming && (
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            {conversation.source === "dock" && (
+              <span
+                className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary"
+                title={t("dock.fromPanelHint")}
+              >
+                <HugeiconsIcon icon={SparklesIcon} strokeWidth={2} className="size-3" />
+                {t("dock.fromPanel")}
+              </span>
+            )}
             {isResponding && (
               <span
                 role="status"

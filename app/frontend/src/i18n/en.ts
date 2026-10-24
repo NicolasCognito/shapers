@@ -457,6 +457,8 @@ export const en = {
     unknownOwner: "Unknown owner",
   },
   dock: {
+    fromPanel: "Panel",
+    fromPanelHint: "Started from the Jarvis panel",
     newAt: "New chat · {{time}}",
     history: "History",
     back: "Back",
