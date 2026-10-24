@@ -8,6 +8,9 @@ import type { Conversation } from "@/types/chat"
 const PER_PAGE = 20
 
 type ChatState = {
+  /** Chat open in the floating Jarvis panel (the user is looking at it). */
+  dockConversationId: string | null
+  setDockConversation: (id: string | null) => void
   conversations: Conversation[]
   openedConversation: Conversation | null
   activeConversationId: string | null
@@ -52,6 +55,8 @@ async function fetchPage(page: number) {
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
+  dockConversationId: null,
+  setDockConversation: (id) => set({ dockConversationId: id }),
   conversations: [],
   openedConversation: null,
   activeConversationId: null,

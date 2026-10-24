@@ -11,7 +11,8 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ThemeProvider>
       <App />
-      <Toaster />
+      {/* Top-right: the bottom-right corner belongs to the Jarvis panel. */}
+      <Toaster position="top-right" />
     </ThemeProvider>
   </StrictMode>
 )

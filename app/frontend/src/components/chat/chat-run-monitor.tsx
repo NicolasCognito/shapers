@@ -43,9 +43,10 @@ export function ChatRunMonitor() {
     const notifyFinished = (record: ChatMessageRecord) => {
       const chat = useChatStore.getState()
       const isVisible =
-        window.location.pathname.startsWith("/chat") &&
-        chat.activeConversationId === record.conversation &&
-        document.visibilityState === "visible"
+        document.visibilityState === "visible" &&
+        ((window.location.pathname.startsWith("/chat") &&
+          chat.activeConversationId === record.conversation) ||
+          chat.dockConversationId === record.conversation)
       if (isVisible) return
 
       const title =

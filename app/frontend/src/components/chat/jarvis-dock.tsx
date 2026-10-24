@@ -20,6 +20,7 @@ import { useDateLocale } from "@/i18n"
 import { extractErrorMessage } from "@/lib/error"
 import { pb } from "@/lib/pocketbase"
 import { workspaceRecordUrl } from "@/lib/workspace-navigation"
+import { useChatStore } from "@/store/chat"
 import { useLlmSettingsStore } from "@/store/llm-settings"
 import type { Conversation } from "@/types/chat"
 import { cn } from "@/lib/utils"
@@ -95,6 +96,12 @@ export function JarvisDock() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.open])
+
+  // Tell the run monitor which chat is on screen, so it doesn't toast about it.
+  const setDockConversation = useChatStore((s) => s.setDockConversation)
+  useEffect(() => {
+    setDockConversation(session.open ? (conversation?.id ?? null) : null)
+  }, [session.open, conversation?.id, setDockConversation])
 
   const close = async () => {
     const c = conversation
