@@ -2,6 +2,7 @@ package team
 
 import (
 	"errors"
+	"os"
 	"time"
 
 	"github.com/pocketbase/dbx"
@@ -26,7 +27,13 @@ type TreeView struct {
 	DaysDry       int        `json:"days_dry"`
 	LastWatered   *time.Time `json:"last_watered_at"`
 	Bonus         int        `json:"bonus,omitempty"` // drops just awarded on this load
+	Vacation      bool       `json:"vacation"`
+	Demo          bool       `json:"demo,omitempty"` // demo controls are enabled on this server
 }
+
+// demoEnabled turns on the tree demo controls (skip a day, add water, reset).
+// Set TREE_DEMO=1 for presentations; leave unset in production.
+func demoEnabled() bool { return os.Getenv("TREE_DEMO") == "1" }
 
 func treeFor(app core.App, userID string) (*core.Record, error) {
 	if r, err := app.FindFirstRecordByFilter(colTrees, "user = {:u}", dbx.Params{"u": userID}); err == nil {
@@ -58,7 +65,10 @@ func viewTree(r *core.Record) TreeView {
 		v.LastWatered = &lw
 	}
 	v.DaysDry = int(time.Since(last).Hours() / 24)
+	v.Vacation = r.GetBool("vacation")
 	switch {
+	case v.Vacation:
+		v.Mood, v.DaysDry = "happy", 0
 	case v.DaysDry <= 1:
 		v.Mood = "happy"
 	case v.DaysDry <= 3:
@@ -108,6 +118,7 @@ func LoadTree(app core.App, userID string) (TreeView, error) {
 	}
 	v := viewTree(r)
 	v.Bonus = bonus
+	v.Demo = demoEnabled()
 	return v, nil
 }
 
@@ -125,6 +136,54 @@ func WaterTree(app core.App, userID string) (TreeView, error) {
 	return viewTree(r), app.Save(r)
 }
 
+// TreeDemo applies a demo action to the actor's own tree.
+func TreeDemo(app core.App, userID, action string) (TreeView, error) {
+	if !demoEnabled() {
+		return TreeView{}, errors.New("demo controls are off on this server")
+	}
+	r, err := treeFor(app, userID)
+	if err != nil {
+		return TreeView{}, err
+	}
+	switch action {
+	case "skip-day": // pretend a day passed without water
+		last := r.GetDateTime("last_watered_at").Time()
+		if last.IsZero() {
+			last = r.GetDateTime("created").Time()
+		}
+		r.Set("last_watered_at", dbTime(last.Add(-24*time.Hour)))
+	case "add-water":
+		r.Set("drops", r.GetInt("drops")+5)
+	case "reset":
+		r.Set("drops", 1)
+		r.Set("waterings", 0)
+		r.Set("last_watered_at", dbTime(time.Now()))
+		r.Set("vacation", false)
+	default:
+		return TreeView{}, errors.New("unknown demo action")
+	}
+	if err := app.Save(r); err != nil {
+		return TreeView{}, err
+	}
+	v := viewTree(r)
+	v.Demo = true
+	return v, nil
+}
+
+// SetVacation (admins): the member's tree stays happy while away; when they
+// come back, the days-without-water count starts fresh.
+func SetVacation(app core.App, memberID string, on bool) (TreeView, error) {
+	r, err := treeFor(app, memberID)
+	if err != nil {
+		return TreeView{}, err
+	}
+	r.Set("vacation", on)
+	if !on {
+		r.Set("last_watered_at", dbTime(time.Now()))
+	}
+	return viewTree(r), app.Save(r)
+}
+
 func registerTreeRoutes(se *core.ServeEvent) {
 	g := se.Router.Group("/api/team/tree")
 	g.Bind(apis.RequireAuth(colUsers))
@@ -135,6 +194,31 @@ func registerTreeRoutes(se *core.ServeEvent) {
 		}
 		return e.JSON(200, v)
 	})
+	g.POST("/demo/{action}", func(e *core.RequestEvent) error {
+		v, err := TreeDemo(e.App, e.Auth.Id, e.Request.PathValue("action"))
+		if err != nil {
+			return e.BadRequestError(err.Error(), nil)
+		}
+		return e.JSON(200, v)
+	})
+	g.GET("/member/{id}", requirePerm(PermMembersManage, func(e *core.RequestEvent) error {
+		r, err := treeFor(e.App, e.Request.PathValue("id"))
+		if err != nil {
+			return e.NotFoundError("", err)
+		}
+		return e.JSON(200, viewTree(r))
+	}))
+	g.POST("/member/{id}/vacation", requirePerm(PermMembersManage, func(e *core.RequestEvent) error {
+		var in struct {
+			On bool `json:"on"`
+		}
+		_ = e.BindBody(&in)
+		v, err := SetVacation(e.App, e.Request.PathValue("id"), in.On)
+		if err != nil {
+			return e.BadRequestError(err.Error(), nil)
+		}
+		return e.JSON(200, v)
+	}))
 	g.POST("/water", func(e *core.RequestEvent) error {
 		v, err := WaterTree(e.App, e.Auth.Id)
 		if err != nil {

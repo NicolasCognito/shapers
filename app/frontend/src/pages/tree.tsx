@@ -34,7 +34,20 @@ export function TreePage() {
     }
   }
 
-  const moodLine = tree.mood === "happy" ? t("tree.happy") : t(`tree.${tree.mood}`, { count: tree.days_dry })
+  const moodLine = tree.vacation
+    ? t("tree.onVacation")
+    : tree.mood === "happy"
+      ? t("tree.happy")
+      : t(`tree.${tree.mood}`, { count: tree.days_dry })
+
+  const demo = async (action: "skip-day" | "add-water" | "reset") => {
+    try {
+      const next = await pb.send<Tree>(`/api/team/tree/demo/${action}`, { method: "POST" })
+      useTree.setState({ tree: next })
+    } catch (e) {
+      toast.error((e as Error).message)
+    }
+  }
   const done = Math.round(tree.stage_progress * WATERINGS_PER_STAGE)
 
   return (
@@ -94,6 +107,23 @@ export function TreePage() {
           <li className="pt-1 text-xs">{t("tree.moodHint")}</li>
         </ul>
       </div>
+
+      {tree.demo && (
+        <div className="w-full max-w-sm rounded-xl border border-dashed p-3 text-left">
+          <p className="mb-2 text-xs text-muted-foreground">{t("tree.demoTitle")}</p>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => void demo("skip-day")} className="rounded-full border px-3 py-1 text-xs hover:bg-muted">
+              {t("tree.demoSkip")}
+            </button>
+            <button type="button" onClick={() => void demo("add-water")} className="rounded-full border px-3 py-1 text-xs hover:bg-muted">
+              {t("tree.demoWater")}
+            </button>
+            <button type="button" onClick={() => void demo("reset")} className="rounded-full border px-3 py-1 text-xs text-rose-600 hover:bg-rose-500/10 dark:text-rose-400">
+              {t("tree.demoReset")}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

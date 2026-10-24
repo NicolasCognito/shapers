@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { Link } from "react-router"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
@@ -6,6 +6,7 @@ import { create } from "zustand"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Plant01Icon } from "@hugeicons/core-free-icons"
 
+import { Switch } from "@/components/ui/switch"
 import { pb } from "@/lib/pocketbase"
 import { cn } from "@/lib/utils"
 
@@ -18,6 +19,8 @@ export type Tree = {
   mood: Mood
   days_dry: number
   bonus?: number
+  vacation?: boolean
+  demo?: boolean
 }
 
 // Shared so the timer can refresh it after a planned session pays out water.
@@ -175,5 +178,37 @@ export function TreeLink() {
       {tree && tree.drops > 0 && <span className="text-xs font-medium tabular-nums">💧{tree.drops}</span>}
       {tree && <span className={cn("absolute top-1 left-5 size-2 rounded-full ring-2 ring-background", dot[tree.mood])} />}
     </Link>
+  )
+}
+
+/** Admin switch on a member's sheet: tree stays happy while they're away. */
+export function VacationToggle({ userId }: { userId: string }) {
+  const { t } = useTranslation()
+  const [on, setOn] = useState<boolean | null>(null)
+  useEffect(() => {
+    pb.send<Tree>(`/api/team/tree/member/${userId}`, {})
+      .then((tr) => setOn(!!tr.vacation))
+      .catch(() => setOn(null))
+  }, [userId])
+  if (on === null) return null
+  const toggle = async (next: boolean) => {
+    setOn(next)
+    try {
+      await pb.send(`/api/team/tree/member/${userId}/vacation`, { method: "POST", body: { on: next } })
+      toast.success(next ? t("tree.vacationOn") : t("tree.vacationOff"))
+    } catch (e) {
+      setOn(!next)
+      toast.error((e as Error).message)
+    }
+  }
+  return (
+    <label className="flex items-center gap-3 rounded-lg border px-3 py-2 text-sm">
+      <HugeiconsIcon icon={Plant01Icon} strokeWidth={2} className="size-4 text-emerald-600" />
+      <span className="flex-1">
+        <span className="font-medium">{t("tree.vacation")}</span>
+        <span className="block text-xs text-muted-foreground">{t("tree.vacationHint")}</span>
+      </span>
+      <Switch checked={on} onCheckedChange={(v) => void toggle(v)} />
+    </label>
   )
 }

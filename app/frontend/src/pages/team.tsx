@@ -29,6 +29,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useDateLocale } from "@/i18n"
 import { can } from "@/lib/permissions"
+import { VacationToggle } from "@/components/team/tree-card"
 import { pb } from "@/lib/pocketbase"
 import { cn } from "@/lib/utils"
 import {
@@ -654,6 +655,7 @@ function MemberSheet({
       <SheetContent className="w-full overflow-y-auto data-[side=right]:sm:max-w-4xl">
         <SheetHeader>
           <SheetTitle>{detail?.summary.name ?? t("team.member")}</SheetTitle>
+          {id && can("members.manage") && <VacationToggle userId={id} />}
         </SheetHeader>
         <div className="p-4">
           {detail ? (
