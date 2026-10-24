@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
+import { Link } from "react-router"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { create } from "zustand"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { DropletIcon } from "@hugeicons/core-free-icons"
+import { Plant01Icon } from "@hugeicons/core-free-icons"
 
-import { Card } from "@/components/ui/card"
 import { pb } from "@/lib/pocketbase"
 import { cn } from "@/lib/utils"
 
@@ -44,7 +44,7 @@ const LEAF_DARK: Record<Mood, string> = {
 }
 
 /** The tree itself: grows with stage, its face and colour follow the mood. */
-function TreeArt({ stage, mood, watering }: { stage: number; mood: Mood; watering: boolean }) {
+export function TreeArt({ stage, mood, watering }: { stage: number; mood: Mood; watering: boolean }) {
   const leaf = LEAF[mood]
   const leafDark = LEAF_DARK[mood]
   const droop = mood === "wilted" ? 10 : mood === "sad" ? 4 : 0
@@ -153,64 +153,25 @@ function TreeArt({ stage, mood, watering }: { stage: number; mood: Mood; waterin
   )
 }
 
-export function TreeCard() {
+/** Header shortcut to the tree page: plant icon, drop count, mood dot. */
+export function TreeLink() {
   const { t } = useTranslation()
   const tree = useTree((s) => s.tree)
   const load = useTree((s) => s.load)
-  const [watering, setWatering] = useState(false)
-
   useEffect(() => {
     void load().catch(() => {})
   }, [load])
-
-  if (!tree) return null
-
-  const water = async () => {
-    setWatering(true)
-    try {
-      const next = await pb.send<Tree>("/api/team/tree/water", { method: "POST" })
-      setTimeout(() => useTree.setState({ tree: next }), 600)
-    } catch (e) {
-      toast.error((e as Error).message)
-    } finally {
-      setTimeout(() => setWatering(false), 1300)
-    }
-  }
-
-  const moodLine =
-    tree.mood === "happy"
-      ? t("tree.happy")
-      : t(`tree.${tree.mood}`, { count: tree.days_dry })
-
+  const dot = { happy: "bg-emerald-500", calm: "bg-emerald-500/60", sad: "bg-amber-500", wilted: "bg-rose-500" }
   return (
-    <Card className="flex-row items-center gap-4 p-5">
-      <div className="size-28 shrink-0">
-        <TreeArt stage={tree.stage} mood={tree.mood} watering={watering} />
-      </div>
-      <div className="min-w-0 flex-1 space-y-2">
-        <div>
-          <p className="text-sm font-medium text-muted-foreground">{t(`tree.stage${tree.stage}`)}</p>
-          <p className="text-base font-semibold">{moodLine}</p>
-        </div>
-        {tree.stage < 4 && (
-          <div className="h-1.5 overflow-hidden rounded-full bg-muted" title={t("tree.nextStage")}>
-            <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${tree.stage_progress * 100}%` }} />
-          </div>
-        )}
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => void water()}
-            disabled={watering || tree.drops < 1}
-            className="inline-flex items-center gap-1.5 rounded-full bg-sky-500 px-3.5 py-1.5 text-sm font-medium text-white transition-colors hover:bg-sky-600 disabled:bg-muted disabled:text-muted-foreground"
-          >
-            <HugeiconsIcon icon={DropletIcon} strokeWidth={2} className="size-4" />
-            {t("tree.water")}
-          </button>
-          <span className="text-sm text-muted-foreground tabular-nums">{t("tree.drops", { count: tree.drops })}</span>
-        </div>
-        {tree.drops < 1 && <p className="text-xs text-muted-foreground">{t("tree.howToEarn")}</p>}
-      </div>
-    </Card>
+    <Link
+      to="/tree"
+      className="relative inline-flex h-8 items-center gap-1 rounded-full px-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+      aria-label={t("nav.tree")}
+      title={t("nav.tree")}
+    >
+      <HugeiconsIcon icon={Plant01Icon} strokeWidth={2} className="size-4" />
+      {tree && tree.drops > 0 && <span className="text-xs font-medium tabular-nums">💧{tree.drops}</span>}
+      {tree && <span className={cn("absolute top-1 left-5 size-2 rounded-full ring-2 ring-background", dot[tree.mood])} />}
+    </Link>
   )
 }

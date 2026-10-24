@@ -70,6 +70,8 @@ export const sl = {
     accountsNote: "Račune ustvari skrbnik vašega delovnega prostora.",
   },
   nav: {
+    tree: "Moje drevo",
+    treeDesc: "Zalijte ga, ko dokončate načrtovano",
     groupShapers: "Shapers",
     groupWorkflow: "Delo",
     groupSystem: "Sistem",
@@ -946,6 +948,11 @@ export const sl = {
     linkedDocs_two: "{{count}} povezana dokumenta",
   },
   tree: {
+    toNext: "{{done}} od {{total}} zalivanj do stopnje {{stage}}",
+    howTitle: "Kako dobiti vodo",
+    earnPlan: "Dokončajte načrtovano delo",
+    earnQuota: "Dosezite tedenske ure",
+    moodHint: "Drevo postane žalostno, če nekaj dni ni zalito. Zalijte ga in spet bo veselo.",
     stage0: "Kalček",
     stage1: "Sadika",
     stage2: "Mlado drevo",

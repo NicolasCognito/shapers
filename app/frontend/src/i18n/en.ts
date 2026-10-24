@@ -70,6 +70,8 @@ export const en = {
     accountsNote: "Accounts are created by your workspace administrator.",
   },
   nav: {
+    tree: "My tree",
+    treeDesc: "Water it by finishing what you planned",
     groupShapers: "Shapers",
     groupWorkflow: "Workflow",
     groupSystem: "System",
@@ -936,6 +938,11 @@ export const en = {
     linkedDocs_two: "{{count}} linked documents",
   },
   tree: {
+    toNext: "{{done}} of {{total}} waterings to {{stage}}",
+    howTitle: "How to get water",
+    earnPlan: "Finish a planned work session",
+    earnQuota: "Reach your weekly hours",
+    moodHint: "Your tree gets sad when it goes a few days without water. Water it and it cheers up.",
     stage0: "Sprout",
     stage1: "Sapling",
     stage2: "Young tree",

@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { WorkTimerCard } from "@/components/team/work-timer-card"
-import { TreeCard } from "@/components/team/tree-card"
 import { MemberDetailView } from "@/components/team/member-detail"
 import { Skeleton } from "@/components/ui/skeleton"
 import { teamApi, type MemberDetail } from "@/lib/team"
@@ -37,10 +36,7 @@ export function MyWeekPage() {
           {t("myWeek.subtitle")}
         </p>
       </div>
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]">
-        <WorkTimerCard />
-        <TreeCard />
-      </div>
+      <WorkTimerCard />
       {error && <p className="text-sm text-destructive">{error}</p>}
       {!detail && !error && (
         <div className="grid gap-4 lg:grid-cols-3">

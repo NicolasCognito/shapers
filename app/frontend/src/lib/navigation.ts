@@ -7,6 +7,7 @@ import {
   Task01Icon,
   UserGroupIcon,
   InboxIcon,
+  Plant01Icon,
 } from "@hugeicons/core-free-icons"
 
 import type { Permission } from "@/lib/permissions"
@@ -57,6 +58,14 @@ export const navGroups: NavGroup[] = [
         url: "/requests",
         icon: InboxIcon,
         description: "Older hours and task handoffs, with answers",
+      },
+      {
+        title: "My tree",
+        titleKey: "nav.tree",
+        descriptionKey: "nav.treeDesc",
+        url: "/tree",
+        icon: Plant01Icon,
+        description: "Water it by finishing what you planned",
       },
       {
         title: "Team",

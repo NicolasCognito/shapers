@@ -16,6 +16,9 @@ const DashboardPage = lazy(() =>
 const MyWeekPage = lazy(() =>
   import("@/pages/my-week").then((module) => ({ default: module.MyWeekPage }))
 )
+const TreePage = lazy(() =>
+  import("@/pages/tree").then((module) => ({ default: module.TreePage }))
+)
 const RequestsPage = lazy(() =>
   import("@/pages/requests").then((module) => ({ default: module.RequestsPage }))
 )
@@ -99,6 +102,7 @@ export function AppRouter() {
               <Route path="/me" element={<MyWeekPage />} />
               <Route path="/tasks" element={<MyTasksPage />} />
               <Route path="/requests" element={<RequestsPage />} />
+              <Route path="/tree" element={<TreePage />} />
               <Route path="/team" element={<TeamPage />} />
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/chat" element={<ChatPage />} />
