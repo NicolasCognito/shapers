@@ -37,6 +37,7 @@ func ImportSandbox(app core.App, dir string) error {
 		fn   func(core.App, string) (int, error)
 	}{
 		{"roster", importRoster},
+		{"projects", importProjects},
 		{"meetings", importMeetings},
 		{"attendance", importAttendance},
 		{"hours", importHours},

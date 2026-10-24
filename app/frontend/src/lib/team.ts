@@ -54,6 +54,7 @@ export type MemberDetail = {
   summary: MemberSummary
   past: MeetingView[] | null
   upcoming: MeetingView[] | null
+  tasks_done: { id: string; title: string; project: string; done_at: string }[]
 }
 
 export type Overview = {

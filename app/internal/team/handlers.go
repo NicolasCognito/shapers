@@ -308,10 +308,10 @@ func handleMe(e *core.RequestEvent) error {
 	if err != nil {
 		return e.InternalServerError("", err)
 	}
-	return e.JSON(200, memberDetail(ds, e.Auth, time.Now()))
+	return e.JSON(200, memberDetail(e.App, ds, e.Auth, time.Now()))
 }
 
-func memberDetail(ds *dataset, u *core.Record, now time.Time) map[string]any {
+func memberDetail(app core.App, ds *dataset, u *core.Record, now time.Time) map[string]any {
 	var past, upcoming []meetingView
 	for _, m := range ds.meetings {
 		if !slices.Contains(m.GetStringSlice("members"), u.Id) {
@@ -326,9 +326,10 @@ func memberDetail(ds *dataset, u *core.Record, now time.Time) map[string]any {
 	}
 	slices.Reverse(past)
 	return map[string]any{
-		"summary":  ds.summary(u, now),
-		"past":     past,
-		"upcoming": upcoming,
+		"summary":    ds.summary(u, now),
+		"past":       past,
+		"upcoming":   upcoming,
+		"tasks_done": completedTaskList(app, u.Id),
 	}
 }
 
@@ -468,7 +469,7 @@ func handleMember(e *core.RequestEvent) error {
 	id := e.Request.PathValue("id")
 	for _, u := range ds.users {
 		if u.Id == id {
-			return e.JSON(200, memberDetail(ds, u, time.Now()))
+			return e.JSON(200, memberDetail(e.App, ds, u, time.Now()))
 		}
 	}
 	return e.NotFoundError("Member not found.", nil)

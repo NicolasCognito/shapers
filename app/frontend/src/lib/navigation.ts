@@ -9,6 +9,7 @@ import {
   BookOpen01Icon,
   Settings02Icon,
   UserIcon,
+  Task01Icon,
   UserGroupIcon,
 } from "@hugeicons/core-free-icons"
 
@@ -37,6 +38,12 @@ export const navGroups: NavGroup[] = [
         url: "/me",
         icon: UserIcon,
         description: "Your hours, meetings and streak",
+      },
+      {
+        title: "My tasks",
+        url: "/tasks",
+        icon: Task01Icon,
+        description: "Everything assigned to you, across projects",
       },
       {
         title: "Team",

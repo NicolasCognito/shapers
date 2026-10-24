@@ -145,6 +145,31 @@ export function MemberDetailView({
         </CardContent>
       </Card>
 
+      {/* Finished tasks */}
+      <Card className="lg:col-span-3">
+        <CardHeader>
+          <CardTitle>Finished tasks · {detail.tasks_done?.length ?? 0}</CardTitle>
+          <CardDescription>Completed on the board, newest first</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {(detail.tasks_done ?? []).length === 0 ? (
+            <p className="text-sm text-muted-foreground">No finished tasks yet.</p>
+          ) : (
+            <div className="max-h-64 divide-y overflow-y-auto text-sm">
+              {detail.tasks_done.map((t) => (
+                <div key={t.id} className="flex items-center gap-3 py-1.5">
+                  <span className="w-16 shrink-0 text-muted-foreground">
+                    {format(parseISO(t.done_at.replace(" ", "T")), "d MMM")}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate">{t.title}</span>
+                  <span className="truncate text-xs text-muted-foreground">{t.project}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Attendance */}
       <Card className="lg:col-span-3">
         <CardHeader>

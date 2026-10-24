@@ -34,6 +34,7 @@ func mustLoadLocation(name string) *time.Location {
 // Register wires routes, the calendar sync job and the import command.
 func Register(app *pocketbase.PocketBase) {
 	app.RootCmd.AddCommand(newImportCommand(app))
+	registerProjectHooks(app)
 
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 		g := se.Router.Group("/api/team")
