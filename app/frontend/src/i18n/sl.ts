@@ -985,6 +985,8 @@ export const sl = {
     earned_other: "+{{count}} kapljic za vaše drevo",
   },
    timer: {
+    less: "15 minut manj",
+    more: "15 minut več",
     plan: "Načrt",
     noPlan: "Brez načrta",
     custom: "Po meri",

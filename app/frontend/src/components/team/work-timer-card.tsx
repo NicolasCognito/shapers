@@ -164,19 +164,36 @@ export function WorkTimerCard() {
               </button>
             </div>
             {plan === "custom" && (
-              <label className="flex items-center gap-2 self-end text-xs text-muted-foreground">
-                <input
-                  type="number"
-                  min={1}
-                  max={720}
-                  value={custom}
-                  onChange={(e) => setCustom(e.target.value)}
-                  className="h-7 w-16 rounded-md border bg-background px-2 text-right text-sm text-foreground tabular-nums outline-none focus:ring-2 focus:ring-ring"
-                  aria-label={t("timer.minutes")}
-                  autoFocus
-                />
+              <div className="flex items-center gap-2 self-end text-xs text-muted-foreground">
+                <div className="inline-flex items-center rounded-full border bg-muted/40 p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setCustom(String(Math.max(15, customMinutes - 15)))}
+                    className="flex size-6 items-center justify-center rounded-full text-sm text-muted-foreground hover:bg-background hover:text-foreground"
+                    aria-label={t("timer.less")}
+                  >
+                    −
+                  </button>
+                  <input
+                    inputMode="numeric"
+                    value={custom}
+                    onChange={(e) => setCustom(e.target.value.replace(/\D/g, "").slice(0, 3))}
+                    onBlur={() => setCustom(String(customMinutes))}
+                    className="w-10 bg-transparent text-center text-sm font-medium text-foreground tabular-nums outline-none"
+                    aria-label={t("timer.minutes")}
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setCustom(String(Math.min(720, customMinutes + 15)))}
+                    className="flex size-6 items-center justify-center rounded-full text-sm text-muted-foreground hover:bg-background hover:text-foreground"
+                    aria-label={t("timer.more")}
+                  >
+                    +
+                  </button>
+                </div>
                 {t("timer.minutesShort")}
-              </label>
+              </div>
             )}
           </div>
         ) : (

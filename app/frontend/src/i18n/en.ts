@@ -965,6 +965,8 @@ export const en = {
     earned_other: "+{{count}} drops for your tree",
   },
    timer: {
+    less: "15 minutes less",
+    more: "15 minutes more",
     plan: "Plan",
     noPlan: "No plan",
     custom: "Custom",
