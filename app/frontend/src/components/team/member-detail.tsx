@@ -81,7 +81,7 @@ export function MemberDetailView({
     <div className="@container">
       <div className="grid gap-4 @3xl:grid-cols-3">
         {/* This week */}
-        <Card className="@3xl:col-span-2">
+        <Card className="@3xl:col-span-2" data-tour="this-week">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               {t("memberDetail.thisWeek")} <TierBadge tier={s.tier} />
@@ -216,7 +216,7 @@ export function MemberDetailView({
         </Card>
 
         {/* Upcoming */}
-        <Card>
+        <Card data-tour="meetings">
           <CardHeader>
             <CardTitle>{t("memberDetail.nextMeetings")}</CardTitle>
             <CardDescription>{t("memberDetail.nextMeetingsDesc")}</CardDescription>
@@ -717,7 +717,7 @@ function RulesCard({
         : t("rules.pauseCore")
 
   return (
-    <Card className="@3xl:col-span-3">
+    <Card className="@3xl:col-span-3" data-tour="rules">
       <CardHeader>
         <CardTitle>{t("rules.title")}</CardTitle>
         <CardDescription>{t("rules.desc", { tier: s.tier })}</CardDescription>

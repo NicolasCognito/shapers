@@ -22,6 +22,7 @@ import { extractErrorMessage } from "@/lib/error"
 import { pb } from "@/lib/pocketbase"
 import { workspaceRecordUrl } from "@/lib/workspace-navigation"
 import { useChatStore } from "@/store/chat"
+import { JARVIS_ASK_EVENT } from "@/lib/jarvis-ask"
 import { useLlmSettingsStore } from "@/store/llm-settings"
 import type { Conversation } from "@/types/chat"
 import { cn } from "@/lib/utils"
@@ -71,6 +72,19 @@ export function JarvisDock() {
     setSession(s)
     saveSession(s)
   }
+
+  // askJarvis(): open the panel (a fresh chat unless one is running); the
+  // prompt input picks the pending question up and sends it.
+  useEffect(() => {
+    const open = () =>
+      setSession((cur) => {
+        const next = cur.open ? { ...cur, minimized: false } : { open: true, id: null }
+        saveSession(next)
+        return next
+      })
+    window.addEventListener(JARVIS_ASK_EVENT, open)
+    return () => window.removeEventListener(JARVIS_ASK_EVENT, open)
+  }, [])
 
   const startNew = useCallback(async () => {
     try {
@@ -145,6 +159,7 @@ export function JarvisDock() {
       <button
         type="button"
         onClick={() => update(resume ? { ...session, minimized: false } : { open: true, id: null })}
+        data-tour="jarvis"
         className="fixed right-4 bottom-4 z-40 flex items-center gap-2 rounded-full bg-primary py-3 pr-5 pl-4 text-sm font-medium text-primary-foreground shadow-lg transition-transform hover:scale-105 md:right-6 md:bottom-6"
         aria-label={resume ? t("dock.restore") : t("dock.open")}
       >

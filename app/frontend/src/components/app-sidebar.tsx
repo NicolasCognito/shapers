@@ -1,4 +1,5 @@
 import { LanguageMenu } from "@/components/language-switcher"
+import { TourButton } from "@/components/tour"
 import { NavLink, useLocation } from "react-router"
 import { useTranslation } from "react-i18next"
 
@@ -72,7 +73,7 @@ export function AppSidebar() {
                         pathname.startsWith(item.url + "/")
                       }
                     >
-                      <NavLink to={item.url} onClick={closeMobileSidebar}>
+                      <NavLink to={item.url} onClick={closeMobileSidebar} data-tour={`nav-${item.url.slice(1)}`}>
                         <HugeiconsIcon icon={item.icon} strokeWidth={2} />
                         <span>{item.titleKey ? t(item.titleKey) : item.title}</span>
                       </NavLink>
@@ -86,6 +87,7 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter>
+        <TourButton />
         <LanguageMenu className="mx-1 group-data-[collapsible=icon]:hidden" />
         <div className="px-3 py-2 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
           <p className="font-medium text-foreground/70">Shapers</p>

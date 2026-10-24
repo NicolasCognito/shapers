@@ -88,8 +88,8 @@ export function TeamPage() {
         <Tabs defaultValue="overview">
           <TabsList>
             <TabsTrigger value="overview">{t("team.overview")}</TabsTrigger>
-            <TabsTrigger value="members">{t("team.members")}</TabsTrigger>
-            <TabsTrigger value="attendance">
+            <TabsTrigger value="members" data-tour="tab-members">{t("team.members")}</TabsTrigger>
+            <TabsTrigger value="attendance" data-tour="tab-attendance">
               {t("team.attendance")}
             </TabsTrigger>
           </TabsList>
@@ -161,7 +161,7 @@ function OverviewTab({
 
   return (
     <div className="grid gap-4 lg:grid-cols-3">
-      <div className="grid grid-cols-2 gap-3 lg:col-span-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:col-span-3 lg:grid-cols-4" data-tour="team-tiles">
         <StatTile
           label={t("team.hoursThisWeek")}
           value={fmtHours(Math.round(cur.hours))}
@@ -209,7 +209,7 @@ function OverviewTab({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card data-tour="team-attention">
         <CardHeader>
           <CardTitle>{t("team.needsAttention")}</CardTitle>
           <CardDescription>

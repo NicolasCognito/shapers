@@ -84,7 +84,7 @@ export function WorkTimerCard() {
   const ringColor = paused ? "stroke-muted-foreground/40" : over ? "stroke-amber-500" : "stroke-emerald-500"
 
   return (
-    <Card className="gap-0 p-5">
+    <Card className="gap-0 p-5" data-tour="timer">
       <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
         {/* Start / stop with the plan ring */}
         <div className="relative size-20 shrink-0">

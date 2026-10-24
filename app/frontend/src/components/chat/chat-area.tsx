@@ -165,6 +165,7 @@ export function ActiveChat({
         <ConversationScrollButton />
       </Conversation>
       <ChatPromptInput
+        acceptsAsk={embedded}
         conversationId={conversation.id}
         modelConfigId={conversation.model_config}
         disabled={loadingMessages}

@@ -6,6 +6,7 @@ import { ChatRunMonitor } from "@/components/chat/chat-run-monitor"
 import { TimerWatcher } from "@/components/team/timer-watcher"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { JarvisDock } from "@/components/chat/jarvis-dock"
+import { TourAutostart } from "@/components/tour"
 
 export function DashboardLayout() {
   const { pathname } = useLocation()
@@ -19,6 +20,7 @@ export function DashboardLayout() {
     <SidebarProvider>
       <ChatRunMonitor />
       <TimerWatcher />
+      <TourAutostart />
       <AppSidebar />
       <SidebarInset>
         <AppHeader />

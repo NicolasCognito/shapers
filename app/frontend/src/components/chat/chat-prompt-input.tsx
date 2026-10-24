@@ -1,5 +1,7 @@
 import { useTranslation } from "react-i18next"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+
+import { JARVIS_ASK_EVENT, takePendingQuestion } from "@/lib/jarvis-ask"
 
 import type { UseChatHelpers } from "@ai-sdk/react"
 import type { ChatStatus } from "ai"
@@ -59,6 +61,8 @@ type Props = {
   activeRunId?: string | null
   onRunStarted?: (runId: string) => void
   contextInfo?: ChatContextInfo
+  /** The Jarvis panel: sends questions passed with askJarvis(). */
+  acceptsAsk?: boolean
 }
 
 export function ChatPromptInput({
@@ -72,6 +76,7 @@ export function ChatPromptInput({
   activeRunId,
   onRunStarted,
   contextInfo,
+  acceptsAsk = false,
 }: Props) {
   const { t } = useTranslation()
   const models = useLlmSettingsStore((state) => state.models)
@@ -85,6 +90,20 @@ export function ChatPromptInput({
   const modelConfigId = selectedModelConfigId ?? defaultModelId
   const [text, setText] = useState("")
   const [voiceState, setVoiceState] = useState<"idle" | "recording" | "processing">("idle")
+
+  const [askTick, setAskTick] = useState(0)
+  useEffect(() => {
+    if (!acceptsAsk) return
+    const bump = () => setAskTick((n) => n + 1)
+    window.addEventListener(JARVIS_ASK_EVENT, bump)
+    return () => window.removeEventListener(JARVIS_ASK_EVENT, bump)
+  }, [acceptsAsk])
+  useEffect(() => {
+    if (!acceptsAsk || disabled || !modelConfigId || status !== "ready") return
+    const question = takePendingQuestion()
+    if (question) void handleSubmit({ text: question, files: [] })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [acceptsAsk, askTick, disabled, modelConfigId, status])
 
   const handleSubmit = async (message: PromptInputMessage) => {
     const content = message.text.trim()
