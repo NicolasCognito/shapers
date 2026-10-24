@@ -938,6 +938,18 @@ export const en = {
     linkedDocs_other: "{{count}} linked documents",
     linkedDocs_two: "{{count}} linked documents",
   },
+  slack: {
+    activeNow: "active now",
+    neverSeen: "never seen",
+    seenDaysAgo_one: "seen {{count}} day ago",
+    seenDaysAgo_other: "seen {{count}} days ago",
+    adminOnly: "visible to admins only",
+    notLinked: "Not linked to a Slack user yet.",
+    demoLink: "Demo: link to Slack user",
+    noOne: "— nobody —",
+    linked: "Linked to Slack",
+    unlinked: "Unlinked from Slack",
+  },
   tree: {
     howToPlay: "How to play",
     growHint: "Every {{n}} waterings it grows: sprout, sapling, young tree, tree, blooming.",

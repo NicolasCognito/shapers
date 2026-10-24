@@ -30,6 +30,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useDateLocale } from "@/i18n"
 import { can } from "@/lib/permissions"
 import { VacationToggle } from "@/components/team/tree-card"
+import { MemberSlack, SlackCell, useSlack } from "@/components/team/slack-activity"
 import { pb } from "@/lib/pocketbase"
 import { cn } from "@/lib/utils"
 import {
@@ -343,6 +344,11 @@ function MembersTab({
   onSelect: (id: string) => void
 }) {
   const { t } = useTranslation()
+  const slackEnabled = useSlack((s) => s.enabled)
+  const loadSlack = useSlack((s) => s.load)
+  useEffect(() => {
+    void loadSlack().catch(() => {})
+  }, [loadSlack])
   const [sort, setSort] = useState<SortKey>("progress")
   const [tier, setTier] = useState<string>("all")
   const rows = useMemo(() => {
@@ -410,6 +416,7 @@ function MembersTab({
                 <H k="streak">{t("team.streak")}</H>
                 <H k="attendance">{t("team.showedUp")}</H>
                 <H k="tasks">{t("team.tasks")}</H>
+                {slackEnabled && <th className="px-3 py-2 font-medium">Slack</th>}
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -477,6 +484,11 @@ function MembersTab({
                     {pct(m.attendance.rate)}
                   </td>
                   <td className="px-3 py-2 tabular-nums">{m.tasks_done}</td>
+                  {slackEnabled && (
+                    <td className="px-3 py-2 text-xs">
+                      <SlackCell memberId={m.id} />
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -656,6 +668,7 @@ function MemberSheet({
         <SheetHeader>
           <SheetTitle>{detail?.summary.name ?? t("team.member")}</SheetTitle>
           {id && can("members.manage") && <VacationToggle userId={id} />}
+          {id && <MemberSlack memberId={id} />}
         </SheetHeader>
         <div className="p-4">
           {detail ? (

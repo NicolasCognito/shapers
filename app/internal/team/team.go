@@ -37,6 +37,7 @@ func Register(app *pocketbase.PocketBase) {
 	registerProjectHooks(app)
 	registerJarvisModel(app)
 	registerHourLimits(app)
+	registerSlack(app)
 
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 		g := se.Router.Group("/api/team")
