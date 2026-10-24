@@ -1,10 +1,11 @@
 import { format, parseISO } from "date-fns"
 import type { ReactNode } from "react"
+import { useTranslation } from "react-i18next"
 
+import { useDateLocale } from "@/i18n"
 import { cn } from "@/lib/utils"
 import {
   STATE_CLASS,
-  STATE_LABEL,
   fmtHours,
   pct,
   type AttendanceState,
@@ -49,6 +50,8 @@ export function WeekBars({
   weeks: { week_start: string; hours: number; quota: number; met?: boolean }[]
   height?: number
 }) {
+  const { t } = useTranslation()
+  const locale = useDateLocale()
   const max = Math.max(1, ...weeks.map((w) => Math.max(w.hours, w.quota))) * 1.1
   const quota = weeks[weeks.length - 1]?.quota ?? 0
   return (
@@ -60,7 +63,7 @@ export function WeekBars({
             style={{ bottom: (quota / max) * height }}
           >
             <span className="absolute -top-4 right-0 text-[10px] text-muted-foreground">
-              goal {fmtHours(quota)}
+              {t("widgets.goal", { hours: fmtHours(quota) })}
             </span>
           </div>
         )}
@@ -72,7 +75,7 @@ export function WeekBars({
               key={w.week_start}
               className="group relative flex flex-1 flex-col items-center justify-end"
               style={{ height }}
-              title={`${format(parseISO(w.week_start), "d MMM")}: ${fmtHours(w.hours)}`}
+              title={`${format(parseISO(w.week_start), "d MMM", { locale })}: ${fmtHours(w.hours)}`}
             >
               <span className="mb-1 text-[10px] tabular-nums text-muted-foreground opacity-0 group-hover:opacity-100">
                 {fmtHours(w.hours)}
@@ -94,7 +97,9 @@ export function WeekBars({
             key={w.week_start}
             className="flex-1 text-center text-[10px] text-muted-foreground"
           >
-            {i === weeks.length - 1 ? "this wk" : format(parseISO(w.week_start), "d MMM")}
+            {i === weeks.length - 1
+              ? t("widgets.thisWk")
+              : format(parseISO(w.week_start), "d MMM", { locale })}
           </span>
         ))}
       </div>
@@ -103,6 +108,7 @@ export function WeekBars({
 }
 
 export function StateBadge({ state }: { state: AttendanceState | "" }) {
+  const { t } = useTranslation()
   return (
     <span
       className={cn(
@@ -110,12 +116,13 @@ export function StateBadge({ state }: { state: AttendanceState | "" }) {
         STATE_CLASS[state]
       )}
     >
-      {state ? STATE_LABEL[state] : "Not marked"}
+      {t(`common.state.${state || "none"}`)}
     </span>
   )
 }
 
 export function AttendanceBreakdown({ stats }: { stats: AttendanceStats }) {
+  const { t } = useTranslation()
   const total =
     stats.present + stats.remote + stats.excused + stats.unexcused + stats.unmarked
   const parts: [AttendanceState | "", number][] = [
@@ -143,12 +150,13 @@ export function AttendanceBreakdown({ stats }: { stats: AttendanceStats }) {
         {parts.map(([s, n]) =>
           n > 0 ? (
             <span key={s || "none"}>
-              {s ? STATE_LABEL[s] : "Not marked"}: <b className="text-foreground">{n}</b>
+              {t(`common.state.${s || "none"}`)}: <b className="text-foreground">{n}</b>
             </span>
           ) : null
         )}
         <span className="ml-auto">
-          Showed up <b className="text-foreground">{pct(stats.rate)}</b>
+          {t("widgets.showedUp")}{" "}
+          <b className="text-foreground">{pct(stats.rate)}</b>
         </span>
       </div>
     </div>
@@ -162,13 +170,14 @@ export function MeetingRow({
   m: MeetingView
   action?: ReactNode
 }) {
+  const locale = useDateLocale()
   const start = parseISO(m.start)
   return (
     <div className="flex items-center gap-3 py-2.5">
       <div className="w-12 shrink-0 text-center">
-        <p className="text-[10px] uppercase text-muted-foreground">{format(start, "EEE")}</p>
+        <p className="text-[10px] uppercase text-muted-foreground">{format(start, "EEE", { locale })}</p>
         <p className="text-lg font-semibold leading-none">{format(start, "d")}</p>
-        <p className="text-[10px] text-muted-foreground">{format(start, "MMM")}</p>
+        <p className="text-[10px] text-muted-foreground">{format(start, "MMM", { locale })}</p>
       </div>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">{m.title}</p>
@@ -205,6 +214,7 @@ export function ProgressBar({
   marker?: number
   className?: string
 }) {
+  const { t } = useTranslation()
   const v = Math.min(1, value)
   return (
     <div className={cn("relative h-2 rounded-full bg-muted", className)}>
@@ -219,7 +229,7 @@ export function ProgressBar({
         <div
           className="absolute -top-0.5 h-3 w-0.5 rounded bg-foreground/50"
           style={{ left: `${marker * 100}%` }}
-          title="Where you should be by today"
+          title={t("widgets.paceMarker")}
         />
       )}
     </div>

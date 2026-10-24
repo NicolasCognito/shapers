@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { format, parseISO } from "date-fns"
 import { toast } from "sonner"
+import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -11,9 +12,10 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
+import { useDateLocale } from "@/i18n"
 import { extractErrorMessage } from "@/lib/error"
 import { cn } from "@/lib/utils"
-import { STATE_CLASS, STATE_LABEL, teamApi, type AttendanceState } from "@/lib/team"
+import { STATE_CLASS, teamApi, type AttendanceState } from "@/lib/team"
 
 const STATES: AttendanceState[] = ["present", "remote", "excused", "unexcused"]
 
@@ -31,6 +33,8 @@ export function RollCallSheet({
   onClose: () => void
   onSaved: () => void
 }) {
+  const { t } = useTranslation()
+  const locale = useDateLocale()
   const [meeting, setMeeting] = useState<{ title: string; start_at: string; members: string[] } | null>(null)
   const [states, setStates] = useState<Record<string, AttendanceState | "">>({})
   const [busy, setBusy] = useState(false)
@@ -63,11 +67,11 @@ export function RollCallSheet({
         .filter(([, st]) => st)
         .map(([user, state]) => ({ user, state: state as AttendanceState }))
       const r = await teamApi.bulkAttendance(meetingId, entries)
-      toast.success(`Saved ${r.saved} records`)
+      toast.success(t("rollCall.saved", { count: r.saved }))
       onSaved()
       onClose()
     } catch (e) {
-      toast.error(extractErrorMessage(e, "Could not save"))
+      toast.error(extractErrorMessage(e, t("common.couldNotSave")))
     } finally {
       setBusy(false)
     }
@@ -77,10 +81,15 @@ export function RollCallSheet({
     <Sheet open={!!meetingId} onOpenChange={(o) => !o && onClose()}>
       <SheetContent className="flex w-full flex-col sm:max-w-lg">
         <SheetHeader>
-          <SheetTitle>{meeting?.title ?? "Roll call"}</SheetTitle>
+          <SheetTitle>{meeting?.title ?? t("rollCall.title")}</SheetTitle>
           <SheetDescription>
-            {meeting && format(parseISO(meeting.start_at), "EEEE d MMM, HH:mm")} · {members.length} members
-            {unmarked > 0 && ` · ${unmarked} not marked`}
+            {meeting &&
+              format(parseISO(meeting.start_at), "EEEE d MMM, HH:mm", {
+                locale,
+              })}{" "}
+            · {t("rollCall.membersCount", { count: members.length })}
+            {unmarked > 0 &&
+              ` · ${t("rollCall.notMarked", { count: unmarked })}`}
           </SheetDescription>
         </SheetHeader>
         <div className="flex gap-2 px-4">
@@ -95,7 +104,7 @@ export function RollCallSheet({
               })
             }
           >
-            Mark the rest present
+            {t("rollCall.markRestPresent")}
           </Button>
           <Button
             size="sm"
@@ -108,7 +117,7 @@ export function RollCallSheet({
               })
             }
           >
-            Rest missed
+            {t("rollCall.restMissed")}
           </Button>
         </div>
         <div className="flex-1 divide-y overflow-y-auto px-4">
@@ -128,7 +137,7 @@ export function RollCallSheet({
                         : "text-muted-foreground hover:bg-muted"
                     )}
                   >
-                    {STATE_LABEL[st]}
+                    {t(`common.state.${st}`)}
                   </button>
                 ))}
               </div>
@@ -137,7 +146,7 @@ export function RollCallSheet({
         </div>
         <SheetFooter>
           <Button onClick={save} disabled={busy || !meeting}>
-            Save attendance
+            {t("rollCall.save")}
           </Button>
         </SheetFooter>
       </SheetContent>

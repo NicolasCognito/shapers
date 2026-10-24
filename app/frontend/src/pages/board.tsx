@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { useNavigate, useSearchParams } from "react-router"
+import { useTranslation } from "react-i18next"
 
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -20,6 +21,7 @@ import {
 import { useBoardStore, type Project } from "@/store/board"
 
 export function BoardPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const requestedTaskId = requestedRecordId(searchParams) || undefined
@@ -108,11 +110,12 @@ export function BoardPage() {
                 className="size-4"
               />
             </div>
-            <h1 className="text-2xl font-semibold tracking-tight">Board</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">
+              {t("board.title")}
+            </h1>
           </div>
           <p className="text-sm text-muted-foreground">
-            Manage projects and tasks in a Kanban board. Drag cards between
-            columns to update status.
+            {t("board.subtitle")}
           </p>
         </div>
         <div className="flex items-center gap-1">
@@ -120,7 +123,7 @@ export function BoardPage() {
             variant="ghost"
             size="icon-sm"
             onClick={() => setArchivedOpen(true)}
-            aria-label="View archived projects"
+            aria-label={t("board.viewArchived")}
           >
             <HugeiconsIcon icon={Archive02Icon} strokeWidth={2} />
           </Button>
@@ -130,7 +133,7 @@ export function BoardPage() {
               strokeWidth={2}
               className="size-4"
             />
-            Add project
+            {t("board.addProject")}
           </Button>
         </div>
       </div>
@@ -143,7 +146,7 @@ export function BoardPage() {
               size="sm"
               onClick={() => void focusProject(null)}
             >
-              ← All projects
+              {t("board.allProjects")}
             </Button>
             {focusedName && (
               <span className="text-sm font-medium">{focusedName}</span>

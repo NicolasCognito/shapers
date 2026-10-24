@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { format, parseISO } from "date-fns"
 import { Navigate } from "react-router"
+import { useTranslation } from "react-i18next"
 
 import { MemberDetailView } from "@/components/team/member-detail"
 import { RollCallSheet } from "@/components/team/roll-call"
@@ -26,13 +27,13 @@ import {
 } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useDateLocale } from "@/i18n"
 import { can } from "@/lib/permissions"
 import { pb } from "@/lib/pocketbase"
 import { cn } from "@/lib/utils"
 import {
   SERIES,
   STATE_CLASS,
-  STATE_LABEL,
   fmtHours,
   pct,
   teamApi,
@@ -43,6 +44,8 @@ import {
 } from "@/lib/team"
 
 export function TeamPage() {
+  const { t } = useTranslation()
+  const locale = useDateLocale()
   const [data, setData] = useState<Overview | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
   const [rollCall, setRollCall] = useState<string | null>(null)
@@ -60,10 +63,13 @@ export function TeamPage() {
     <div className="mx-auto w-full max-w-7xl space-y-4 p-4 md:p-6">
       <div className="flex flex-wrap items-end gap-2">
         <div className="mr-auto">
-          <h1 className="text-2xl font-semibold">Team</h1>
+          <h1 className="text-2xl font-semibold">{t("team.title")}</h1>
           <p className="text-sm text-muted-foreground">
-            Hours, attendance and tasks for every member
-            {data && ` · week of ${format(parseISO(data.week_start), "d MMM")}`}
+            {t("team.subtitle")}
+            {data &&
+              t("team.weekOf", {
+                date: format(parseISO(data.week_start), "d MMM", { locale }),
+              })}
           </p>
         </div>
       </div>
@@ -73,9 +79,11 @@ export function TeamPage() {
       ) : (
         <Tabs defaultValue="overview">
           <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="members">Members</TabsTrigger>
-            <TabsTrigger value="attendance">Attendance</TabsTrigger>
+            <TabsTrigger value="overview">{t("team.overview")}</TabsTrigger>
+            <TabsTrigger value="members">{t("team.members")}</TabsTrigger>
+            <TabsTrigger value="attendance">
+              {t("team.attendance")}
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="overview" className="mt-4">
             <OverviewTab
@@ -119,6 +127,8 @@ function OverviewTab({
   onSelect: (id: string) => void
   onRollCall: (id: string) => void
 }) {
+  const { t } = useTranslation()
+  const locale = useDateLocale()
   const m = data.members
   const cur = data.weeks[data.weeks.length - 1]
   const last = data.weeks[data.weeks.length - 2]
@@ -145,18 +155,21 @@ function OverviewTab({
     <div className="grid gap-4 lg:grid-cols-3">
       <div className="grid grid-cols-2 gap-3 lg:col-span-3 lg:grid-cols-4">
         <StatTile
-          label="Hours this week"
+          label={t("team.hoursThisWeek")}
           value={fmtHours(Math.round(cur.hours))}
-          hint={`of ${fmtHours(cur.quota)} committed · last week ${fmtHours(Math.round(last?.hours ?? 0))}`}
+          hint={t("team.hoursHint", {
+            quota: fmtHours(cur.quota),
+            last: fmtHours(Math.round(last?.hours ?? 0)),
+          })}
         />
         <StatTile
-          label="Behind pace"
+          label={t("team.behindPace")}
           value={`${behind.length} / ${m.length}`}
           tone={behind.length > m.length / 2 ? "warn" : undefined}
-          hint="vs. pro-rata weekly commitment"
+          hint={t("team.behindPaceHint")}
         />
         <StatTile
-          label="Showed up"
+          label={t("team.showedUp")}
           value={pct(avgAttendance)}
           tone={
             avgAttendance >= 0.85
@@ -165,21 +178,22 @@ function OverviewTab({
                 ? "bad"
                 : undefined
           }
-          hint="present or remote, all series"
+          hint={t("team.showedUpHint")}
         />
         <StatTile
-          label="Tasks done"
+          label={t("team.tasksDone")}
           value={tasksDone}
-          hint="completed on the board"
+          hint={t("team.tasksDoneHint")}
         />
       </div>
 
       <Card className="lg:col-span-2">
         <CardHeader>
-          <CardTitle>Organisation hours</CardTitle>
+          <CardTitle>{t("team.orgHours")}</CardTitle>
           <CardDescription>
-            All members per week; dashed line = total commitment. Members at
-            goal: {data.weeks.map((w) => w.met_count).join(" → ")}
+            {t("team.orgHoursDesc", {
+              series: data.weeks.map((w) => w.met_count).join(" → "),
+            })}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -189,15 +203,15 @@ function OverviewTab({
 
       <Card>
         <CardHeader>
-          <CardTitle>Needs attention</CardTitle>
+          <CardTitle>{t("team.needsAttention")}</CardTitle>
           <CardDescription>
-            Behind on hours and missing meetings
+            {t("team.needsAttentionDesc")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
           {attention.length === 0 && (
             <p className="text-sm text-muted-foreground">
-              Everyone looks fine.
+              {t("team.everyoneFine")}
             </p>
           )}
           {attention.map(({ x }) => (
@@ -211,8 +225,11 @@ function OverviewTab({
                   {x.name}
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  {fmtHours(x.this_week)} / {fmtHours(x.weekly_hours)} · showed
-                  up {pct(x.attendance.rate)}
+                  {t("team.memberLine", {
+                    hours: fmtHours(x.this_week),
+                    goal: fmtHours(x.weekly_hours),
+                    rate: pct(x.attendance.rate),
+                  })}
                 </span>
               </span>
               <TierBadge tier={x.tier} />
@@ -223,29 +240,33 @@ function OverviewTab({
 
       <Card>
         <CardHeader>
-          <CardTitle>By tier</CardTitle>
+          <CardTitle>{t("team.byTier")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {data.tiers.map((t) => (
-            <div key={t.tier} className="space-y-1">
+          {data.tiers.map((ti) => (
+            <div key={ti.tier} className="space-y-1">
               <div className="flex items-center gap-2 text-sm">
-                <TierBadge tier={t.tier} />
+                <TierBadge tier={ti.tier} />
                 <span className="text-muted-foreground">
-                  {t.members} members
+                  {t("team.membersCount", { count: ti.members })}
                 </span>
                 <span className="ml-auto text-xs text-muted-foreground">
-                  {t.behind_count} behind
+                  {t("team.behindCount", { count: ti.behind_count })}
                 </span>
               </div>
               <div className="flex items-center gap-2 text-xs">
-                <span className="w-16 text-muted-foreground">Hours</span>
-                <ProgressBar value={t.avg_progress} className="flex-1" />
-                <span className="w-10 text-right">{pct(t.avg_progress)}</span>
+                <span className="w-16 text-muted-foreground">
+                  {t("team.hours")}
+                </span>
+                <ProgressBar value={ti.avg_progress} className="flex-1" />
+                <span className="w-10 text-right">{pct(ti.avg_progress)}</span>
               </div>
               <div className="flex items-center gap-2 text-xs">
-                <span className="w-16 text-muted-foreground">Attend.</span>
-                <ProgressBar value={t.avg_attendance} className="flex-1" />
-                <span className="w-10 text-right">{pct(t.avg_attendance)}</span>
+                <span className="w-16 text-muted-foreground">
+                  {t("team.attendShort")}
+                </span>
+                <ProgressBar value={ti.avg_attendance} className="flex-1" />
+                <span className="w-10 text-right">{pct(ti.avg_attendance)}</span>
               </div>
             </div>
           ))}
@@ -254,7 +275,7 @@ function OverviewTab({
 
       <Card>
         <CardHeader>
-          <CardTitle>By meeting series</CardTitle>
+          <CardTitle>{t("team.bySeries")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           {SERIES.filter((s) => data.series[s]).map((s) => (
@@ -271,8 +292,8 @@ function OverviewTab({
 
       <Card>
         <CardHeader>
-          <CardTitle>Recent meetings</CardTitle>
-          <CardDescription>Tap to record attendance</CardDescription>
+          <CardTitle>{t("team.recentMeetings")}</CardTitle>
+          <CardDescription>{t("team.tapToRecord")}</CardDescription>
         </CardHeader>
         <CardContent className="divide-y">
           {recent.map((mt) => (
@@ -284,7 +305,7 @@ function OverviewTab({
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm">{mt.title}</span>
                 <span className="text-xs text-muted-foreground">
-                  {format(parseISO(mt.start), "EEE d MMM")}
+                  {format(parseISO(mt.start), "EEE d MMM", { locale })}
                 </span>
               </span>
               <span className="text-sm tabular-nums">
@@ -292,7 +313,7 @@ function OverviewTab({
               </span>
               {mt.stats.unmarked > 0 && (
                 <span className="rounded bg-amber-500/15 px-1.5 text-xs text-amber-700 dark:text-amber-300">
-                  {mt.stats.unmarked} unmarked
+                  {t("team.unmarked", { count: mt.stats.unmarked })}
                 </span>
               )}
             </button>
@@ -314,6 +335,7 @@ function MembersTab({
   members: MemberSummary[]
   onSelect: (id: string) => void
 }) {
+  const { t } = useTranslation()
   const [sort, setSort] = useState<SortKey>("progress")
   const [tier, setTier] = useState<string>("all")
   const rows = useMemo(() => {
@@ -358,14 +380,14 @@ function MembersTab({
     <Card>
       <CardContent className="pt-4">
         <div className="mb-3 flex flex-wrap gap-2">
-          {["all", "Core", "Impact", "GO!"].map((t) => (
+          {["all", "Core", "Impact", "GO!"].map((tn) => (
             <Button
-              key={t}
+              key={tn}
               size="sm"
-              variant={tier === t ? "default" : "outline"}
-              onClick={() => setTier(t)}
+              variant={tier === tn ? "default" : "outline"}
+              onClick={() => setTier(tn)}
             >
-              {t === "all" ? "All tiers" : t}
+              {tn === "all" ? t("team.allTiers") : tn}
             </Button>
           ))}
         </div>
@@ -373,14 +395,14 @@ function MembersTab({
           <table className="w-full text-sm">
             <thead className="text-left text-xs text-muted-foreground">
               <tr>
-                <H k="name">Member</H>
+                <H k="name">{t("team.member")}</H>
                 <H k="progress" className="min-w-48">
-                  This week
+                  {t("team.thisWeek")}
                 </H>
-                <th className="px-3 py-2 font-medium">Last 6 weeks</th>
-                <H k="streak">Streak</H>
-                <H k="attendance">Showed up</H>
-                <H k="tasks">Tasks</H>
+                <th className="px-3 py-2 font-medium">{t("team.last6")}</th>
+                <H k="streak">{t("team.streak")}</H>
+                <H k="attendance">{t("team.showedUp")}</H>
+                <H k="tasks">{t("team.tasks")}</H>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -469,6 +491,8 @@ function AttendanceTab({
   onRollCall: (id: string) => void
   onSelect: (id: string) => void
 }) {
+  const { t } = useTranslation()
+  const locale = useDateLocale()
   const [series, setSeries] = useState<string>("Community")
   const [att, setAtt] = useState<Record<string, AttendanceState>>({})
   const [meetingMembers, setMeetingMembers] = useState<
@@ -499,9 +523,9 @@ function AttendanceTab({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Attendance by series</CardTitle>
+        <CardTitle>{t("team.attendanceBySeries")}</CardTitle>
         <CardDescription>
-          Click a date to record or fix attendance for that meeting
+          {t("team.attendanceDesc")}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -527,20 +551,20 @@ function AttendanceTab({
             <thead>
               <tr>
                 <th className="sticky left-0 bg-card px-2 py-1 text-left font-medium">
-                  Member
+                  {t("team.member")}
                 </th>
                 {meetings.map((m) => (
                   <th key={m.id} className="px-1 py-1">
                     <button
                       onClick={() => onRollCall(m.id)}
                       className="rounded px-1 font-medium hover:bg-muted"
-                      title="Record attendance"
+                      title={t("team.recordAttendance")}
                     >
-                      {format(parseISO(m.start), "d.M")}
+                      {format(parseISO(m.start), "d.M", { locale })}
                     </button>
                   </th>
                 ))}
-                <th className="px-2 py-1 text-right font-medium">Rate</th>
+                <th className="px-2 py-1 text-right font-medium">{t("team.rate")}</th>
               </tr>
             </thead>
             <tbody>
@@ -566,13 +590,13 @@ function AttendanceTab({
                       return (
                         <td key={m.id} className="px-1 py-1 text-center">
                           <span
-                            title={st ? STATE_LABEL[st] : "Not marked"}
+                            title={t(`common.state.${st ?? "none"}`)}
                             className={cn(
                               "inline-block size-5 rounded leading-5",
                               STATE_CLASS[st ?? ""]
                             )}
                           >
-                            {st ? STATE_LABEL[st][0] : "·"}
+                            {st ? t(`common.stateShort.${st}`) : "·"}
                           </span>
                         </td>
                       )
@@ -594,7 +618,7 @@ function AttendanceTab({
               <span
                 className={cn("inline-block size-3 rounded", STATE_CLASS[s])}
               />{" "}
-              {STATE_LABEL[s]}
+              {t(`common.state.${s}`)}
             </span>
           ))}
         </div>
@@ -612,6 +636,7 @@ function MemberSheet({
   id: string | null
   onClose: () => void
 }) {
+  const { t } = useTranslation()
   const [detail, setDetail] = useState<MemberDetail | null>(null)
   useEffect(() => {
     if (!id) return
@@ -622,7 +647,7 @@ function MemberSheet({
     <Sheet open={!!id} onOpenChange={(o) => !o && onClose()}>
       <SheetContent className="w-full overflow-y-auto data-[side=right]:sm:max-w-4xl">
         <SheetHeader>
-          <SheetTitle>{detail?.summary.name ?? "Member"}</SheetTitle>
+          <SheetTitle>{detail?.summary.name ?? t("team.member")}</SheetTitle>
         </SheetHeader>
         <div className="p-4">
           {detail ? (

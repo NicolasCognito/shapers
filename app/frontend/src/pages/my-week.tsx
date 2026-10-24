@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 
 import { MemberDetailView } from "@/components/team/member-detail"
 import { Skeleton } from "@/components/ui/skeleton"
 import { teamApi, type MemberDetail } from "@/lib/team"
 
 export function MyWeekPage() {
+  const { t } = useTranslation()
   const [detail, setDetail] = useState<MemberDetail | null>(null)
   const [error, setError] = useState("")
 
@@ -23,10 +25,12 @@ export function MyWeekPage() {
     <div className="mx-auto w-full max-w-6xl space-y-4 p-4 md:p-6">
       <div>
         <h1 className="text-2xl font-semibold">
-          {detail ? `Hi, ${detail.summary.name.split(" ")[0]} 👋` : "My week"}
+          {detail
+            ? t("myWeek.hi", { name: detail.summary.name.split(" ")[0] })
+            : t("myWeek.title")}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Your hours, meetings and streak in one place.
+          {t("myWeek.subtitle")}
         </p>
       </div>
       {error && <p className="text-sm text-destructive">{error}</p>}

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
+import { useTranslation } from "react-i18next"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   GridViewIcon,
@@ -54,6 +55,7 @@ export function ProjectGrid({
   onOpen: (id: string) => void
   reloadKey: unknown
 }) {
+  const { t } = useTranslation()
   const me = pb.authStore.record?.id ?? ""
   const [items, setItems] = useState<Item[] | null>(null)
   const [view, setView] = useState(readView)
@@ -102,7 +104,7 @@ export function ProjectGrid({
 
   useEffect(() => {
     load().catch((e) =>
-      toast.error(extractErrorMessage(e, "Could not load projects"))
+      toast.error(extractErrorMessage(e, t("board.loadFailed")))
     )
   }, [load, reloadKey])
 
@@ -118,7 +120,7 @@ export function ProjectGrid({
         .collection("board_project_preferences")
         .update(item.prefId, { pinned: !item.pinned })
     } catch (e) {
-      toast.error(extractErrorMessage(e, "Could not save"))
+      toast.error(extractErrorMessage(e, t("common.couldNotSave")))
       load()
     }
   }
@@ -157,7 +159,7 @@ export function ProjectGrid({
           />
           <Input
             className="pl-8"
-            placeholder={`Search ${items.length} projects`}
+            placeholder={t("board.search", { count: items.length })}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -169,7 +171,9 @@ export function ProjectGrid({
               variant={view === v ? "secondary" : "ghost"}
               size="icon-sm"
               onClick={() => switchView(v)}
-              aria-label={v === "grid" ? "Grid view" : "List view"}
+              aria-label={
+                v === "grid" ? t("board.gridView") : t("board.listView")
+              }
             >
               <HugeiconsIcon
                 icon={v === "grid" ? GridViewIcon : Menu01Icon}
@@ -182,7 +186,7 @@ export function ProjectGrid({
 
       {sorted.length === 0 && (
         <p className="py-8 text-center text-sm text-muted-foreground">
-          No projects match.
+          {t("board.noMatch")}
         </p>
       )}
 
@@ -207,7 +211,7 @@ export function ProjectGrid({
                   ? "text-amber-500"
                   : "text-muted-foreground/50 hover:text-muted-foreground"
               )}
-              aria-label={item.pinned ? "Unstar project" : "Star project"}
+              aria-label={item.pinned ? t("board.unstar") : t("board.star")}
               aria-pressed={item.pinned}
             >
               <HugeiconsIcon
@@ -221,10 +225,10 @@ export function ProjectGrid({
             <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
               {item.mine > 0 && (
                 <span className="mr-2 rounded-md bg-sky-500/15 px-1.5 py-0.5 font-medium text-sky-700 dark:text-sky-300">
-                  {item.mine} yours
+                  {t("board.yours", { count: item.mine })}
                 </span>
               )}
-              {item.open} open
+              {t("board.open", { count: item.open })}
             </span>
           )
           return view === "grid" ? (

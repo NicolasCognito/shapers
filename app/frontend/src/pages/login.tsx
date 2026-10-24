@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { useNavigate } from "react-router"
+import { useTranslation } from "react-i18next"
 
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -13,9 +14,20 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Logo } from "@/components/logo"
+import { LanguageSwitcher } from "@/components/language-switcher"
 import { useAuthStore } from "@/store/auth"
 
+// TEMP for the demo: one-click sign-in as sandbox users.
+// Set to false (or delete the block) before the final deploy — TODO 17.
+const QUICK_LOGIN = true
+const SANDBOX_PASSWORD = "shapers2026"
+const QUICK_ACCOUNTS = [
+  { labelKey: "login.quickAdmin", email: "ana.kovac@sandbox.example" },
+  { labelKey: "login.quickMember", email: "zala.turk@sandbox.example" },
+]
+
 export function LoginPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const login = useAuthStore((s) => s.login)
 
@@ -25,15 +37,19 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    void signIn(email, password)
+  }
+
+  const signIn = async (email: string, password: string) => {
     setError(null)
     setLoading(true)
     try {
       await login(email, password)
       navigate("/dashboard", { replace: true })
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed")
+      setError(err instanceof Error ? err.message : t("login.loginFailed"))
     } finally {
       setLoading(false)
     }
@@ -47,7 +63,8 @@ export function LoginPage() {
         className="pointer-events-none absolute inset-0 -z-10 opacity-60 [background:radial-gradient(60%_50%_at_50%_0%,oklch(0.7_0.15_300)_0%,transparent_60%)] dark:[background:radial-gradient(60%_50%_at_50%_0%,oklch(0.4_0.15_300)_0%,transparent_60%)]"
       />
 
-      <div className="absolute top-4 right-4">
+      <div className="absolute top-4 right-4 flex items-center gap-2">
+        <LanguageSwitcher />
         <ThemeToggle />
       </div>
 
@@ -55,10 +72,10 @@ export function LoginPage() {
         <div className="mb-8 flex flex-col items-center text-center">
           <Logo className="mb-4 size-12" />
           <h1 className="text-2xl font-semibold tracking-tight">
-            Welcome back
+            {t("login.welcome")}
           </h1>
           <p className="mt-1.5 text-sm text-muted-foreground">
-            Sign in to your personal workspace
+            {t("login.subtitle")}
           </p>
         </div>
 
@@ -69,7 +86,7 @@ export function LoginPage() {
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
               <label htmlFor="email" className="text-sm font-medium">
-                Email
+                {t("login.email")}
               </label>
               <div className="relative">
                 <HugeiconsIcon
@@ -92,7 +109,7 @@ export function LoginPage() {
 
             <div className="flex flex-col gap-2">
               <label htmlFor="password" className="text-sm font-medium">
-                Password
+                {t("login.password")}
               </label>
               <div className="relative">
                 <HugeiconsIcon
@@ -114,7 +131,9 @@ export function LoginPage() {
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
                   className="absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-label={
+                    showPassword ? t("login.hidePassword") : t("login.showPassword")
+                  }
                 >
                   <HugeiconsIcon
                     icon={showPassword ? EyeOffIcon : EyeIcon}
@@ -132,11 +151,28 @@ export function LoginPage() {
             )}
 
             <Button type="submit" className="mt-1 w-full" disabled={loading}>
-              {loading ? "Signing in..." : "Sign in"}
+              {loading ? t("login.signingIn") : t("login.signIn")}
             </Button>
 
+            {QUICK_LOGIN && (
+              <div className="grid grid-cols-2 gap-2">
+                {QUICK_ACCOUNTS.map((a) => (
+                  <Button
+                    key={a.email}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={loading}
+                    onClick={() => void signIn(a.email, SANDBOX_PASSWORD)}
+                  >
+                    {t(a.labelKey)}
+                  </Button>
+                ))}
+              </div>
+            )}
+
             <p className="text-center text-xs text-muted-foreground">
-              Accounts are created by your workspace administrator.
+              {t("login.accountsNote")}
             </p>
           </div>
         </form>

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react"
 import { format, parseISO } from "date-fns"
 import { toast } from "sonner"
+import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -12,6 +13,7 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useDateLocale } from "@/i18n"
 import { extractErrorMessage } from "@/lib/error"
 import { can } from "@/lib/permissions"
 import { pb } from "@/lib/pocketbase"
@@ -25,15 +27,24 @@ const STATUS_CLASS: Record<RequestRec["status"], string> = {
   withdrawn: "bg-muted text-muted-foreground",
 }
 
-const day = (d: string) =>
-  d ? format(parseISO(d.replace(" ", "T")), "d MMM") : ""
-
-function describe(r: RequestRec) {
-  if (r.type === "hours") return `${fmtHours(r.hours)} on ${day(r.date)}`
-  return `Take over “${r.expand?.task?.title ?? "task"}”`
+function useDescribe() {
+  const { t } = useTranslation()
+  const locale = useDateLocale()
+  return (r: RequestRec) => {
+    if (r.type === "hours") {
+      const date = r.date
+        ? format(parseISO(r.date.replace(" ", "T")), "d MMM", { locale })
+        : ""
+      return t("requests.hoursOn", { hours: fmtHours(r.hours), date })
+    }
+    return t("requests.takeOver", {
+      title: r.expand?.task?.title ?? t("requests.taskFallback"),
+    })
+  }
 }
 
 export function RequestsPage() {
+  const { t } = useTranslation()
   const me = pb.authStore.record?.id ?? ""
   const isAdmin = can("hours.manage")
   const [items, setItems] = useState<RequestRec[] | null>(null)
@@ -43,7 +54,7 @@ export function RequestsPage() {
       .list()
       .then(setItems)
       .catch((e) =>
-        toast.error(extractErrorMessage(e, "Could not load requests"))
+        toast.error(extractErrorMessage(e, t("requests.loadFailed")))
       )
   }, [])
   useEffect(load, [load])
@@ -54,7 +65,7 @@ export function RequestsPage() {
       toast.success(msg)
       load()
     } catch (e) {
-      toast.error(extractErrorMessage(e, "Something went wrong"))
+      toast.error(extractErrorMessage(e, t("common.somethingWrong")))
     }
   }
 
@@ -78,10 +89,9 @@ export function RequestsPage() {
   return (
     <div className="mx-auto w-full max-w-3xl space-y-4 p-4 md:p-6">
       <div>
-        <h1 className="text-2xl font-semibold">Requests</h1>
+        <h1 className="text-2xl font-semibold">{t("requests.title")}</h1>
         <p className="text-sm text-muted-foreground">
-          Hours for older dates and task handoffs. Every answer comes with a
-          reason you can see.
+          {t("requests.subtitle")}
         </p>
       </div>
 
@@ -91,17 +101,19 @@ export function RequestsPage() {
         <>
           <Card>
             <CardHeader>
-              <CardTitle>Waiting for you · {inbox.length}</CardTitle>
+              <CardTitle>
+                {t("requests.waitingForYou", { count: inbox.length })}
+              </CardTitle>
               <CardDescription>
                 {isAdmin
-                  ? "Hour requests from members and tasks offered to you"
-                  : "Tasks offered to you"}
+                  ? t("requests.waitingAdmin")
+                  : t("requests.waitingMember")}
               </CardDescription>
             </CardHeader>
             <CardContent className="divide-y">
               {inbox.length === 0 && (
                 <p className="text-sm text-muted-foreground">
-                  Nothing to decide.
+                  {t("requests.nothingToDecide")}
                 </p>
               )}
               {inbox.map((r) => (
@@ -111,7 +123,7 @@ export function RequestsPage() {
                   onDecide={(approve, note) =>
                     run(
                       requestsApi.decide(r.id, approve, note),
-                      approve ? "Approved" : "Rejected"
+                      approve ? t("requests.approved") : t("requests.rejected")
                     )
                   }
                 />
@@ -121,15 +133,15 @@ export function RequestsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>My requests</CardTitle>
+              <CardTitle>{t("requests.myRequests")}</CardTitle>
               <CardDescription>
-                To ask for older hours, pick the date in “Log hours” on My week
+                {t("requests.myRequestsDesc")}
               </CardDescription>
             </CardHeader>
             <CardContent className="divide-y">
               {mine.length === 0 && (
                 <p className="text-sm text-muted-foreground">
-                  No requests yet.
+                  {t("requests.noRequests")}
                 </p>
               )}
               {mine.map((r) => (
@@ -138,8 +150,10 @@ export function RequestsPage() {
                   r={r}
                   who={
                     r.type === "handoff"
-                      ? `to ${r.expand?.recipient?.name}`
-                      : "to admins"
+                      ? t("requests.toPerson", {
+                          name: r.expand?.recipient?.name,
+                        })
+                      : t("requests.toAdmins")
                   }
                 >
                   {r.status === "pending" && (
@@ -147,10 +161,13 @@ export function RequestsPage() {
                       size="sm"
                       variant="ghost"
                       onClick={() =>
-                        run(requestsApi.withdraw(r.id), "Withdrawn")
+                        run(
+                          requestsApi.withdraw(r.id),
+                          t("requests.withdrawn")
+                        )
                       }
                     >
-                      Withdraw
+                      {t("requests.withdraw")}
                     </Button>
                   )}
                 </Row>
@@ -161,14 +178,16 @@ export function RequestsPage() {
           {isAdmin && decided.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>Decided hour requests</CardTitle>
+                <CardTitle>{t("requests.decided")}</CardTitle>
               </CardHeader>
               <CardContent className="divide-y">
                 {decided.map((r) => (
                   <Row
                     key={r.id}
                     r={r}
-                    who={`from ${r.expand?.requester?.name}`}
+                    who={t("requests.fromPerson", {
+                      name: r.expand?.requester?.name,
+                    })}
                   />
                 ))}
               </CardContent>
@@ -189,6 +208,8 @@ function Row({
   who: string
   children?: React.ReactNode
 }) {
+  const { t } = useTranslation()
+  const describe = useDescribe()
   return (
     <div className="flex flex-wrap items-start gap-x-3 gap-y-1 py-2.5 text-sm">
       <div className="min-w-0 flex-1">
@@ -197,12 +218,14 @@ function Row({
           <span className="font-normal text-muted-foreground">· {who}</span>
         </p>
         {r.note && <p className="text-muted-foreground">{r.note}</p>}
-        {r.decision_note && <p className="mt-0.5">Answer: {r.decision_note}</p>}
+        {r.decision_note && <p className="mt-0.5">
+            {t("requests.answer", { note: r.decision_note })}
+          </p>}
       </div>
       <span
         className={cn("rounded-md px-2 py-0.5 text-xs", STATUS_CLASS[r.status])}
       >
-        {r.status}
+        {t(`requests.status.${r.status}`)}
       </span>
       {children}
     </div>
@@ -216,6 +239,8 @@ function InboxRow({
   r: RequestRec
   onDecide: (approve: boolean, note: string) => void
 }) {
+  const { t } = useTranslation()
+  const describe = useDescribe()
   const [note, setNote] = useState("")
   const needsReason = r.type === "hours"
   return (
@@ -224,7 +249,8 @@ function InboxRow({
         <p className="font-medium">
           {describe(r)}{" "}
           <span className="font-normal text-muted-foreground">
-            · from {r.expand?.requester?.name}
+            ·{" "}
+            {t("requests.fromPerson", { name: r.expand?.requester?.name })}
           </span>
         </p>
         {r.note && <p className="text-muted-foreground">{r.note}</p>}
@@ -233,13 +259,15 @@ function InboxRow({
         <Input
           className="min-w-48 flex-1"
           placeholder={
-            needsReason ? "Reason (required to reject)" : "Comment (optional)"
+            needsReason
+              ? t("requests.reasonPlaceholder")
+              : t("requests.commentPlaceholder")
           }
           value={note}
           onChange={(e) => setNote(e.target.value)}
         />
         <Button size="sm" onClick={() => onDecide(true, note)}>
-          {r.type === "handoff" ? "Accept" : "Approve"}
+          {r.type === "handoff" ? t("requests.accept") : t("requests.approve")}
         </Button>
         <Button
           size="sm"
@@ -247,7 +275,7 @@ function InboxRow({
           disabled={needsReason && !note.trim()}
           onClick={() => onDecide(false, note)}
         >
-          {r.type === "handoff" ? "Decline" : "Reject"}
+          {r.type === "handoff" ? t("requests.decline") : t("requests.reject")}
         </Button>
       </div>
     </div>

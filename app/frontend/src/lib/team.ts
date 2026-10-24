@@ -111,6 +111,7 @@ export const SERIES = [
   "Shapers Voice",
 ] as const
 
+// English fallback; the UI translates via t(`common.state.${state}`).
 export const STATE_LABEL: Record<AttendanceState, string> = {
   present: "Present",
   remote: "Remote",

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { format, parseISO } from "date-fns"
 import { toast } from "sonner"
+import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -19,6 +20,7 @@ import {
   TierBadge,
   WeekBars,
 } from "@/components/team/widgets"
+import { useDateLocale } from "@/i18n"
 import { extractErrorMessage } from "@/lib/error"
 import { cn } from "@/lib/utils"
 import {
@@ -44,26 +46,26 @@ export function MemberDetailView({
   canModerate?: boolean
   onChanged: () => void
 }) {
+  const { t } = useTranslation()
+  const locale = useDateLocale()
   const restoreTask = async (id: string) => {
     try {
       await requestsApi.restoreTask(id)
-      toast.success("Task counts as done again")
+      toast.success(t("memberDetail.restored"))
       onChanged()
     } catch (e) {
-      toast.error(extractErrorMessage(e, "Could not restore"))
+      toast.error(extractErrorMessage(e, t("memberDetail.restoreFailed")))
     }
   }
   const cancelTask = async (id: string, title: string) => {
-    const reason = window.prompt(
-      `Why should “${title}” not count as done? The member will see this.`
-    )
+    const reason = window.prompt(t("memberDetail.cancelPrompt", { title }))
     if (!reason?.trim()) return
     try {
       await requestsApi.cancelTask(id, reason.trim())
-      toast.success("Task cancelled")
+      toast.success(t("memberDetail.cancelled"))
       onChanged()
     } catch (e) {
-      toast.error(extractErrorMessage(e, "Could not cancel"))
+      toast.error(extractErrorMessage(e, t("memberDetail.cancelFailed")))
     }
   }
   const s = detail.summary
@@ -78,10 +80,13 @@ export function MemberDetailView({
         <Card className="@3xl:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              This week <TierBadge tier={s.tier} />
+              {t("memberDetail.thisWeek")} <TierBadge tier={s.tier} />
             </CardTitle>
             <CardDescription>
-              {s.tier} commitment: {fmtHours(s.weekly_hours)} per week
+              {t("memberDetail.commitment", {
+                tier: s.tier,
+                hours: fmtHours(s.weekly_hours),
+              })}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -90,7 +95,7 @@ export function MemberDetailView({
                 {fmtHours(s.this_week)}
               </span>
               <span className="pb-1 text-muted-foreground">
-                of {fmtHours(s.weekly_hours)}
+                {t("memberDetail.ofGoal", { hours: fmtHours(s.weekly_hours) })}
               </span>
               <span
                 className={
@@ -103,10 +108,12 @@ export function MemberDetailView({
                 }
               >
                 {s.progress >= 1
-                  ? "Goal reached 🎉"
+                  ? t("memberDetail.goalReached")
                   : s.behind
-                    ? `${fmtHours(Math.max(0, s.expected - s.this_week))} behind pace`
-                    : "On track"}
+                    ? t("memberDetail.behindPace", {
+                        hours: fmtHours(Math.max(0, s.expected - s.this_week)),
+                      })
+                    : t("memberDetail.onTrack")}
               </span>
             </div>
             <ProgressBar
@@ -120,25 +127,29 @@ export function MemberDetailView({
         {/* Streak + clock-in */}
         <Card>
           <CardHeader>
-            <CardTitle>Streak</CardTitle>
+            <CardTitle>{t("memberDetail.streak")}</CardTitle>
             <CardDescription>
-              Weeks in a row at or above your goal
+              {t("memberDetail.streakDesc")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-4xl font-semibold">
               {s.streak > 0 ? "🔥" : "🌱"} {s.streak}
               <span className="ml-1 text-base font-normal text-muted-foreground">
-                week{s.streak === 1 ? "" : "s"}
+                {t("memberDetail.weeks", { count: s.streak })}
               </span>
             </p>
             <div className="grid grid-cols-2 gap-2 text-sm">
               <div className="rounded-lg bg-muted/60 p-2">
-                <p className="text-xs text-muted-foreground">Showed up</p>
+                <p className="text-xs text-muted-foreground">
+                  {t("memberDetail.showedUp")}
+                </p>
                 <p className="font-semibold">{pct(s.attendance.rate)}</p>
               </div>
               <div className="rounded-lg bg-muted/60 p-2">
-                <p className="text-xs text-muted-foreground">Tasks done</p>
+                <p className="text-xs text-muted-foreground">
+                  {t("memberDetail.tasksDone")}
+                </p>
                 <p className="font-semibold">{s.tasks_done}</p>
               </div>
             </div>
@@ -148,8 +159,8 @@ export function MemberDetailView({
         {editable && openNow.length > 0 && (
           <Card className="border-primary/40 bg-primary/5 @3xl:col-span-3">
             <CardHeader>
-              <CardTitle>Clock in</CardTitle>
-              <CardDescription>A meeting is happening now</CardDescription>
+              <CardTitle>{t("memberDetail.clockIn")}</CardTitle>
+              <CardDescription>{t("memberDetail.clockInDesc")}</CardDescription>
             </CardHeader>
             <CardContent className="divide-y">
               {openNow.map((m) => (
@@ -172,8 +183,10 @@ export function MemberDetailView({
         {/* Hours history */}
         <Card className="@3xl:col-span-2">
           <CardHeader>
-            <CardTitle>Hours, last 6 weeks</CardTitle>
-            <CardDescription>Green weeks reached the goal</CardDescription>
+            <CardTitle>{t("memberDetail.hoursHistory")}</CardTitle>
+            <CardDescription>
+              {t("memberDetail.hoursHistoryDesc")}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <WeekBars weeks={s.weeks} height={140} />
@@ -189,13 +202,13 @@ export function MemberDetailView({
         {/* Upcoming */}
         <Card>
           <CardHeader>
-            <CardTitle>Next meetings</CardTitle>
-            <CardDescription>From the team calendar</CardDescription>
+            <CardTitle>{t("memberDetail.nextMeetings")}</CardTitle>
+            <CardDescription>{t("memberDetail.nextMeetingsDesc")}</CardDescription>
           </CardHeader>
           <CardContent className="divide-y">
             {upcoming.length === 0 && (
               <p className="text-sm text-muted-foreground">
-                Nothing in the next two weeks.
+                {t("memberDetail.noUpcoming")}
               </p>
             )}
             {upcoming.slice(0, 5).map((m) => (
@@ -208,45 +221,55 @@ export function MemberDetailView({
         <Card className="@3xl:col-span-3">
           <CardHeader>
             <CardTitle>
-              Finished tasks ·{" "}
-              {(detail.tasks_done ?? []).filter((t) => !t.cancelled).length}
+              {t("memberDetail.finishedTasks", {
+                count: (detail.tasks_done ?? []).filter((tk) => !tk.cancelled)
+                  .length,
+              })}
             </CardTitle>
             <CardDescription>
-              Completed on the board, newest first
+              {t("memberDetail.finishedTasksDesc")}
             </CardDescription>
           </CardHeader>
           <CardContent>
             {(detail.tasks_done ?? []).length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                No finished tasks yet.
+                {t("memberDetail.noFinished")}
               </p>
             ) : (
               <div className="max-h-64 divide-y overflow-y-auto text-sm">
-                {detail.tasks_done.map((t) => (
-                  <div key={t.id} className="flex items-center gap-3 py-1.5">
+                {detail.tasks_done.map((tk) => (
+                  <div key={tk.id} className="flex items-center gap-3 py-1.5">
                     <span className="w-16 shrink-0 text-muted-foreground">
-                      {format(parseISO(t.done_at.replace(" ", "T")), "d MMM")}
+                      {format(parseISO(tk.done_at.replace(" ", "T")), "d MMM", {
+                        locale,
+                      })}
                     </span>
                     <span
                       className={cn(
                         "min-w-0 flex-1 truncate",
-                        t.cancelled && "text-muted-foreground line-through"
+                        tk.cancelled && "text-muted-foreground line-through"
                       )}
                       title={
-                        t.cancelled
-                          ? `Cancelled: ${t.cancel_reason}`
+                        tk.cancelled
+                          ? t("memberDetail.cancelledReasonTitle", {
+                              reason: tk.cancel_reason,
+                            })
                           : undefined
                       }
                     >
-                      {t.title}
+                      {tk.title}
                     </span>
-                    {t.cancelled ? (
+                    {tk.cancelled ? (
                       <span className="truncate text-xs text-rose-600 dark:text-rose-400">
-                        Cancelled{t.cancel_reason && `: ${t.cancel_reason}`}
+                        {tk.cancel_reason
+                          ? t("memberDetail.cancelledLabelReason", {
+                              reason: tk.cancel_reason,
+                            })
+                          : t("memberDetail.cancelledLabel")}
                       </span>
                     ) : (
                       <span className="truncate text-xs text-muted-foreground">
-                        {t.project}
+                        {tk.project}
                       </span>
                     )}
                     {canModerate && (
@@ -255,10 +278,12 @@ export function MemberDetailView({
                         variant="ghost"
                         className="h-6 px-2 text-xs"
                         onClick={() =>
-                          t.cancelled ? restoreTask(t.id) : cancelTask(t.id, t.title)
+                          tk.cancelled ? restoreTask(tk.id) : cancelTask(tk.id, tk.title)
                         }
                       >
-                        {t.cancelled ? "Restore" : "Cancel"}
+                        {tk.cancelled
+                          ? t("memberDetail.restore")
+                          : t("memberDetail.cancel")}
                       </Button>
                     )}
                   </div>
@@ -271,9 +296,9 @@ export function MemberDetailView({
         {/* Attendance */}
         <Card className="@3xl:col-span-3">
           <CardHeader>
-            <CardTitle>Attendance</CardTitle>
+            <CardTitle>{t("memberDetail.attendance")}</CardTitle>
             <CardDescription>
-              All meetings of your series so far
+              {t("memberDetail.attendanceDesc")}
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-6 @3xl:grid-cols-2">
@@ -310,6 +335,7 @@ function QuickLog({
   userId: string
   onLogged: () => void
 }) {
+  const { t } = useTranslation()
   const [hours, setHours] = useState<number | "">("")
   const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"))
   const [note, setNote] = useState("")
@@ -322,7 +348,7 @@ function QuickLog({
     try {
       if (asRequest) {
         await requestsApi.hours(date, h, note.trim())
-        toast.success("Request sent to the admins — see Requests")
+        toast.success(t("memberDetail.requestSent"))
         setHours("")
         setNote("")
         return
@@ -333,12 +359,12 @@ function QuickLog({
         h,
         note.trim()
       )
-      toast.success(`Logged ${fmtHours(h)}`)
+      toast.success(t("memberDetail.logged", { hours: fmtHours(h) }))
       setHours("")
       setNote("")
       onLogged()
     } catch (e) {
-      toast.error(extractErrorMessage(e, "Something went wrong"))
+      toast.error(extractErrorMessage(e, t("common.somethingWrong")))
     } finally {
       setBusy(false)
     }
@@ -346,7 +372,7 @@ function QuickLog({
 
   return (
     <div className="space-y-2 rounded-xl border bg-muted/30 p-3">
-      <p className="text-sm font-medium">Log hours</p>
+      <p className="text-sm font-medium">{t("memberDetail.logHours")}</p>
       <div className="flex flex-wrap gap-2">
         {QUICK_HOURS.map((h) => (
           <Button
@@ -371,7 +397,7 @@ function QuickLog({
           type="number"
           step="0.25"
           min="0.25"
-          placeholder="Hours"
+          placeholder={t("memberDetail.hoursPlaceholder")}
           className="w-24"
           value={hours}
           onChange={(e) =>
@@ -386,7 +412,7 @@ function QuickLog({
           onChange={(e) => setDate(e.target.value)}
         />
         <Input
-          placeholder="What did you work on? (optional)"
+          placeholder={t("memberDetail.notePlaceholder")}
           className="min-w-40 flex-1"
           value={note}
           onChange={(e) => setNote(e.target.value)}
@@ -396,11 +422,11 @@ function QuickLog({
           size="sm"
           disabled={busy || !hours || (asRequest && !note.trim())}
         >
-          {asRequest ? "Send request" : "Log"}
+          {asRequest ? t("memberDetail.sendRequest") : t("memberDetail.log")}
         </Button>
         {asRequest && (
           <p className="w-full text-xs text-muted-foreground">
-            Older than yesterday: the admins approve it. Say what you worked on.
+            {t("memberDetail.olderNote")}
           </p>
         )}
       </form>
@@ -419,6 +445,8 @@ function RecentLogs({
   onChanged: () => void
   refreshKey: unknown
 }) {
+  const { t } = useTranslation()
+  const locale = useDateLocale()
   const [logs, setLogs] = useState<HourLog[]>([])
   const [tick, setTick] = useState(0)
   useEffect(() => {
@@ -432,13 +460,13 @@ function RecentLogs({
   return (
     <div className="mt-4 space-y-1">
       <p className="text-xs font-medium text-muted-foreground">
-        Recent entries
+        {t("memberDetail.recentEntries")}
       </p>
       <div className="max-h-48 divide-y overflow-y-auto text-sm">
         {logs.map((l) => (
           <div key={l.id} className="flex items-center gap-3 py-1.5">
             <span className="w-20 shrink-0 text-muted-foreground">
-              {format(parseISO(l.date), "d MMM")}
+              {format(parseISO(l.date), "d MMM", { locale })}
             </span>
             <span className="w-14 shrink-0 font-medium tabular-nums">
               {fmtHours(l.hours)}
@@ -457,7 +485,7 @@ function RecentLogs({
                   onChanged()
                 }}
               >
-                Undo
+                {t("memberDetail.undo")}
               </Button>
             )}
           </div>
@@ -476,6 +504,7 @@ export function CheckinButtons({
   state: string
   onDone: () => void
 }) {
+  const { t } = useTranslation()
   const [busy, setBusy] = useState(false)
   if (state === "present" || state === "remote") {
     return <StateBadge state={state} />
@@ -484,10 +513,12 @@ export function CheckinButtons({
     setBusy(true)
     try {
       await teamApi.checkin(meetingId, remote)
-      toast.success(remote ? "Joined remotely ✔" : "You're in ✔")
+      toast.success(
+        remote ? t("memberDetail.joinedRemote") : t("memberDetail.youreIn")
+      )
       onDone()
     } catch (e) {
-      toast.error(extractErrorMessage(e, "Something went wrong"))
+      toast.error(extractErrorMessage(e, t("common.somethingWrong")))
     } finally {
       setBusy(false)
     }
@@ -495,7 +526,7 @@ export function CheckinButtons({
   return (
     <div className="flex gap-2">
       <Button size="sm" disabled={busy} onClick={() => go(false)}>
-        I'm here
+        {t("memberDetail.imHere")}
       </Button>
       <Button
         size="sm"
@@ -503,7 +534,7 @@ export function CheckinButtons({
         disabled={busy}
         onClick={() => go(true)}
       >
-        Remote
+        {t("memberDetail.remote")}
       </Button>
     </div>
   )

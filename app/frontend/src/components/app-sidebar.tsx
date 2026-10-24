@@ -1,4 +1,5 @@
 import { NavLink, useLocation } from "react-router"
+import { useTranslation } from "react-i18next"
 
 import { HugeiconsIcon } from "@hugeicons/react"
 
@@ -17,10 +18,12 @@ import {
 } from "@/components/ui/sidebar"
 import { useSidebar } from "@/components/ui/sidebar-context"
 import { Logo } from "@/components/logo"
+import { LanguageSwitcher } from "@/components/language-switcher"
 import { navGroups } from "@/lib/navigation"
 import { can } from "@/lib/permissions"
 
 export function AppSidebar() {
+  const { t } = useTranslation()
   const { pathname } = useLocation()
   const { setOpenMobile } = useSidebar()
   // On a phone the sidebar is a sheet that does not close itself, so without
@@ -54,14 +57,16 @@ export function AppSidebar() {
       <SidebarContent>
         {navGroups.map((group) => (
           <SidebarGroup key={group.label}>
-            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+            <SidebarGroupLabel>
+              {group.labelKey ? t(group.labelKey) : group.label}
+            </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {group.items.filter((item) => !item.permission || can(item.permission)).map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
                       asChild
-                      tooltip={item.title}
+                      tooltip={item.titleKey ? t(item.titleKey) : item.title}
                       isActive={
                         pathname === item.url ||
                         pathname.startsWith(item.url + "/")
@@ -69,7 +74,7 @@ export function AppSidebar() {
                     >
                       <NavLink to={item.url} onClick={closeMobileSidebar}>
                         <HugeiconsIcon icon={item.icon} strokeWidth={2} />
-                        <span>{item.title}</span>
+                        <span>{item.titleKey ? t(item.titleKey) : item.title}</span>
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -84,6 +89,7 @@ export function AppSidebar() {
         <div className="px-3 py-2 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
           <p className="font-medium text-foreground/70">Shapers</p>
           <p className="mt-0.5">Press ⌘B to toggle</p>
+          <LanguageSwitcher className="mt-2" />
         </div>
       </SidebarFooter>
 

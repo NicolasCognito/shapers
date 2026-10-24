@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { differenceInCalendarDays, format, parseISO } from "date-fns"
 import { Link } from "react-router"
+import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useDateLocale } from "@/i18n"
 import { extractErrorMessage } from "@/lib/error"
 import { pb } from "@/lib/pocketbase"
 import { requestsApi } from "@/lib/team"
@@ -41,6 +43,8 @@ const selectClass =
   "h-7 rounded-md border bg-background px-1.5 text-xs outline-none focus:ring-2 focus:ring-ring"
 
 export function MyTasksPage() {
+  const { t: tr } = useTranslation()
+  const dateLocale = useDateLocale()
   const me = pb.authStore.record?.id ?? ""
   const [tasks, setTasks] = useState<TaskRec[] | null>(null)
   const [states, setStates] = useState<StateRec[]>([])
@@ -66,7 +70,7 @@ export function MyTasksPage() {
 
   useEffect(() => {
     load().catch((e) =>
-      toast.error(extractErrorMessage(e, "Could not load tasks"))
+      toast.error(extractErrorMessage(e, tr("myTasks.loadFailed")))
     )
     pb.collection("users")
       .getFullList<UserRec>({
@@ -87,7 +91,7 @@ export function MyTasksPage() {
       if (msg) toast.success(msg)
       if (patch.state || patch.assignees) load()
     } catch (e) {
-      toast.error(extractErrorMessage(e, "Could not update task"))
+      toast.error(extractErrorMessage(e, tr("myTasks.updateFailed")))
       load()
     }
   }
@@ -103,18 +107,18 @@ export function MyTasksPage() {
     )
     const today = new Date()
     const g: Record<string, TaskRec[]> = {
-      Overdue: [],
-      "This week": [],
-      Later: [],
-      "No date": [],
+      overdue: [],
+      thisWeek: [],
+      later: [],
+      noDate: [],
     }
     for (const t of open) {
-      if (!t.due_date) g["No date"].push(t)
+      if (!t.due_date) g.noDate.push(t)
       else {
         const d = differenceInCalendarDays(parseISO(t.due_date), today)
-        if (d < 0) g.Overdue.push(t)
-        else if (d <= 7) g["This week"].push(t)
-        else g.Later.push(t)
+        if (d < 0) g.overdue.push(t)
+        else if (d <= 7) g.thisWeek.push(t)
+        else g.later.push(t)
       }
     }
     return g
@@ -141,9 +145,9 @@ export function MyTasksPage() {
           onCheckedChange={(v) => {
             const target = firstOf(t.project, v ? "completed" : "pending")
             if (target)
-              update(t, { state: target.id }, v ? "Done ✔" : undefined)
+              update(t, { state: target.id }, v ? tr("myTasks.doneToast") : undefined)
           }}
-          aria-label="Done"
+          aria-label={tr("myTasks.doneAria")}
         />
         <div className="min-w-0 flex-1">
           <Link
@@ -161,7 +165,11 @@ export function MyTasksPage() {
           </p>
           {cancelled && (
             <p className="text-xs text-rose-600 dark:text-rose-400">
-              Cancelled by an admin{t.cancel_reason && `: ${t.cancel_reason}`}
+              {t.cancel_reason
+                ? tr("myTasks.cancelledByAdminReason", {
+                    reason: t.cancel_reason,
+                  })
+                : tr("myTasks.cancelledByAdmin")}
             </p>
           )}
         </div>
@@ -171,7 +179,7 @@ export function MyTasksPage() {
             disabled={cancelled}
             value={t.state}
             onChange={(e) => update(t, { state: e.target.value })}
-            aria-label="Status"
+            aria-label={tr("myTasks.status")}
           >
             {projectStates.map((s) => (
               <option key={s.id} value={s.id}>
@@ -185,7 +193,7 @@ export function MyTasksPage() {
             onChange={(e) =>
               update(t, { priority: e.target.value as Priority })
             }
-            aria-label="Priority"
+            aria-label={tr("myTasks.priority")}
             style={{
               color: PRIORITY_META.find((p) => p.value === t.priority)?.color,
             }}
@@ -210,14 +218,14 @@ export function MyTasksPage() {
                   : "",
               })
             }
-            aria-label="Due date"
+            aria-label={tr("myTasks.dueDate")}
           />
           {handingTo ? (
             <Link
               to="/requests"
               className="text-xs text-amber-600 hover:underline dark:text-amber-400"
             >
-              Waiting for {handingTo.name}
+              {tr("myTasks.waitingFor", { name: handingTo.name })}
             </Link>
           ) : (
             !isDone &&
@@ -231,15 +239,17 @@ export function MyTasksPage() {
                   if (!to) return
                   try {
                     await requestsApi.handoff(t.id, to.id)
-                    toast.success(`Asked ${to.name} to take it over`)
+                    toast.success(tr("myTasks.handedTo", { name: to.name }))
                     load()
                   } catch (err) {
-                    toast.error(extractErrorMessage(err, "Could not hand over"))
+                    toast.error(
+                      extractErrorMessage(err, tr("myTasks.handoverFailed"))
+                    )
                   }
                 }}
-                aria-label="Hand to someone"
+                aria-label={tr("myTasks.handToAria")}
               >
-                <option value="">Hand to…</option>
+                <option value="">{tr("myTasks.handTo")}</option>
                 {users
                   .filter((u) => u.id !== me)
                   .map((u) => (
@@ -259,17 +269,18 @@ export function MyTasksPage() {
     <div className="mx-auto w-full max-w-5xl space-y-4 p-4 md:p-6">
       <div className="flex items-end gap-2">
         <div className="mr-auto">
-          <h1 className="text-2xl font-semibold">My tasks</h1>
+          <h1 className="text-2xl font-semibold">{tr("myTasks.title")}</h1>
           <p className="text-sm text-muted-foreground">
-            Everything assigned to you, across all projects
-            {tasks && ` · ${openCount} open, ${done.length} done`}
+            {tr("myTasks.subtitle")}
+            {tasks &&
+              ` · ${tr("myTasks.counts", { open: openCount, done: done.length })}`}
           </p>
         </div>
         <Link
           to="/board"
           className="text-sm text-muted-foreground hover:text-foreground hover:underline"
         >
-          Open board →
+          {tr("myTasks.openBoard")}
         </Link>
       </div>
 
@@ -280,7 +291,7 @@ export function MyTasksPage() {
           {openCount === 0 && (
             <Card>
               <CardContent className="py-10 text-center text-sm text-muted-foreground">
-                Nothing open. Enjoy it 🌿
+                {tr("myTasks.nothingOpen")}
               </CardContent>
             </Card>
           )}
@@ -291,10 +302,10 @@ export function MyTasksPage() {
                   <p
                     className={cn(
                       "mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase",
-                      name === "Overdue" && "text-rose-600 dark:text-rose-400"
+                      name === "overdue" && "text-rose-600 dark:text-rose-400"
                     )}
                   >
-                    {name} · {list.length}
+                    {tr(`myTasks.group.${name}`)} · {list.length}
                   </p>
                   <div className="divide-y">
                     {list.map((t) => (
@@ -312,7 +323,7 @@ export function MyTasksPage() {
                   className="text-xs font-semibold tracking-wide text-muted-foreground uppercase hover:text-foreground"
                   onClick={() => setShowDone((v) => !v)}
                 >
-                  {showDone ? "▾" : "▸"} Done · {done.length}
+                  {showDone ? "▾" : "▸"} {tr("myTasks.done")} · {done.length}
                 </button>
                 {showDone && (
                   <div className="divide-y">
@@ -322,7 +333,7 @@ export function MyTasksPage() {
                           <Row t={t} />
                         </div>
                         <span className="text-xs text-muted-foreground">
-                          {format(parseISO(t.updated), "d MMM")}
+                          {format(parseISO(t.updated), "d MMM", { locale: dateLocale })}
                         </span>
                       </div>
                     ))}

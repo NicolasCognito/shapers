@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { useLocation, useNavigate } from "react-router"
 
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -66,6 +67,7 @@ const EXTRA_PAGE_TITLES: Record<string, string> = {
 }
 
 export function AppHeader() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
   const { user, logout } = useAuthStore()
@@ -141,7 +143,11 @@ export function AppHeader() {
             <>
               <BreadcrumbSeparator className="hidden sm:block" />
               <BreadcrumbItem>
-                <BreadcrumbPage>{currentNav.title}</BreadcrumbPage>
+                <BreadcrumbPage>
+                  {"titleKey" in currentNav && currentNav.titleKey
+                    ? t(currentNav.titleKey)
+                    : currentNav.title}
+                </BreadcrumbPage>
               </BreadcrumbItem>
             </>
           )}
