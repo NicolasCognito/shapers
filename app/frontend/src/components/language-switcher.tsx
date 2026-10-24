@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { setLanguage, type Lang } from "@/i18n"
@@ -69,6 +70,88 @@ export function LanguageSwitcher({ className }: { className?: string }) {
           </button>
         )
       })}
+    </div>
+  )
+}
+
+const NAMES: Record<Lang, string> = { en: "English", sl: "Slovenščina" }
+
+function useCurrentLang(): Lang {
+  const { i18n } = useTranslation()
+  return i18n.language?.startsWith("sl") ? "sl" : "en"
+}
+
+/** Big square choices for the Settings page. */
+export function LanguageCards() {
+  const current = useCurrentLang()
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:max-w-sm">
+      {OPTIONS.map(({ lang, Flag }) => {
+        const active = current === lang
+        return (
+          <button
+            key={lang}
+            type="button"
+            onClick={() => setLanguage(lang)}
+            aria-pressed={active}
+            className={cn(
+              "flex aspect-[4/3] flex-col items-center justify-center gap-2 rounded-xl border-2 text-sm font-medium transition-colors",
+              active
+                ? "border-emerald-500 bg-emerald-500/10 text-foreground"
+                : "border-border text-muted-foreground hover:bg-muted/50"
+            )}
+          >
+            <span className="scale-[2.2]">
+              <Flag />
+            </span>
+            <span className="mt-2">{NAMES[lang]}</span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+/** Sidebar footer: a rectangle showing the language; click to unfold both choices. */
+export function LanguageMenu({ className }: { className?: string }) {
+  const { t } = useTranslation()
+  const current = useCurrentLang()
+  const [open, setOpen] = useState(false)
+  const Current = OPTIONS.find((o) => o.lang === current)!
+  return (
+    <div className={cn("overflow-hidden rounded-lg border bg-background/60", className)}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-label={t("common.language")}
+        className="flex w-full items-center gap-2 px-2.5 py-2 text-xs font-medium text-foreground hover:bg-muted/50"
+      >
+        <Current.Flag />
+        <span className="flex-1 text-left">{NAMES[current]}</span>
+        <span className={cn("text-muted-foreground transition-transform", open && "rotate-180")}>▾</span>
+      </button>
+      {open && (
+        <div className="border-t p-1">
+          {OPTIONS.map(({ lang, Flag }) => (
+            <button
+              key={lang}
+              type="button"
+              onClick={() => {
+                setLanguage(lang)
+                setOpen(false)
+              }}
+              className={cn(
+                "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors",
+                current === lang ? "bg-emerald-500 font-medium text-white dark:bg-emerald-600" : "hover:bg-muted"
+              )}
+            >
+              <Flag />
+              {NAMES[lang]}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

@@ -23,7 +23,7 @@ import { ModelCopyDialog } from "@/components/model-copy-dialog"
 import { ModelSheet } from "@/components/model-sheet"
 import { MemorySettingsCard } from "@/components/memory-settings-card"
 import { useTheme } from "@/components/theme-provider"
-import { LanguageSwitcher } from "@/components/language-switcher"
+import { LanguageCards } from "@/components/language-switcher"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -168,6 +168,15 @@ export function SettingsPage() {
           </Button>
         </div>
       )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("common.language")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <LanguageCards />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -418,7 +427,6 @@ export function SettingsPage() {
 const THEME_OPTIONS = [
   { value: "light" as const, labelKey: "settings.themeLight", icon: Sun03Icon },
   { value: "dark" as const, labelKey: "settings.themeDark", icon: Moon02Icon },
-  { value: "system" as const, labelKey: "settings.themeSystem", icon: ComputerIcon },
 ]
 
 function AppearanceCard() {
@@ -461,7 +469,14 @@ function AppearanceCard() {
           <Label>{t("settings.theme")}</Label>
           <div className="flex gap-2">
             {THEME_OPTIONS.map((option) => {
-              const active = theme === option.value
+              // "system" is no longer offered: highlight whatever it resolves to.
+              const shown =
+                theme === "system"
+                  ? document.documentElement.classList.contains("dark")
+                    ? "dark"
+                    : "light"
+                  : theme
+              const active = shown === option.value
               const Icon = option.icon
               return (
                 <button
@@ -488,12 +503,6 @@ function AppearanceCard() {
           <p className="text-xs text-muted-foreground">
             {t("settings.themeHint")}
           </p>
-        </div>
-        <div className="mt-6 flex flex-col gap-2">
-          <Label>{t("common.language")}</Label>
-          <div>
-            <LanguageSwitcher />
-          </div>
         </div>
       </CardContent>
     </Card>

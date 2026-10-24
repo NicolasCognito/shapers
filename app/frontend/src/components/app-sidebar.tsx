@@ -1,3 +1,4 @@
+import { LanguageMenu } from "@/components/language-switcher"
 import { NavLink, useLocation } from "react-router"
 import { useTranslation } from "react-i18next"
 
@@ -85,6 +86,7 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter>
+        <LanguageMenu className="mx-1 group-data-[collapsible=icon]:hidden" />
         <div className="px-3 py-2 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
           <p className="font-medium text-foreground/70">Shapers</p>
           <p className="mt-0.5">{t("sidebar.toggleHint")}</p>
