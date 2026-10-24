@@ -11,8 +11,19 @@ import {
   WeekBars,
 } from "@/components/team/widgets"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { can } from "@/lib/permissions"
@@ -67,13 +78,21 @@ export function TeamPage() {
             <TabsTrigger value="attendance">Attendance</TabsTrigger>
           </TabsList>
           <TabsContent value="overview" className="mt-4">
-            <OverviewTab data={data} onSelect={setSelected} onRollCall={setRollCall} />
+            <OverviewTab
+              data={data}
+              onSelect={setSelected}
+              onRollCall={setRollCall}
+            />
           </TabsContent>
           <TabsContent value="members" className="mt-4">
             <MembersTab members={data.members} onSelect={setSelected} />
           </TabsContent>
           <TabsContent value="attendance" className="mt-4">
-            <AttendanceTab data={data} onRollCall={setRollCall} onSelect={setSelected} />
+            <AttendanceTab
+              data={data}
+              onRollCall={setRollCall}
+              onSelect={setSelected}
+            />
           </TabsContent>
         </Tabs>
       )}
@@ -104,7 +123,8 @@ function OverviewTab({
   const cur = data.weeks[data.weeks.length - 1]
   const last = data.weeks[data.weeks.length - 2]
   const behind = m.filter((x) => x.behind)
-  const avgAttendance = m.reduce((a, x) => a + x.attendance.rate, 0) / Math.max(1, m.length)
+  const avgAttendance =
+    m.reduce((a, x) => a + x.attendance.rate, 0) / Math.max(1, m.length)
   const tasksDone = m.reduce((a, x) => a + x.tasks_done, 0)
   const recent = [...data.meetings].reverse().slice(0, 6)
 
@@ -138,18 +158,28 @@ function OverviewTab({
         <StatTile
           label="Showed up"
           value={pct(avgAttendance)}
-          tone={avgAttendance >= 0.85 ? "good" : avgAttendance < 0.7 ? "bad" : undefined}
+          tone={
+            avgAttendance >= 0.85
+              ? "good"
+              : avgAttendance < 0.7
+                ? "bad"
+                : undefined
+          }
           hint="present or remote, all series"
         />
-        <StatTile label="Tasks done" value={tasksDone} hint="completed on the board" />
+        <StatTile
+          label="Tasks done"
+          value={tasksDone}
+          hint="completed on the board"
+        />
       </div>
 
       <Card className="lg:col-span-2">
         <CardHeader>
           <CardTitle>Organisation hours</CardTitle>
           <CardDescription>
-            All members per week; dashed line = total commitment. Members at goal:{" "}
-            {data.weeks.map((w) => w.met_count).join(" → ")}
+            All members per week; dashed line = total commitment. Members at
+            goal: {data.weeks.map((w) => w.met_count).join(" → ")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -160,10 +190,16 @@ function OverviewTab({
       <Card>
         <CardHeader>
           <CardTitle>Needs attention</CardTitle>
-          <CardDescription>Behind on hours and missing meetings</CardDescription>
+          <CardDescription>
+            Behind on hours and missing meetings
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
-          {attention.length === 0 && <p className="text-sm text-muted-foreground">Everyone looks fine.</p>}
+          {attention.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              Everyone looks fine.
+            </p>
+          )}
           {attention.map(({ x }) => (
             <button
               key={x.id}
@@ -171,9 +207,12 @@ function OverviewTab({
               className="flex w-full items-center gap-2 rounded-lg p-2 text-left hover:bg-muted"
             >
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium">{x.name}</span>
+                <span className="block truncate text-sm font-medium">
+                  {x.name}
+                </span>
                 <span className="text-xs text-muted-foreground">
-                  {fmtHours(x.this_week)} / {fmtHours(x.weekly_hours)} · showed up {pct(x.attendance.rate)}
+                  {fmtHours(x.this_week)} / {fmtHours(x.weekly_hours)} · showed
+                  up {pct(x.attendance.rate)}
                 </span>
               </span>
               <TierBadge tier={x.tier} />
@@ -191,8 +230,12 @@ function OverviewTab({
             <div key={t.tier} className="space-y-1">
               <div className="flex items-center gap-2 text-sm">
                 <TierBadge tier={t.tier} />
-                <span className="text-muted-foreground">{t.members} members</span>
-                <span className="ml-auto text-xs text-muted-foreground">{t.behind_count} behind</span>
+                <span className="text-muted-foreground">
+                  {t.members} members
+                </span>
+                <span className="ml-auto text-xs text-muted-foreground">
+                  {t.behind_count} behind
+                </span>
               </div>
               <div className="flex items-center gap-2 text-xs">
                 <span className="w-16 text-muted-foreground">Hours</span>
@@ -218,7 +261,9 @@ function OverviewTab({
             <div key={s} className="flex items-center gap-2 text-sm">
               <span className="w-28 shrink-0 truncate">{s}</span>
               <ProgressBar value={data.series[s].rate} className="flex-1" />
-              <span className="w-10 text-right tabular-nums">{pct(data.series[s].rate)}</span>
+              <span className="w-10 text-right tabular-nums">
+                {pct(data.series[s].rate)}
+              </span>
             </div>
           ))}
         </CardContent>
@@ -287,11 +332,22 @@ function MembersTab({
     })
   }, [members, sort, tier])
 
-  const H = ({ k, children, className }: { k: SortKey; children: string; className?: string }) => (
+  const H = ({
+    k,
+    children,
+    className,
+  }: {
+    k: SortKey
+    children: string
+    className?: string
+  }) => (
     <th className={cn("px-3 py-2 font-medium", className)}>
       <button
         onClick={() => setSort(k)}
-        className={cn("hover:text-foreground", sort === k && "text-foreground underline")}
+        className={cn(
+          "hover:text-foreground",
+          sort === k && "text-foreground underline"
+        )}
       >
         {children}
       </button>
@@ -303,7 +359,12 @@ function MembersTab({
       <CardContent className="pt-4">
         <div className="mb-3 flex flex-wrap gap-2">
           {["all", "Core", "Impact", "GO!"].map((t) => (
-            <Button key={t} size="sm" variant={tier === t ? "default" : "outline"} onClick={() => setTier(t)}>
+            <Button
+              key={t}
+              size="sm"
+              variant={tier === t ? "default" : "outline"}
+              onClick={() => setTier(t)}
+            >
               {t === "all" ? "All tiers" : t}
             </Button>
           ))}
@@ -313,7 +374,9 @@ function MembersTab({
             <thead className="text-left text-xs text-muted-foreground">
               <tr>
                 <H k="name">Member</H>
-                <H k="progress" className="min-w-48">This week</H>
+                <H k="progress" className="min-w-48">
+                  This week
+                </H>
                 <th className="px-3 py-2 font-medium">Last 6 weeks</th>
                 <H k="streak">Streak</H>
                 <H k="attendance">Showed up</H>
@@ -322,19 +385,31 @@ function MembersTab({
             </thead>
             <tbody className="divide-y">
               {rows.map((m) => (
-                <tr key={m.id} className="cursor-pointer hover:bg-muted/50" onClick={() => onSelect(m.id)}>
+                <tr
+                  key={m.id}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => onSelect(m.id)}
+                >
                   <td className="px-3 py-2">
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{m.name}</span>
                       <TierBadge tier={m.tier} />
-                      {m.role !== "member" && <span className="text-[10px] text-muted-foreground">{m.role}</span>}
+                      {m.role !== "member" && (
+                        <span className="text-[10px] text-muted-foreground">
+                          {m.role}
+                        </span>
+                      )}
                     </div>
                   </td>
                   <td className="px-3 py-2">
                     <div className="flex items-center gap-2">
                       <ProgressBar
                         value={m.progress}
-                        marker={m.weekly_hours ? m.expected / m.weekly_hours : undefined}
+                        marker={
+                          m.weekly_hours
+                            ? m.expected / m.weekly_hours
+                            : undefined
+                        }
                         className="flex-1"
                       />
                       <span className="w-20 text-right text-xs tabular-nums">
@@ -348,17 +423,26 @@ function MembersTab({
                         <div
                           key={w.week_start}
                           title={`${w.week_start}: ${fmtHours(w.hours)}`}
-                          className={cn("w-2 rounded-sm", w.met ? "bg-emerald-500" : "bg-primary/40")}
-                          style={{ height: `${Math.min(100, (w.hours / Math.max(1, w.quota)) * 100)}%`, minHeight: 2 }}
+                          className={cn(
+                            "w-2 rounded-sm",
+                            w.met ? "bg-emerald-500" : "bg-primary/40"
+                          )}
+                          style={{
+                            height: `${Math.min(100, (w.hours / Math.max(1, w.quota)) * 100)}%`,
+                            minHeight: 2,
+                          }}
                         />
                       ))}
                     </div>
                   </td>
-                  <td className="px-3 py-2 tabular-nums">{m.streak > 0 ? `🔥 ${m.streak}` : "—"}</td>
+                  <td className="px-3 py-2 tabular-nums">
+                    {m.streak > 0 ? `🔥 ${m.streak}` : "—"}
+                  </td>
                   <td
                     className={cn(
                       "px-3 py-2 tabular-nums",
-                      m.attendance.rate < 0.7 && "text-rose-600 dark:text-rose-400"
+                      m.attendance.rate < 0.7 &&
+                        "text-rose-600 dark:text-rose-400"
                     )}
                   >
                     {pct(m.attendance.rate)}
@@ -387,11 +471,15 @@ function AttendanceTab({
 }) {
   const [series, setSeries] = useState<string>("Community")
   const [att, setAtt] = useState<Record<string, AttendanceState>>({})
-  const [meetingMembers, setMeetingMembers] = useState<Record<string, string[]>>({})
+  const [meetingMembers, setMeetingMembers] = useState<
+    Record<string, string[]>
+  >({})
 
   useEffect(() => {
     pb.collection("attendance")
-      .getFullList<{ meeting: string; user: string; state: AttendanceState }>({ fields: "meeting,user,state" })
+      .getFullList<{ meeting: string; user: string; state: AttendanceState }>({
+        fields: "meeting,user,state",
+      })
       .then((rows) => {
         const map: Record<string, AttendanceState> = {}
         for (const r of rows) map[r.meeting + "|" + r.user] = r.state
@@ -412,13 +500,25 @@ function AttendanceTab({
     <Card>
       <CardHeader>
         <CardTitle>Attendance by series</CardTitle>
-        <CardDescription>Click a date to record or fix attendance for that meeting</CardDescription>
+        <CardDescription>
+          Click a date to record or fix attendance for that meeting
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="mb-3 flex flex-wrap gap-2">
           {SERIES.map((s) => (
-            <Button key={s} size="sm" variant={series === s ? "default" : "outline"} onClick={() => setSeries(s)}>
-              {s} {data.series[s] && <span className="ml-1 opacity-70">{pct(data.series[s].rate)}</span>}
+            <Button
+              key={s}
+              size="sm"
+              variant={series === s ? "default" : "outline"}
+              onClick={() => setSeries(s)}
+            >
+              {s}{" "}
+              {data.series[s] && (
+                <span className="ml-1 opacity-70">
+                  {pct(data.series[s].rate)}
+                </span>
+              )}
             </Button>
           ))}
         </div>
@@ -426,7 +526,9 @@ function AttendanceTab({
           <table className="text-xs">
             <thead>
               <tr>
-                <th className="sticky left-0 bg-card px-2 py-1 text-left font-medium">Member</th>
+                <th className="sticky left-0 bg-card px-2 py-1 text-left font-medium">
+                  Member
+                </th>
                 {meetings.map((m) => (
                   <th key={m.id} className="px-1 py-1">
                     <button
@@ -448,7 +550,10 @@ function AttendanceTab({
                 return (
                   <tr key={p.id} className="hover:bg-muted/40">
                     <td className="sticky left-0 bg-card px-2 py-1">
-                      <button className="hover:underline" onClick={() => onSelect(p.id)}>
+                      <button
+                        className="hover:underline"
+                        onClick={() => onSelect(p.id)}
+                      >
                         {p.name}
                       </button>
                     </td>
@@ -472,7 +577,9 @@ function AttendanceTab({
                         </td>
                       )
                     })}
-                    <td className="px-2 py-1 text-right tabular-nums">{held ? pct(came / held) : "—"}</td>
+                    <td className="px-2 py-1 text-right tabular-nums">
+                      {held ? pct(came / held) : "—"}
+                    </td>
                   </tr>
                 )
               })}
@@ -480,9 +587,14 @@ function AttendanceTab({
           </table>
         </div>
         <div className="mt-3 flex flex-wrap gap-3 text-xs text-muted-foreground">
-          {(["present", "remote", "excused", "unexcused"] as AttendanceState[]).map((s) => (
+          {(
+            ["present", "remote", "excused", "unexcused"] as AttendanceState[]
+          ).map((s) => (
             <span key={s} className="flex items-center gap-1">
-              <span className={cn("inline-block size-3 rounded", STATE_CLASS[s])} /> {STATE_LABEL[s]}
+              <span
+                className={cn("inline-block size-3 rounded", STATE_CLASS[s])}
+              />{" "}
+              {STATE_LABEL[s]}
             </span>
           ))}
         </div>
@@ -493,7 +605,13 @@ function AttendanceTab({
 
 // ---------------- Member drill-down ----------------
 
-function MemberSheet({ id, onClose }: { id: string | null; onClose: () => void }) {
+function MemberSheet({
+  id,
+  onClose,
+}: {
+  id: string | null
+  onClose: () => void
+}) {
   const [detail, setDetail] = useState<MemberDetail | null>(null)
   useEffect(() => {
     if (!id) return
@@ -502,13 +620,17 @@ function MemberSheet({ id, onClose }: { id: string | null; onClose: () => void }
   }, [id])
   return (
     <Sheet open={!!id} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent className="w-full overflow-y-auto sm:max-w-4xl">
+      <SheetContent className="w-full overflow-y-auto data-[side=right]:sm:max-w-4xl">
         <SheetHeader>
           <SheetTitle>{detail?.summary.name ?? "Member"}</SheetTitle>
         </SheetHeader>
         <div className="p-4">
           {detail ? (
-            <MemberDetailView detail={detail} editable={false} onChanged={() => {}} />
+            <MemberDetailView
+              detail={detail}
+              editable={false}
+              onChanged={() => {}}
+            />
           ) : (
             <Skeleton className="h-96" />
           )}
