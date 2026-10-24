@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 
+import { WorkTimerCard } from "@/components/team/work-timer-card"
 import { MemberDetailView } from "@/components/team/member-detail"
 import { Skeleton } from "@/components/ui/skeleton"
 import { teamApi, type MemberDetail } from "@/lib/team"
@@ -19,6 +20,8 @@ export function MyWeekPage() {
 
   useEffect(() => {
     load()
+    window.addEventListener("hours-changed", load)
+    return () => window.removeEventListener("hours-changed", load)
   }, [load])
 
   return (
@@ -33,6 +36,7 @@ export function MyWeekPage() {
           {t("myWeek.subtitle")}
         </p>
       </div>
+      <WorkTimerCard />
       {error && <p className="text-sm text-destructive">{error}</p>}
       {!detail && !error && (
         <div className="grid gap-4 lg:grid-cols-3">

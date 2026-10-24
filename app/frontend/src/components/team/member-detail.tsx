@@ -24,6 +24,7 @@ import { useDateLocale } from "@/i18n"
 import { extractErrorMessage } from "@/lib/error"
 import { can } from "@/lib/permissions"
 import { cn } from "@/lib/utils"
+import { LogDatePicker } from "@/components/team/log-date-picker"
 import {
   fmtHours,
   pct,
@@ -405,13 +406,7 @@ function QuickLog({
             setHours(e.target.value === "" ? "" : Number(e.target.value))
           }
         />
-        <Input
-          type="date"
-          className="w-40"
-          value={date}
-          max={format(new Date(), "yyyy-MM-dd")}
-          onChange={(e) => setDate(e.target.value)}
-        />
+        <LogDatePicker className="w-36" value={date} onChange={setDate} />
         <Input
           placeholder={t("memberDetail.notePlaceholder")}
           className="min-w-40 flex-1"

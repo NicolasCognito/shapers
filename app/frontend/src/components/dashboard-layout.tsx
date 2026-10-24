@@ -3,6 +3,7 @@ import { Outlet, useLocation } from "react-router"
 import { AppSidebar } from "@/components/app-sidebar"
 import { AppHeader } from "@/components/app-header"
 import { ChatRunMonitor } from "@/components/chat/chat-run-monitor"
+import { TimerWatcher } from "@/components/team/timer-watcher"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { JarvisDock } from "@/components/chat/jarvis-dock"
 
@@ -17,6 +18,7 @@ export function DashboardLayout() {
   return (
     <SidebarProvider>
       <ChatRunMonitor />
+      <TimerWatcher />
       <AppSidebar />
       <SidebarInset>
         <AppHeader />
