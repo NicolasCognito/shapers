@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 // Inline SVG flags: Windows does not render flag emoji.
 function FlagGB() {
   return (
-    <svg viewBox="0 0 60 30" className="h-3 w-[18px] rounded-[2px]" aria-hidden>
+    <svg viewBox="0 0 60 30" className="size-4 rounded-full object-cover" preserveAspectRatio="xMidYMid slice" aria-hidden>
       <clipPath id="gb-c">
         <path d="M30,15 h30 v15 z v15 h-30 z h-30 v-15 z v-15 h30 z" />
       </clipPath>
@@ -21,13 +21,15 @@ function FlagGB() {
 
 function FlagSI() {
   return (
-    <svg viewBox="0 0 12 6" className="h-3 w-[18px] rounded-[2px]" aria-hidden>
+    <svg viewBox="0 0 12 6" className="size-4 rounded-full" preserveAspectRatio="xMidYMid slice" aria-hidden>
       <rect width="12" height="2" fill="#fff" />
       <rect y="2" width="12" height="2" fill="#0000ff" />
       <rect y="4" width="12" height="2" fill="#ff0000" />
       {/* simplified coat of arms */}
-      <path d="M2.4,0.9 h1.6 v1.5 q0,0.9 -0.8,1.3 q-0.8,-0.4 -0.8,-1.3 z" fill="#0000ff" stroke="#ff0000" strokeWidth="0.15" />
-      <path d="M2.7,2.6 l0.5,-0.8 l0.5,0.8 z" fill="#fff" />
+      <g transform="translate(1.6 0)">
+        <path d="M2.4,0.9 h1.6 v1.5 q0,0.9 -0.8,1.3 q-0.8,-0.4 -0.8,-1.3 z" fill="#0000ff" stroke="#ff0000" strokeWidth="0.15" />
+        <path d="M2.7,2.6 l0.5,-0.8 l0.5,0.8 z" fill="#fff" />
+      </g>
     </svg>
   )
 }
@@ -44,7 +46,7 @@ export function LanguageSwitcher({ className }: { className?: string }) {
     <div
       role="radiogroup"
       aria-label={t("common.language")}
-      className={cn("inline-flex rounded-lg border bg-muted/40 p-0.5", className)}
+      className={cn("inline-flex rounded-full border bg-muted/40 p-0.5", className)}
     >
       {OPTIONS.map(({ lang, label, Flag }) => {
         const active = current === lang
@@ -56,9 +58,9 @@ export function LanguageSwitcher({ className }: { className?: string }) {
             aria-checked={active}
             onClick={() => setLanguage(lang)}
             className={cn(
-              "flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium transition-colors",
+              "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
               active
-                ? "bg-background text-foreground shadow-sm"
+                ? "bg-emerald-500 text-white shadow-sm dark:bg-emerald-600"
                 : "text-muted-foreground opacity-70 hover:opacity-100"
             )}
           >
