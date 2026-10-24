@@ -4,6 +4,7 @@ import (
 	"io/fs"
 	"log"
 
+	"github.com/joho/godotenv"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
@@ -25,12 +26,14 @@ import (
 	"github.com/xusenlin/workavera/internal/notifications"
 	"github.com/xusenlin/workavera/internal/preferences"
 	"github.com/xusenlin/workavera/internal/reading"
+	"github.com/xusenlin/workavera/internal/team"
 	_ "github.com/xusenlin/workavera/migrations"
 )
 
 var version = "dev"
 
 func main() {
+	_ = godotenv.Load() // optional .env next to the binary
 	app := pocketbase.New()
 	app.RootCmd.Use = "workavera"
 	app.RootCmd.Version = version
@@ -48,6 +51,7 @@ func main() {
 	preferences.Register(app)
 	memory.Register(app)
 	chat.Register(app)
+	team.Register(app)
 
 	migratecmd.MustRegister(app, app.RootCmd, migratecmd.Config{
 		Automigrate: osutils.IsProbablyGoRun(),
