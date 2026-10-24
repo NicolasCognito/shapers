@@ -42,6 +42,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
+import { can } from "@/lib/permissions"
 import { useAuthStore } from "@/store/auth"
 import {
   PROJECTS_PER_PAGE,
@@ -96,6 +97,8 @@ export function ProjectColumn({
     (member) => member.projectId === project.id
   )
   const isOwner = currentUser?.id === project.ownerId
+  // Admins may edit any project's settings and columns (server allows it too).
+  const canEdit = isOwner || can("members.manage")
   const projectIndex = projects.findIndex((item) => item.id === project.id)
   const globalProjectIndex = projectPage * PROJECTS_PER_PAGE + projectIndex
   const canMoveUp = projectIndex >= 0 && globalProjectIndex > 0
@@ -214,6 +217,24 @@ export function ProjectColumn({
               <TooltipContent side="top">{t("projectColumn.archivedTasks")}</TooltipContent>
             </Tooltip>
           </TooltipProvider>
+          {canEdit && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-xs"
+                    aria-label={t("projectColumn.editProject")}
+                    onClick={() => onEditProject?.(project)}
+                  >
+                    <HugeiconsIcon icon={Settings02Icon} strokeWidth={2} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">{t("projectColumn.editProject")}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
           {isOwner && <ShareProjectButton project={project} />}
           {isOwner && (
             <DropdownMenu>
@@ -291,7 +312,7 @@ export function ProjectColumn({
                 {t("projectColumn.noWorkflowHint")}
               </p>
             </div>
-            {isOwner && (
+            {canEdit && (
               <Button
                 size="sm"
                 variant="secondary"

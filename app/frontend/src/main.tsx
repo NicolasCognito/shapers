@@ -16,3 +16,25 @@ createRoot(document.getElementById("root")!).render(
     </ThemeProvider>
   </StrictMode>
 )
+
+// After a new deploy an open tab can request page chunks that no longer exist;
+// reload once to pick up the new version instead of showing a broken page.
+window.addEventListener("vite:preloadError", (event) => {
+  try {
+    if (sessionStorage.getItem("chunk-reload")) return
+    sessionStorage.setItem("chunk-reload", "1")
+  } catch {
+    /* ignore */
+  }
+  event.preventDefault()
+  window.location.reload()
+})
+window.addEventListener("load", () => {
+  setTimeout(() => {
+    try {
+      sessionStorage.removeItem("chunk-reload")
+    } catch {
+      /* ignore */
+    }
+  }, 10000)
+})
