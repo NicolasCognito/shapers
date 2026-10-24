@@ -939,6 +939,9 @@ export const en = {
     linkedDocs_two: "{{count}} linked documents",
   },
   tree: {
+    howToPlay: "How to play",
+    growHint: "Every {{n}} waterings it grows: sprout, sapling, young tree, tree, blooming.",
+    vacationRule: "Going on holiday? An admin can put your tree on vacation so it stays happy.",
     onVacation: "On vacation, resting happily",
     vacation: "On vacation",
     vacationHint: "Their tree stays happy while they're away",

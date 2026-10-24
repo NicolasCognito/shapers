@@ -949,6 +949,9 @@ export const sl = {
     linkedDocs_two: "{{count}} povezana dokumenta",
   },
   tree: {
+    howToPlay: "Kako igrati",
+    growHint: "Vsakih {{n}} zalivanj zraste: kalček, sadika, mlado drevo, drevo, cvetoče drevo.",
+    vacationRule: "Greste na dopust? Admin lahko vaše drevo pošlje na dopust, da ostane veselo.",
     onVacation: "Na dopustu, srečno počiva",
     vacation: "Na dopustu",
     vacationHint: "Drevo ostane veselo, dokler je odsoten",
