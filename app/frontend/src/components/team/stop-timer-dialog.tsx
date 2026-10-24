@@ -23,10 +23,17 @@ import {
 
 const MAX_HOURS = 8
 
+/** Most the server accepts: elapsed rounded up to 15 min (min 15 min), capped at 8 h. */
+function maxHours(elapsedSec: number) {
+  return Math.min(MAX_HOURS, Math.max(0.25, Math.ceil((elapsedSec / 3600) * 4) / 4))
+}
+
 function suggestedHours(elapsedSec: number) {
   const rounded = Math.round((elapsedSec / 3600) * 4) / 4
-  return Math.min(MAX_HOURS, Math.max(0.25, rounded))
+  return Math.min(maxHours(elapsedSec), Math.max(0.25, rounded))
 }
+
+const fmt = (h: number) => (Number.isInteger(h) ? String(h) : h.toFixed(2).replace(/0$/, ""))
 
 export function StopTimerDialog() {
   const { t } = useTranslation()
@@ -35,7 +42,7 @@ export function StopTimerDialog() {
   const closeDialog = useWorkTimer((s) => s.closeDialog)
   const stop = useWorkTimer((s) => s.stop)
   const now = useNow(1000)
-  const [hours, setHours] = useState("")
+  const [hours, setHours] = useState(0.25)
   const [note, setNote] = useState("")
   const [busy, setBusy] = useState(false)
 
@@ -46,14 +53,15 @@ export function StopTimerDialog() {
     if (isOpen) {
       const current = useWorkTimer.getState().timer
       if (current) {
-        setHours(String(suggestedHours(elapsedSeconds(current, Date.now()))))
+        setHours(suggestedHours(elapsedSeconds(current, Date.now())))
       }
       setNote("")
     }
   }, [isOpen])
 
-  const parsed = Number(hours.replace(",", "."))
-  const valid = Number.isFinite(parsed) && parsed >= 0.25 && parsed <= MAX_HOURS
+  const limit = maxHours(elapsed)
+  const parsed = Math.min(hours, limit)
+  const valid = parsed >= 0.25
 
   const finish = async (log: boolean) => {
     setBusy(true)
@@ -86,7 +94,7 @@ export function StopTimerDialog() {
           <DialogTitle>{t("timer.stopTitle")}</DialogTitle>
           <DialogDescription>
             {t("timer.elapsed")}:{" "}
-            <span className="font-mono">{formatClock(elapsed)}</span>
+            <span className="font-medium text-foreground tabular-nums">{formatClock(elapsed)}</span>
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
@@ -96,17 +104,33 @@ export function StopTimerDialog() {
             </p>
           )}
           <div className="space-y-1.5">
-            <Label htmlFor="timer-hours">{t("timer.hours")}</Label>
-            <Input
-              id="timer-hours"
-              type="number"
-              inputMode="decimal"
-              min={0.25}
-              max={MAX_HOURS}
-              step={0.25}
-              value={hours}
-              onChange={(e) => setHours(e.target.value)}
-            />
+            <Label>{t("timer.hours")}</Label>
+            <div className="flex items-center gap-3">
+              <div className="inline-flex items-center rounded-full border bg-muted/40 p-1">
+                <button
+                  type="button"
+                  onClick={() => setHours(Math.max(0.25, parsed - 0.25))}
+                  disabled={parsed <= 0.25}
+                  className="flex size-8 items-center justify-center rounded-full text-lg text-muted-foreground hover:bg-background hover:text-foreground disabled:opacity-40"
+                  aria-label={t("timer.less")}
+                >
+                  −
+                </button>
+                <span className="min-w-16 text-center text-lg font-semibold tabular-nums" aria-live="polite">
+                  {fmt(parsed)} h
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setHours(Math.min(limit, parsed + 0.25))}
+                  disabled={parsed >= limit}
+                  className="flex size-8 items-center justify-center rounded-full text-lg text-muted-foreground hover:bg-background hover:text-foreground disabled:opacity-40"
+                  aria-label={t("timer.more")}
+                >
+                  +
+                </button>
+              </div>
+              <span className="text-xs text-muted-foreground">{t("timer.upTo", { hours: fmt(limit) })}</span>
+            </div>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="timer-note">{t("timer.note")}</Label>
