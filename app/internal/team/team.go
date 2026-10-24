@@ -55,6 +55,7 @@ func Register(app *pocketbase.PocketBase) {
 			return e.JSON(200, map[string]any{"synced": n})
 		}))
 		registerRequestRoutes(se)
+		registerTimerRoutes(se)
 		return se.Next()
 	})
 
