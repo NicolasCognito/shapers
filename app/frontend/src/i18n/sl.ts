@@ -467,6 +467,13 @@ export const sl = {
     unknownOwner: "Neznan lastnik",
   },
   dock: {
+    newAt: "Nov pogovor · {{time}}",
+    history: "Zgodovina",
+    back: "Nazaj",
+    new: "Nov pogovor",
+    noHistory: "Prejšnjih pogovorov še ni.",
+    untitled: "Brez naslova",
+    createFailed: "Pogovora ni bilo mogoče začeti",
     open: "Odpri Jarvisa",
     ask: "Vprašaj Jarvisa",
     full: "Odpri celoten klepet",

@@ -78,7 +78,16 @@ function ChatEmptyState({ onCreate }: { onCreate: () => void }) {
   )
 }
 
-function ActiveChat({ conversation }: { conversation: ChatConversation }) {
+export function ActiveChat({
+  conversation,
+  embedded = false,
+  onRenamed,
+}: {
+  conversation: ChatConversation
+  /** In the floating panel: no page header (the panel has its own). */
+  embedded?: boolean
+  onRenamed?: (title: string) => void
+}) {
   const { t } = useTranslation()
   const renameConversation = useChatStore((state) => state.renameConversation)
   const { runtime, state: runtimeState } = useChatRuntime(conversation.id)
@@ -104,8 +113,10 @@ function ActiveChat({ conversation }: { conversation: ChatConversation }) {
     messages[messages.length - 1].role !== "assistant"
 
   return (
-    <div className="flex min-w-0 flex-1 flex-col">
-      <ChatHeader conversation={conversation} />
+    // min-h-0: let the message list scroll inside a bounded parent instead of
+    // growing past it (which pushed the input out of the floating panel).
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+      {!embedded && <ChatHeader conversation={conversation} />}
       <Conversation>
         <ConversationContent className="w-full px-4 @3xl:px-16 @5xl:px-24">
           {!loadingMessages && messages.length === 0 ? (
@@ -165,9 +176,9 @@ function ActiveChat({ conversation }: { conversation: ChatConversation }) {
         contextInfo={deriveContextInfo(messages, conversation)}
         onMessageSubmitted={(content) => {
           if (conversation.title !== "New conversation") return
-          void renameConversation(conversation.id, content.slice(0, 16)).catch(
-            () => {}
-          )
+          const title = content.slice(0, embedded ? 40 : 16)
+          onRenamed?.(title)
+          void renameConversation(conversation.id, title).catch(() => {})
         }}
       />
     </div>

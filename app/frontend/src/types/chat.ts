@@ -3,6 +3,7 @@ import type { UIMessage } from "ai"
 export type ConversationStatus = "active" | "archived"
 
 export type Conversation = {
+  source?: "dock" | ""
   id: string
   title: string
   status: ConversationStatus

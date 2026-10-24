@@ -45,7 +45,8 @@ async function fetchPage(page: number) {
   return pb
     .collection("chat_conversations")
     .getList<Conversation>(page, PER_PAGE, {
-      filter: "status = 'active'",
+      // Quick-panel chats (source = dock) live in the panel's own history.
+      filter: "status = 'active' && source != 'dock'",
       sort: "-pinned,-last_message_at,-updated",
       requestKey: null,
     })
@@ -294,7 +295,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     return pb
       .collection("chat_conversations")
       .getList<Conversation>(page, perPage, {
-        filter: "status = 'archived'",
+        filter: "status = 'archived' && source != 'dock'",
         sort: "-last_message_at,-updated",
         requestKey: null,
       })

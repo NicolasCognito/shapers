@@ -457,6 +457,13 @@ export const en = {
     unknownOwner: "Unknown owner",
   },
   dock: {
+    newAt: "New chat · {{time}}",
+    history: "History",
+    back: "Back",
+    new: "New chat",
+    noHistory: "No earlier chats yet.",
+    untitled: "Untitled",
+    createFailed: "Could not start a chat",
     open: "Open Jarvis",
     ask: "Ask Jarvis",
     full: "Open full chat",
