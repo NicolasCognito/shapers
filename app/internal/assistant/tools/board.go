@@ -216,7 +216,7 @@ func newBoardListTemplatesTool(app core.App, actorID string) fantasy.AgentTool {
 func newBoardCreateProjectTool(app core.App, actorID string) fantasy.AgentTool {
 	return fantasy.NewAgentTool(
 		"board_create_project",
-		"Create a Board project owned by the current user, either blank or from a template returned by board_list_templates. This tool never deletes resources.",
+		"Create a Board project owned by the current user, either blank or from a template returned by board_list_templates. This tool never deletes resources. Before calling, if the user has not said it, ask in one short message for: the project name, a one-line description and whether to use a template (offer the usual To do / In progress / Done columns).",
 		func(ctx context.Context, input boardCreateProjectInput, _ fantasy.ToolCall) (fantasy.ToolResponse, error) {
 			result, err := board.CreateProject(ctx, app, actorID, board.CreateProjectCommand{Name: input.Name, Description: normalizeEscapedText(input.Description), TemplateID: input.TemplateID})
 			return boardToolResult(app, actorID, "create project", result, err)
@@ -277,7 +277,7 @@ func newBoardUpsertMemberTool(app core.App, actorID string) fantasy.AgentTool {
 func newBoardCreateTaskTool(app core.App, actorID string) fantasy.AgentTool {
 	return fantasy.NewAgentTool(
 		"board_create_task",
-		"Create a task. Call board_get_project first, require capabilities.canEditTasks, and use only returned state, label, and participant IDs. Server authorization permits owner, admin, and member roles but denies viewers.",
+		"Create a task. Call board_get_project first, require capabilities.canEditTasks, and use only returned state, label, and participant IDs. Server authorization permits owner, admin, and member roles but denies viewers. Before calling, if the user has not said it, ask in one short message for: the project, the title, who it is assigned to, the due date and the priority, suggesting defaults (assigned to them, no due date, medium) so one word confirms.",
 		func(ctx context.Context, input boardCreateTaskInput, _ fantasy.ToolCall) (fantasy.ToolResponse, error) {
 			result, err := executeBatch(input.Items, func(_ int, item boardCreateTaskItem) (any, error) {
 				return board.CreateTask(ctx, app, actorID, board.CreateTaskCommand{ProjectID: input.ProjectID, StateID: item.StateID, Title: item.Title, Description: normalizeEscapedText(item.Description), Priority: item.Priority, StartDate: item.StartDate, DueDate: item.DueDate, LabelIDs: item.LabelIDs, AssigneeIDs: item.AssigneeIDs, DocIDs: item.DocumentIDs})

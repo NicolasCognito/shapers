@@ -46,7 +46,7 @@ func newTeamCheckInTool(app core.App, actorID string) fantasy.AgentTool {
 func newTeamCantComeTool(app core.App, actorID string) fantasy.AgentTool {
 	return fantasy.NewAgentTool(
 		"team_cant_come",
-		"Tell the team ahead of time that the current user can't come to an upcoming team meeting, with a reason (also posted to Slack). On time it counts as excused; GO! members must say it 72 h before a Community meeting and 24 h before other meetings, otherwise it counts as unexcused. GO! members get a follow-up task for each missed Community meeting. Get the meeting ID from team_my_week. If they can come after all, use team_withdraw_absence.",
+		"Tell the team ahead of time that the current user can't come to an upcoming team meeting, with a reason (also posted to Slack). On time it counts as excused; GO! members must say it 72 h before a Community meeting and 24 h before other meetings, otherwise it counts as unexcused. GO! members get a follow-up task for each missed Community meeting. Get the meeting ID from team_my_week. If they can come after all, use team_withdraw_absence. Before calling, if the user has not said it, ask in one short message for: which meeting (if more than one could match; confirm its date) and the reason.",
 		func(ctx context.Context, input teamMeetingInput, _ fantasy.ToolCall) (fantasy.ToolResponse, error) {
 			u, err := actorRecord(app, actorID)
 			if err != nil {
@@ -84,7 +84,7 @@ func newTeamWithdrawAbsenceTool(app core.App, actorID string) fantasy.AgentTool 
 func newTeamRequestPauseTool(app core.App, actorID string) fantasy.AgentTool {
 	return fantasy.NewAgentTool(
 		"team_request_pause",
-		"Ask the admins for a pause (e.g. exam period) for the current user. Weeks on pause don't count as behind and don't break the streak. Impact: up to 6 weeks a year, starting tomorrow at the earliest; GO!: short periods, with a reason. A reason is required. Admins approve it on the Requests page (/requests).",
+		"Ask the admins for a pause (e.g. exam period) for the current user. Weeks on pause don't count as behind and don't break the streak. Impact: up to 6 weeks a year, starting tomorrow at the earliest; GO!: short periods, with a reason. Admins approve it on the Requests page (/requests). Before calling, if the user has not said it, ask in one short message for: the first and last day and the reason (required).",
 		func(ctx context.Context, input teamPauseInput, _ fantasy.ToolCall) (fantasy.ToolResponse, error) {
 			u, err := actorRecord(app, actorID)
 			if err != nil {

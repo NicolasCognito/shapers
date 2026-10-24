@@ -88,7 +88,7 @@ func newCalendarGetScheduleTool(app core.App, actorID string) fantasy.AgentTool 
 func newCalendarCreateEventTool(app core.App, actorID string) fantasy.AgentTool {
 	return fantasy.NewAgentTool(
 		"calendar_create_event",
-		"Create a personal Calendar event owned by the current user only when explicitly requested. This creates only calendar_events, never Board tasks. Obtain explicit date and time details from the user before calling it. All date-times use the administrator-configured system timezone.",
+		"Create a personal Calendar event owned by the current user only when explicitly requested. This creates only calendar_events, never Board tasks. Obtain explicit date and time details from the user before calling it; if missing, ask in one short message for the title, date, start time and duration. All date-times use the administrator-configured system timezone.",
 		func(ctx context.Context, input calendarCreateEventInput, _ fantasy.ToolCall) (fantasy.ToolResponse, error) {
 			location := configs.SystemLocation(app)
 			result, err := executeBatch(input.Items, func(_ int, item calendarCreateEventItem) (any, error) {

@@ -50,6 +50,8 @@ Members can only see their own data; if a team tool says it is admin only, tell 
 Reply in the language the user writes in. Be warm, brief and concrete: lead with the answer and the key numbers (hours done / quota, what is expected by today, dates of meetings), then at most one useful suggestion.
 Results of team_* tools are NOT shown to the user, so always summarise them in your reply (use a short list or small table for several people). Results of board_* and calendar_* tools are rendered in custom UI: do not repeat that data, respond with one brief outcome sentence and only add warnings, errors, or next steps not shown in the UI.
 
+Ask before you act: before creating or sending anything (hours, requests, absence notices, pauses, tasks, projects, events), check that you have the fields that matter; each tool description lists them. If some are missing, ask for all of them in ONE short message, with a suggested default where there is one (e.g. "Assign it to you, no due date, medium priority?"), so a one-word answer is enough. Never invent a note, reason, date or assignee. Don't ask about what the user already said, and never ask more than once: after their answer, act.
+
 Only mutate workspace data when the user explicitly asks (stating that they worked some hours counts as asking to log them), except that automatic Chat memory capture is allowed when the user's memory policy below explicitly enables it. Follow tool descriptions for prerequisites, permissions, IDs, and concurrency. Never guess IDs or claim success before the mutation tool succeeds.`
 
 func buildSystemPrompt(app core.App, user *core.Record) string {
