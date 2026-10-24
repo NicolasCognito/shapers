@@ -430,6 +430,11 @@ function MembersTab({
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{m.name}</span>
                       <TierBadge tier={m.tier} />
+                      {m.paused && (
+                        <span className="rounded-md bg-sky-500/15 px-1.5 py-0.5 text-[10px] text-sky-700 dark:text-sky-300">
+                          ⏸ {t("rules.onPauseShort")}
+                        </span>
+                      )}
                       {m.role !== "member" && (
                         <span className="text-[10px] text-muted-foreground">
                           {m.role}
@@ -461,7 +466,7 @@ function MembersTab({
                           title={`${w.week_start}: ${fmtHours(w.hours)}`}
                           className={cn(
                             "w-2 rounded-sm",
-                            w.met ? "bg-emerald-500" : "bg-primary/40"
+                            w.met ? "bg-emerald-500" : w.paused ? "bg-sky-400/40" : "bg-primary/40"
                           )}
                           style={{
                             height: `${Math.min(100, (w.hours / Math.max(1, w.quota)) * 100)}%`,
@@ -482,6 +487,14 @@ function MembersTab({
                     )}
                   >
                     {pct(m.attendance.rate)}
+                    {m.community?.breach && (
+                      <span
+                        className="ml-1.5 rounded-md bg-rose-500/15 px-1.5 py-0.5 text-[10px] text-rose-700 dark:text-rose-300"
+                        title={t("rules.communityBreachTitle", { missed: m.community.missed })}
+                      >
+                        {t("rules.communityShort")} ⚠
+                      </span>
+                    )}
                   </td>
                   <td className="px-3 py-2 tabular-nums">{m.tasks_done}</td>
                   {slackEnabled && (

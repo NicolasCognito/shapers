@@ -47,7 +47,7 @@ export function WeekBars({
   weeks,
   height = 120,
 }: {
-  weeks: { week_start: string; hours: number; quota: number; met?: boolean }[]
+  weeks: { week_start: string; hours: number; quota: number; met?: boolean; paused?: boolean }[]
   height?: number
 }) {
   const { t } = useTranslation()
@@ -75,7 +75,7 @@ export function WeekBars({
               key={w.week_start}
               className="group relative flex flex-1 flex-col items-center justify-end"
               style={{ height }}
-              title={`${format(parseISO(w.week_start), "d MMM", { locale })}: ${fmtHours(w.hours)}`}
+              title={`${format(parseISO(w.week_start), "d MMM", { locale })}: ${fmtHours(w.hours)}${w.paused ? ` · ${t("rules.pausedWeek")}` : ""}`}
             >
               <span className="mb-1 text-[10px] whitespace-nowrap tabular-nums text-muted-foreground opacity-0 group-hover:opacity-100">
                 {fmtHours(w.hours)}
@@ -83,7 +83,7 @@ export function WeekBars({
               <div
                 className={cn(
                   "w-full max-w-10 rounded-t-md transition-all",
-                  met ? "bg-emerald-500" : current ? "bg-primary/70" : "bg-primary/35"
+                  met ? "bg-emerald-500" : w.paused ? "bg-sky-400/40" : current ? "bg-primary/70" : "bg-primary/35"
                 )}
                 style={{ height: Math.max(2, (w.hours / max) * height) }}
               />

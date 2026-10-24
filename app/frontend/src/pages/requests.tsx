@@ -37,6 +37,11 @@ function useDescribe() {
         : ""
       return t("requests.hoursOn", { hours: fmtHours(r.hours), date })
     }
+    if (r.type === "pause") {
+      const d = (s?: string) =>
+        s ? format(parseISO(s.replace(" ", "T")), "d MMM", { locale }) : ""
+      return t("requests.pauseFromTo", { from: d(r.date), to: d(r.end_date) })
+    }
     return t("requests.takeOver", {
       title: r.expand?.task?.title ?? t("requests.taskFallback"),
     })
@@ -74,14 +79,14 @@ export function RequestsPage() {
     (r) =>
       r.status === "pending" &&
       r.requester !== me &&
-      (r.recipient === me || (r.type === "hours" && isAdmin))
+      (r.recipient === me || (r.type !== "handoff" && isAdmin))
   )
   const mine = all.filter((r) => r.requester === me)
   const decided = isAdmin
     ? all
         .filter(
           (r) =>
-            r.type === "hours" && r.status !== "pending" && r.requester !== me
+            r.type !== "handoff" && r.status !== "pending" && r.requester !== me
         )
         .slice(0, 20)
     : []
@@ -242,7 +247,7 @@ function InboxRow({
   const { t } = useTranslation()
   const describe = useDescribe()
   const [note, setNote] = useState("")
-  const needsReason = r.type === "hours"
+  const needsReason = r.type !== "handoff"
   return (
     <div className="space-y-2 py-3 text-sm">
       <div>

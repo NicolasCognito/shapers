@@ -7,6 +7,20 @@ export type WeekHours = {
   hours: number
   quota: number
   met: boolean
+  paused?: boolean
+}
+
+export type PausePeriod = { id: string; start: string; end: string; note: string }
+
+export type CommunityStats = {
+  rule: "in_person" | "limit" | ""
+  held: number
+  missed: number
+  remote: number
+  limit?: number
+  in_a_row: boolean
+  late_notices: number
+  breach: boolean
 }
 
 export type AttendanceStats = {
@@ -32,6 +46,9 @@ export type MemberSummary = {
   progress: number
   expected: number
   behind: boolean
+  paused?: boolean
+  pause?: PausePeriod
+  community?: CommunityStats
   streak: number
   attendance: AttendanceStats
   by_series: Record<string, AttendanceStats>
@@ -48,10 +65,13 @@ export type MeetingView = {
   location: string
   state: AttendanceState | ""
   can_check_in: boolean
+  notice?: string
+  notice_late?: boolean
 }
 
 export type MemberDetail = {
   summary: MemberSummary
+  pauses?: PausePeriod[]
   past: MeetingView[] | null
   upcoming: MeetingView[] | null
   tasks_done: {
@@ -130,12 +150,13 @@ export const STATE_CLASS: Record<AttendanceState | "", string> = {
 
 export type RequestRec = {
   id: string
-  type: "hours" | "handoff"
+  type: "hours" | "handoff" | "pause"
   status: "pending" | "approved" | "rejected" | "withdrawn"
   requester: string
   recipient: string
   task: string
   date: string
+  end_date?: string
   hours: number
   note: string
   decision_note: string
@@ -170,6 +191,11 @@ export const requestsApi = {
       method: "POST",
       body: { task, to },
     }),
+  pause: (start: string, end: string, note: string) =>
+    pb.send("/api/team/requests/pause", {
+      method: "POST",
+      body: { start, end, note },
+    }),
   decide: (id: string, approve: boolean, note: string) =>
     pb.send(`/api/team/requests/${id}/decide`, {
       method: "POST",
@@ -196,6 +222,20 @@ export const teamApi = {
       method: "POST",
       body: { meeting, remote },
     }),
+  setPause: (userId: string, start: string, end: string, note: string) =>
+    pb.send(`/api/team/members/${userId}/pauses`, {
+      method: "POST",
+      body: { start, end, note },
+    }),
+  deletePause: (id: string) =>
+    pb.send(`/api/team/pauses/${id}`, { method: "DELETE" }),
+  absence: (meeting: string, reason: string) =>
+    pb.send<{ notice_late: boolean; state: AttendanceState }>("/api/team/absence", {
+      method: "POST",
+      body: { meeting, reason },
+    }),
+  withdrawAbsence: (meeting: string) =>
+    pb.send(`/api/team/absence/${meeting}`, { method: "DELETE" }),
   bulkAttendance: (
     meeting: string,
     entries: { user: string; state: AttendanceState }[]

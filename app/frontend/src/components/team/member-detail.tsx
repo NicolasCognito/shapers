@@ -30,8 +30,10 @@ import {
   pct,
   requestsApi,
   selfLogAllowed,
+  STATE_CLASS,
   teamApi,
   type HourLog,
+  type MeetingView,
   type MemberDetail,
 } from "@/lib/team"
 
@@ -89,6 +91,14 @@ export function MemberDetailView({
                 tier: s.tier,
                 hours: fmtHours(s.weekly_hours),
               })}
+              {s.pause && (
+                <span className="ml-2 rounded-md bg-sky-500/15 px-1.5 py-0.5 text-xs text-sky-700 dark:text-sky-300">
+                  ⏸ {t(s.paused ? "rules.onPauseFromTo" : "rules.pausePlanned", {
+                    from: format(parseISO(s.pause.start), "d MMM", { locale }),
+                    to: format(parseISO(s.pause.end), "d MMM", { locale }),
+                  })}
+                </span>
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -104,14 +114,18 @@ export function MemberDetailView({
                   "ml-auto pb-1 text-sm font-medium " +
                   (s.progress >= 1
                     ? "text-emerald-600 dark:text-emerald-400"
-                    : s.behind
+                    : s.paused
+                      ? "text-sky-600 dark:text-sky-400"
+                      : s.behind
                       ? "text-amber-600 dark:text-amber-400"
                       : "text-muted-foreground")
                 }
               >
                 {s.progress >= 1
                   ? t("memberDetail.goalReached")
-                  : s.behind
+                  : s.paused
+                    ? t("rules.pausedNoPressure")
+                    : s.behind
                     ? t("memberDetail.behindPace", {
                         hours: fmtHours(Math.max(0, s.expected - s.this_week)),
                       })
@@ -214,10 +228,24 @@ export function MemberDetailView({
               </p>
             )}
             {upcoming.slice(0, 5).map((m) => (
-              <MeetingRow key={m.id} m={m} action={<span />} />
+              <MeetingRow
+                key={m.id}
+                m={m}
+                action={
+                  editable ? (
+                    <AbsenceAction m={m} tier={s.tier} onDone={onChanged} />
+                  ) : m.notice ? (
+                    <NoticeBadge m={m} />
+                  ) : (
+                    <span />
+                  )
+                }
+              />
             ))}
           </CardContent>
         </Card>
+
+        <RulesCard detail={detail} editable={editable} onChanged={onChanged} />
 
         {/* Finished tasks */}
         <Card className="@3xl:col-span-3">
@@ -548,5 +576,270 @@ export function CheckinButtons({
         {t("memberDetail.remote")}
       </Button>
     </div>
+  )
+}
+
+// ---------- tier rules: absence notice, Community, pause ----------
+
+function NoticeBadge({ m }: { m: MeetingView }) {
+  const { t } = useTranslation()
+  return (
+    <span
+      className={cn("rounded-md px-2 py-0.5 text-xs whitespace-nowrap", STATE_CLASS[m.state])}
+      title={m.notice}
+    >
+      {m.notice_late ? t("rules.lateNotice") : t("rules.notComing")}
+    </span>
+  )
+}
+
+function AbsenceAction({
+  m,
+  tier,
+  onDone,
+}: {
+  m: MeetingView
+  tier: string
+  onDone: () => void
+}) {
+  const { t } = useTranslation()
+  const [busy, setBusy] = useState(false)
+  const run = async (fn: () => Promise<unknown>, ok?: string) => {
+    setBusy(true)
+    try {
+      await fn()
+      if (ok) toast.success(ok)
+      onDone()
+    } catch (e) {
+      toast.error(extractErrorMessage(e, t("common.somethingWrong")))
+    } finally {
+      setBusy(false)
+    }
+  }
+  if (m.notice) {
+    return (
+      <div className="flex items-center gap-1">
+        <NoticeBadge m={m} />
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-6 px-2 text-xs"
+          disabled={busy}
+          onClick={() => run(() => teamApi.withdrawAbsence(m.id), t("rules.noticeWithdrawn"))}
+        >
+          {t("rules.illCome")}
+        </Button>
+      </div>
+    )
+  }
+  if (m.state) return <StateBadge state={m.state} />
+  const ask = () => {
+    const hours = tier === "GO!" ? (m.series === "Community" ? 72 : 24) : 0
+    const prompt =
+      t("rules.cantComePrompt", { title: m.title }) +
+      (hours ? "\n" + t("rules.goNoticeHint", { hours }) : "")
+    const reason = window.prompt(prompt)
+    if (!reason?.trim()) return
+    void run(async () => {
+      const res = await teamApi.absence(m.id, reason.trim())
+      if (res.notice_late) toast.warning(t("rules.lateToast", { hours }))
+      else toast.success(t("rules.noticeSent"))
+    })
+  }
+  return (
+    <Button
+      size="sm"
+      variant="ghost"
+      className="h-7 px-2 text-xs text-muted-foreground"
+      disabled={busy}
+      onClick={ask}
+    >
+      {t("rules.cantCome")}
+    </Button>
+  )
+}
+
+function RulesCard({
+  detail,
+  editable,
+  onChanged,
+}: {
+  detail: MemberDetail
+  editable: boolean
+  onChanged: () => void
+}) {
+  const { t } = useTranslation()
+  const locale = useDateLocale()
+  const s = detail.summary
+  const c = s.community
+  const pauses = detail.pauses ?? []
+  const canManage = can("members.manage")
+  const today = format(new Date(), "yyyy-MM-dd")
+  const [from, setFrom] = useState(today)
+  const [to, setTo] = useState(today)
+  const [note, setNote] = useState("")
+  const [busy, setBusy] = useState(false)
+  const day = (iso: string) => format(parseISO(iso), "d MMM yyyy", { locale })
+
+  const submit = async () => {
+    setBusy(true)
+    try {
+      if (canManage) {
+        await teamApi.setPause(s.id, from, to, note.trim())
+        toast.success(t("rules.pauseSet"))
+      } else {
+        await requestsApi.pause(from, to, note.trim())
+        toast.success(t("rules.pauseRequested"))
+      }
+      setNote("")
+      onChanged()
+    } catch (e) {
+      toast.error(extractErrorMessage(e, t("common.somethingWrong")))
+    } finally {
+      setBusy(false)
+    }
+  }
+  const remove = async (id: string) => {
+    if (!window.confirm(t("rules.removePauseConfirm"))) return
+    try {
+      await teamApi.deletePause(id)
+      onChanged()
+    } catch (e) {
+      toast.error(extractErrorMessage(e, t("common.somethingWrong")))
+    }
+  }
+
+  const pauseHint =
+    s.tier === "Impact"
+      ? t("rules.pauseImpact")
+      : s.tier === "GO!"
+        ? t("rules.pauseGo")
+        : t("rules.pauseCore")
+
+  return (
+    <Card className="@3xl:col-span-3">
+      <CardHeader>
+        <CardTitle>{t("rules.title")}</CardTitle>
+        <CardDescription>{t("rules.desc", { tier: s.tier })}</CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-6 @3xl:grid-cols-2">
+        {/* Community meetings */}
+        <div className="space-y-2 text-sm">
+          <p className="flex items-center gap-2 font-medium">
+            {t("rules.community")}
+            {c?.breach && (
+              <span className="rounded-md bg-rose-500/15 px-1.5 py-0.5 text-xs font-normal text-rose-700 dark:text-rose-300">
+                {t("rules.breach")}
+              </span>
+            )}
+          </p>
+          <p className="text-muted-foreground">
+            {c?.rule === "in_person"
+              ? t("rules.goRule")
+              : c?.rule === "limit"
+                ? t("rules.impactRule", { limit: c.limit })
+                : t("rules.noRule", { tier: s.tier })}
+          </p>
+          {!c ? (
+            <p className="text-muted-foreground">{t("rules.noneHeld")}</p>
+          ) : (
+            <>
+              {c.rule === "limit" && c.limit ? (
+                <div className="flex items-center gap-3">
+                  <ProgressBar value={Math.min(1, c.missed / c.limit)} className="flex-1" />
+                  <span className="text-xs whitespace-nowrap tabular-nums">
+                    {t("rules.missesUsed", { missed: c.missed, limit: c.limit })}
+                  </span>
+                </div>
+              ) : (
+                <p>
+                  {t("rules.yearSummary", { held: c.held, missed: c.missed, remote: c.remote })}
+                </p>
+              )}
+              {c.in_a_row && (
+                <p className="text-rose-600 dark:text-rose-400">{t("rules.inARow")}</p>
+              )}
+              {c.late_notices > 0 && (
+                <p className="text-rose-600 dark:text-rose-400">
+                  {t("rules.lateNotices", { count: c.late_notices })}
+                </p>
+              )}
+              {c.rule === "in_person" && (
+                <p className="text-xs text-muted-foreground">{t("rules.goConsequence")}</p>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Pause */}
+        <div className="space-y-2 text-sm">
+          <p className="font-medium">{t("rules.pause")}</p>
+          <p className="text-muted-foreground">
+            {t("rules.pauseDesc")} {pauseHint}
+          </p>
+          {pauses.length > 0 && (
+            <div className="divide-y rounded-lg border">
+              {pauses.map((p) => (
+                <div key={p.id} className="flex items-center gap-2 px-3 py-1.5">
+                  <span className="whitespace-nowrap tabular-nums">
+                    {day(p.start)} – {day(p.end)}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-muted-foreground">{p.note}</span>
+                  {canManage && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 px-2 text-xs"
+                      onClick={() => remove(p.id)}
+                    >
+                      {t("rules.remove")}
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          {(editable || canManage) && (
+            <form
+              className="flex flex-wrap items-center gap-2"
+              onSubmit={(e) => {
+                e.preventDefault()
+                void submit()
+              }}
+            >
+              <Input
+                type="date"
+                className="w-38"
+                value={from}
+                onChange={(e) => setFrom(e.target.value)}
+                aria-label={t("rules.from")}
+              />
+              <span className="text-muted-foreground">–</span>
+              <Input
+                type="date"
+                className="w-38"
+                value={to}
+                min={from}
+                onChange={(e) => setTo(e.target.value)}
+                aria-label={t("rules.to")}
+              />
+              <Input
+                className="min-w-40 flex-1"
+                placeholder={t("rules.reasonPlaceholder")}
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+              />
+              <Button
+                type="submit"
+                size="sm"
+                disabled={busy || !from || !to || (!canManage && !note.trim())}
+              >
+                {canManage ? t("rules.setPause") : t("rules.requestPause")}
+              </Button>
+            </form>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   )
 }
