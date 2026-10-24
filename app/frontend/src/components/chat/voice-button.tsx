@@ -1,4 +1,4 @@
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -30,10 +30,12 @@ export function VoiceButton({
   text,
   setText,
   disabled,
+  onStateChange,
 }: {
   text: string
   setText: (text: string) => void
   disabled?: boolean
+  onStateChange?: (state: "idle" | "recording" | "processing") => void
 }) {
   const { t, i18n } = useTranslation()
   const [lang, setLang] = useState<VoiceLang>(readLang)
@@ -48,6 +50,10 @@ export function VoiceButton({
     onText: (s) => setText(join(s)),
     onError: (m) => toast.error(t("chat.voice.error", { message: m })),
   })
+
+  useEffect(() => {
+    onStateChange?.(voice.state)
+  }, [voice.state, onStateChange])
 
   if (!voice.supported) return null
 

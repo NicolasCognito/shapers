@@ -465,6 +465,8 @@ export const sl = {
   },
   chat: {
     voice: {
+      listening: "Poslušam …",
+      processing: "Prepoznavam …",
       language: "Jezik govora",
       auto: "Samodejno",
       autoLong: "Zaznaj samodejno",

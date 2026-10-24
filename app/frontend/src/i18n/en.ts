@@ -455,6 +455,8 @@ export const en = {
   },
   chat: {
     voice: {
+      listening: "Listening…",
+      processing: "Recognising…",
       language: "Speech language",
       auto: "Auto",
       autoLong: "Detect automatically",

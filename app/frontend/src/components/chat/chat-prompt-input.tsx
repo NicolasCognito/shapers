@@ -31,6 +31,7 @@ import {
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input"
 import { VoiceButton } from "@/components/chat/voice-button"
+import { VoiceWaveform } from "@/components/chat/voice-waveform"
 import { pb } from "@/lib/pocketbase"
 import { useLlmSettingsStore } from "@/store/llm-settings"
 import type { ChatUIMessage } from "@/types/chat"
@@ -83,6 +84,7 @@ export function ChatPromptInput({
   >(initialModelConfigId || null)
   const modelConfigId = selectedModelConfigId ?? defaultModelId
   const [text, setText] = useState("")
+  const [voiceState, setVoiceState] = useState<"idle" | "recording" | "processing">("idle")
 
   const handleSubmit = async (message: PromptInputMessage) => {
     const content = message.text.trim()
@@ -126,6 +128,7 @@ export function ChatPromptInput({
     <div className="p-3 px-4 md:px-16 lg:px-24">
       <PromptInput onSubmit={handleSubmit} className="rounded-xl">
         <PromptInputBody>
+          {voiceState !== "idle" && <VoiceWaveform state={voiceState} />}
           <PromptInputTextarea
             placeholder={
               models.length === 0
@@ -186,6 +189,7 @@ export function ChatPromptInput({
               text={text}
               setText={setText}
               disabled={disabled || generating || models.length === 0}
+              onStateChange={setVoiceState}
             />
             <PromptInputSubmit
               disabled={!generating && !canSend}
