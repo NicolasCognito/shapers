@@ -997,7 +997,7 @@ export const sl = {
     earned_other: "+{{count}} kapljic za vaše drevo",
   },
    timer: {
-    upTo: "do {{hours}} h",
+    upTo: "do {{hours}}",
     less: "15 minut manj",
     more: "15 minut več",
     plan: "Načrt",
@@ -1034,7 +1034,7 @@ export const sl = {
     note: "Na čem si delal?",
     notePlaceholder: "npr. Besedilo za pristajalno stran",
     logHours: "Zapiši ure",
-    logged: "Zapisano: {{hours}} h",
+    logged: "Zapisano: {{hours}}",
   },
  time: {
     dayAgo_few: "pred {{count}} d",

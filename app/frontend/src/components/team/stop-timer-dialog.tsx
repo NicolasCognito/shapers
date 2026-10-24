@@ -20,6 +20,7 @@ import {
   useNow,
   useWorkTimer,
 } from "@/lib/work-timer"
+import { durationLabel } from "@/lib/work-timer-format"
 
 const MAX_HOURS = 8
 
@@ -33,7 +34,6 @@ function suggestedHours(elapsedSec: number) {
   return Math.min(maxHours(elapsedSec), Math.max(0.25, rounded))
 }
 
-const fmt = (h: number) => (Number.isInteger(h) ? String(h) : h.toFixed(2).replace(/0$/, ""))
 
 export function StopTimerDialog() {
   const { t } = useTranslation()
@@ -70,7 +70,7 @@ export function StopTimerDialog() {
         log ? { log: true, hours: parsed, note: note.trim() } : { log: false }
       )
       if (log) {
-        toast.success(t("timer.logged", { hours: res.hours ?? parsed }))
+        toast.success(t("timer.logged", { hours: durationLabel(t, Math.round((res.hours ?? parsed) * 60)) }))
         window.dispatchEvent(new Event("hours-changed"))
         const earned = (res as { drops_earned?: number }).drops_earned
         if (earned) {
@@ -116,8 +116,8 @@ export function StopTimerDialog() {
                 >
                   −
                 </button>
-                <span className="min-w-16 text-center text-lg font-semibold tabular-nums" aria-live="polite">
-                  {fmt(parsed)} h
+                <span className="min-w-24 text-center text-lg font-semibold tabular-nums" aria-live="polite">
+                  {durationLabel(t, Math.round(parsed * 60))}
                 </span>
                 <button
                   type="button"
@@ -129,7 +129,7 @@ export function StopTimerDialog() {
                   +
                 </button>
               </div>
-              <span className="text-xs text-muted-foreground">{t("timer.upTo", { hours: fmt(limit) })}</span>
+              <span className="text-xs text-muted-foreground">{t("timer.upTo", { hours: durationLabel(t, Math.round(limit * 60)) })}</span>
             </div>
           </div>
           <div className="space-y-1.5">

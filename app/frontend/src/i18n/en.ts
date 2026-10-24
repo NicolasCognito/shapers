@@ -977,7 +977,7 @@ export const en = {
     earned_other: "+{{count}} drops for your tree",
   },
    timer: {
-    upTo: "up to {{hours}} h",
+    upTo: "up to {{hours}}",
     less: "15 minutes less",
     more: "15 minutes more",
     plan: "Plan",
@@ -1014,7 +1014,7 @@ export const en = {
     note: "What did you work on?",
     notePlaceholder: "e.g. Landing page copy",
     logHours: "Log hours",
-    logged: "Logged {{hours}} h",
+    logged: "Logged {{hours}}",
   },
  time: {
     dayAgo_few: "{{count}}d ago",
