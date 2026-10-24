@@ -455,6 +455,10 @@ export const en = {
   },
   chat: {
     voice: {
+      language: "Speech language",
+      auto: "Auto",
+      autoLong: "Detect automatically",
+      languageHint: "Language you will speak",
       start: "Dictate",
       stop: "Stop dictation",
       error: "Voice input: {{message}}",

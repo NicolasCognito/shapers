@@ -16,9 +16,11 @@ export type VoiceCallbacks = {
 
 export interface SpeechEngine {
   readonly id: string
+  /** True if it can work out the spoken language itself (start gets lang ""). */
+  readonly detectsLanguage?: boolean
   /** Can it work in this browser/app right now? */
   available(): boolean | Promise<boolean>
-  /** lang is a BCP-47 tag like "en-US" or "sl-SI". */
+  /** lang is a BCP-47 tag like "en-US" or "sl-SI", or "" to auto-detect. */
   start(lang: string, cb: VoiceCallbacks): void | Promise<void>
   /** Finish and deliver what was said. */
   stop(): void

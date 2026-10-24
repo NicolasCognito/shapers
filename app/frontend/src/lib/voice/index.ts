@@ -11,7 +11,24 @@ export type { SpeechEngine, VoiceState } from "./types"
 // or add engines here — the mic button and chat stay untouched.
 const ENGINES: SpeechEngine[] = [new BrowserSpeechEngine(), new ServerSpeechEngine()]
 
-const BCP47: Record<string, string> = { en: "en-US", sl: "sl-SI" }
+/** Languages offered in the mic chip. "auto" lets the server model detect it. */
+export const VOICE_LANGS = [
+  { code: "auto", tag: "", label: "Auto" },
+  { code: "en", tag: "en-US", label: "English" },
+  { code: "sl", tag: "sl-SI", label: "Slovenščina" },
+  { code: "ru", tag: "ru-RU", label: "Русский" },
+  { code: "de", tag: "de-DE", label: "Deutsch" },
+  { code: "it", tag: "it-IT", label: "Italiano" },
+  { code: "hr", tag: "hr-HR", label: "Hrvatski" },
+  { code: "sr", tag: "sr-RS", label: "Srpski" },
+  { code: "es", tag: "es-ES", label: "Español" },
+  { code: "fr", tag: "fr-FR", label: "Français" },
+  { code: "uk", tag: "uk-UA", label: "Українська" },
+] as const
+
+export type VoiceLang = (typeof VOICE_LANGS)[number]["code"]
+
+const TAG: Record<string, string> = Object.fromEntries(VOICE_LANGS.map((l) => [l.code, l.tag]))
 
 async function availableEngines(): Promise<SpeechEngine[]> {
   const ok = await Promise.all(ENGINES.map((e) => Promise.resolve(e.available()).catch(() => false)))
@@ -19,16 +36,19 @@ async function availableEngines(): Promise<SpeechEngine[]> {
 }
 
 /**
- * Hold-to-talk / click-to-toggle voice input.
- * `lang` is the UI language ("en", "sl"); results go to onText.
+ * Click-to-toggle voice input. `lang` is a VOICE_LANGS code; "auto" prefers an
+ * engine that detects the language itself (server Whisper) and otherwise falls
+ * back to `fallbackLang` (the UI language). Results go to onText.
  */
 export function useVoiceInput({
   lang,
+  fallbackLang,
   onText,
   onPartial,
   onError,
 }: {
-  lang: string
+  lang: VoiceLang
+  fallbackLang: string
   onText: (text: string) => void
   onPartial?: (text: string) => void
   onError?: (message: string) => void
@@ -54,11 +74,13 @@ export function useVoiceInput({
   }, [])
 
   const run = useCallback(
-    (index: number) => {
-      const engine = engines.current[index]
+    (index: number, order: SpeechEngine[]) => {
+      const engine = order[index]
       if (!engine) return
       active.current = engine
-      void engine.start(BCP47[lang] ?? lang, {
+      // Only engines that detect the language get "" (auto); others need a tag.
+      const tag = lang === "auto" && !engine.detectsLanguage ? TAG[fallbackLang] || "en-US" : TAG[lang]
+      void engine.start(tag, {
         onPartial: (t) => cbs.current.onPartial?.(t),
         onFinal: (t) => cbs.current.onText(t),
         onState: (s) => {
@@ -66,8 +88,8 @@ export function useVoiceInput({
           if (s === "idle" && active.current === engine) active.current = null
         },
         onError: (message, opts) => {
-          if (opts?.fallback && engines.current[index + 1]) {
-            run(index + 1) // e.g. browser recognition has no network → record and use the server
+          if (opts?.fallback && order[index + 1]) {
+            run(index + 1, order) // e.g. browser recognition has no network → record and use the server
             return
           }
           setState("idle")
@@ -75,13 +97,18 @@ export function useVoiceInput({
         },
       })
     },
-    [lang]
+    [lang, fallbackLang]
   )
 
   const start = useCallback(() => {
     if (active.current) return
-    run(0)
-  }, [run])
+    // Auto: try language-detecting engines first.
+    const order =
+      lang === "auto"
+        ? [...engines.current].sort((a, b) => Number(!!b.detectsLanguage) - Number(!!a.detectsLanguage))
+        : engines.current
+    run(0, order)
+  }, [run, lang])
   const stop = useCallback(() => active.current?.stop(), [])
   const cancel = useCallback(() => active.current?.cancel(), [])
   const toggle = useCallback(() => (active.current ? stop() : start()), [start, stop])

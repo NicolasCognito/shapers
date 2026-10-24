@@ -465,6 +465,10 @@ export const sl = {
   },
   chat: {
     voice: {
+      language: "Jezik govora",
+      auto: "Samodejno",
+      autoLong: "Zaznaj samodejno",
+      languageHint: "Jezik, v katerem boste govorili",
       start: "Nareki",
       stop: "Ustavi nareko",
       error: "Glasovni vnos: {{message}}",

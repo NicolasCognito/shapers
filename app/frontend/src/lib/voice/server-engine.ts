@@ -29,6 +29,7 @@ const EXT: Record<string, string> = { webm: "webm", mp4: "m4a", ogg: "ogg" }
 
 export class ServerSpeechEngine implements SpeechEngine {
   readonly id = "server"
+  readonly detectsLanguage = true
   private recorder: MediaRecorder | null = null
   private stream: MediaStream | null = null
   private cancelled = false
@@ -58,7 +59,7 @@ export class ServerSpeechEngine implements SpeechEngine {
       const ext = EXT[type.split("/")[1]?.split(";")[0] ?? ""] ?? "webm"
       const form = new FormData()
       form.append("audio", new Blob(chunks, { type }), `speech.${ext}`)
-      form.append("lang", lang.split("-")[0])
+      if (lang) form.append("lang", lang.split("-")[0])
       try {
         const res = await pb.send<{ text: string }>("/api/voice/transcribe", { method: "POST", body: form })
         if (res.text) cb.onFinal(res.text)
