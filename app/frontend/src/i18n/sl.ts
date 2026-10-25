@@ -124,6 +124,14 @@ export const sl = {
       noDate: "Brez roka",
     },
   },
+  quickHours: {
+    title: "Vpiši ure",
+    today: "Danes",
+    yesterday: "Včeraj",
+    logged: "Vpisano {{hours}} · {{day}}",
+    undo: "Razveljavi",
+    hint: "Starejši dnevi gredo kot zahtevek: Zahtevki → Nov zahtevek.",
+  },
   checkin: {
     now: "Zdaj",
     startsIn: "Začne se čez {{time}}",

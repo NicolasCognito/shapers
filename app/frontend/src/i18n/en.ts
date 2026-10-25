@@ -124,6 +124,14 @@ export const en = {
       noDate: "No date",
     },
   },
+  quickHours: {
+    title: "Log hours",
+    today: "Today",
+    yesterday: "Yesterday",
+    logged: "Logged {{hours}} · {{day}}",
+    undo: "Undo",
+    hint: "Older days go as a request: Requests → New request.",
+  },
   checkin: {
     now: "Now",
     startsIn: "Starts in {{time}}",

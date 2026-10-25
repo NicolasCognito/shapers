@@ -49,6 +49,7 @@ import {
 } from "@/components/ui/popover"
 import { NotificationItem } from "@/components/notifications/notification-item"
 import { TimerPill } from "@/components/team/timer-pill"
+import { QuickHours } from "@/components/team/quick-hours"
 import { TreeLink } from "@/components/team/tree-card"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { LanguageSwitcher } from "@/components/language-switcher"
@@ -173,6 +174,7 @@ export function AppHeader() {
 
       <div className="ml-auto flex items-center gap-1">
         <TimerPill />
+        <QuickHours />
         <TreeLink />
         <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
           <div
