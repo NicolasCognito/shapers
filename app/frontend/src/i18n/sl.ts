@@ -89,7 +89,7 @@ export const sl = {
     jarvis: "Jarvis",
     jarvisDesc: "Vaš pomočnik: naloge, ure in sestanki prek klepeta",
     settings: "Nastavitve",
-    settingsDesc: "Upravljajte nastavitve in API ključe",
+    settingsDesc: "Jezik, tema in nastavitve organizacije",
   },
   myWeek: {
     title: "Moj teden",
@@ -967,6 +967,10 @@ export const sl = {
     notShared: "Avtor ni delil",
   },
   settings: {
+    orgTitle: "Organizacija",
+    orgDesc: "Velja za vse. Vidijo samo skrbniki.",
+    meetingHours: "Sestanki štejejo kot ure",
+    meetingHoursHint: "Prijava na sestanek (v živo ali na daljavo, sam ali ob vnosu prisotnosti) zabeleži trajanje sestanka kot ure. Če je član označen kot odsoten, se ure odstranijo. Že zabeležene ure ostanejo, če to izklopite.",
     addModel: "Dodaj model",
     anotherUser: "drug uporabnik",
     appearance: "Videz",

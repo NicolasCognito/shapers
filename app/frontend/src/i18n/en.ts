@@ -89,7 +89,7 @@ export const en = {
     jarvis: "Jarvis",
     jarvisDesc: "Your assistant: tasks, hours and meetings by chat",
     settings: "Settings",
-    settingsDesc: "Manage your preferences and API keys",
+    settingsDesc: "Language, theme and organisation settings",
   },
   myWeek: {
     title: "My week",
@@ -953,6 +953,10 @@ export const en = {
     notShared: "Not shared by the author",
   },
   settings: {
+    orgTitle: "Organisation",
+    orgDesc: "Applies to everyone. Only admins see this.",
+    meetingHours: "Meetings count as hours",
+    meetingHoursHint: "Checking in to a meeting (in person or remote, by the member or in roll call) logs the meeting's length as hours. Marking someone absent removes it. Hours already logged stay if you turn this off.",
     addModel: "Add model",
     anotherUser: "another user",
     appearance: "Appearance",

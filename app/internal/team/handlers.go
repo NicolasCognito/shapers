@@ -35,7 +35,10 @@ func upsertAttendance(app core.App, meetingID, userID, state, source, recordedBy
 	rec.Set("state", state)
 	rec.Set("source", source)
 	rec.Set("recorded_by", recordedBy)
-	return rec, app.Save(rec)
+	if err := app.Save(rec); err != nil {
+		return rec, err
+	}
+	return rec, syncMeetingHours(app, meetingID, userID, state)
 }
 
 // POST /api/team/checkin {"meeting": "...", "remote": false}

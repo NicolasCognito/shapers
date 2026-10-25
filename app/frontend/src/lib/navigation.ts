@@ -116,7 +116,7 @@ export const navGroups: NavGroup[] = [
         descriptionKey: "nav.settingsDesc",
         url: "/settings",
         icon: Settings02Icon,
-        description: "Manage your preferences and API keys",
+        description: "Language, theme and organisation settings",
       },
     ],
   },

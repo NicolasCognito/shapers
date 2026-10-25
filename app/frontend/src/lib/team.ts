@@ -226,6 +226,12 @@ export const requestsApi = {
     }),
 }
 
+/** Organisation-wide switches, see internal/team/settings.go. */
+export type OrgSettings = {
+  /** Attending a meeting (present/remote) logs its duration as hours. */
+  meeting_hours: boolean
+}
+
 export type NewMember = {
   name: string
   email: string
@@ -243,6 +249,9 @@ export const teamApi = {
   overview: () => pb.send<Overview>("/api/team/overview", {}),
   createMember: (body: NewMember) =>
     pb.send<{ id: string; meetings: number }>("/api/team/members", { method: "POST", body }),
+  settings: () => pb.send<OrgSettings>("/api/team/settings", {}),
+  saveSettings: (body: Partial<OrgSettings>) =>
+    pb.send<OrgSettings>("/api/team/settings", { method: "POST", body }),
   setJarvis: (userId: string, enabled: boolean) =>
     pb.send(`/api/team/members/${userId}/jarvis`, { method: "POST", body: { enabled } }),
   upcoming: () => pb.send<MeetingView[]>("/api/team/meetings/upcoming", {}),
