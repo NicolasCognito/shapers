@@ -2,7 +2,7 @@
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](./LICENSE)
 
-[简体中文](./README.zh-CN.md)
+
 
 > **A self-hosted AI workspace for freelancers and small teams** — projects, docs, calendar, and reading in one binary on your own server, with an assistant that can actually operate them, inside your own permissions.
 
@@ -50,39 +50,39 @@ The base URL is dialed by the Workavera server, not by your browser. If Workaver
 
 ### Dashboard
 
-![Workavera Dashboard with workspace overview, due tasks, and upcoming events](./screenShot/en/dashboard.png)
+(screenshot removed: Workavera Dashboard with workspace overview, due tasks, and upcoming events)
 
 ### DeepSeek creating a project and calendar plan
 
-![Workavera Chat using DeepSeek and workspace tools to create project tasks and calendar events](./screenShot/en/chat-deepseek.png)
+(screenshot removed: Workavera Chat using DeepSeek and workspace tools to create project tasks and calendar events)
 
 ### Board
 
-![Workavera Board Kanban with workflow columns, priorities, and due dates](./screenShot/en/board.png)
+(screenshot removed: Workavera Board Kanban with workflow columns, priorities, and due dates)
 
 ### Public Board timeline
 
-![Workavera public Board timeline showing project progress, members, workflow states, and scheduled tasks](./screenShot/en/shareBoard.png)
+(screenshot removed: Workavera public Board timeline showing project progress, members, workflow states, and scheduled tasks)
 
 ### Calendar
 
-![Workavera Calendar combining personal events and Board task deadlines](./screenShot/en/calendar.png)
+(screenshot removed: Workavera Calendar combining personal events and Board task deadlines)
 
 ### Docs editor
 
-![Workavera Docs rich-text editor with slash commands, document history, sharing, and export tools](./screenShot/en/edit-doc.png)
+(screenshot removed: Workavera Docs rich-text editor with slash commands, document history, sharing, and export tools)
 
 ### Public document sharing
 
-![A published Workavera document with formatted content and a navigable table of contents](./screenShot/en/share-doc.png)
+(screenshot removed: A published Workavera document with formatted content and a navigable table of contents)
 
 ### Discover and summarize subscriptions
 
-![Workavera Discover fetching subscribed sources, generating AI summaries, and saving selected items to Reading](./screenShot/en/discover.png)
+(screenshot removed: Workavera Discover fetching subscribed sources, generating AI summaries, and saving selected items to Reading)
 
 ### Bring your own model
 
-![Workavera Settings with DeepSeek configured as the default model](./screenShot/en/settings.png)
+(screenshot removed: Workavera Settings with DeepSeek configured as the default model)
 
 ## Mobile apps (preview)
 
