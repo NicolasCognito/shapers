@@ -57,6 +57,7 @@ func Register(app *pocketbase.PocketBase) {
 			if err != nil {
 				return e.BadRequestError("Calendar sync failed: "+err.Error(), err)
 			}
+			SlackNoticesNow(e.App) // moved/new meetings show up in Slack at once
 			return e.JSON(200, map[string]any{"synced": n})
 		}))
 		registerRequestRoutes(se)
@@ -82,6 +83,7 @@ func runSync(app core.App) {
 		return
 	}
 	slog.Info("google calendar synced", "meetings", n)
+	SlackNoticesNow(app)
 }
 
 // WeekStart returns Monday 00:00 (organisation time) of the week containing t.

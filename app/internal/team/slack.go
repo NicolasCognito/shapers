@@ -174,7 +174,7 @@ func meetingText(app core.App, m *core.Record, remind bool) string {
 	end := m.GetDateTime("end_at").Time().In(Location)
 	var b strings.Builder
 	if remind {
-		b.WriteString("⏰ *Tomorrow:* ")
+		fmt.Fprintf(&b, "⏰ *%s:* ", dayWord(start, time.Now().In(Location)))
 	} else {
 		b.WriteString("📅 *Coming up:* ")
 	}
@@ -201,10 +201,37 @@ func meetingText(app core.App, m *core.Record, remind bool) string {
 	return b.String()
 }
 
+// dayWord names the meeting day relative to now: Today, Tomorrow or the date.
+func dayWord(start, now time.Time) string {
+	y, m, d := now.Date()
+	today := time.Date(y, m, d, 0, 0, 0, 0, Location)
+	switch {
+	case start.Before(today.AddDate(0, 0, 1)):
+		return "Today"
+	case start.Before(today.AddDate(0, 0, 2)):
+		return "Tomorrow"
+	}
+	return start.Format("Mon 2 Jan")
+}
+
+// noticesMu keeps the scheduled run and the run after a calendar sync from
+// posting the same notice twice.
+var noticesMu sync.Mutex
+
+// SlackNoticesNow posts due announcements, reminders and reschedule notes
+// right away (after a calendar sync), instead of waiting for the schedule.
+func SlackNoticesNow(app core.App) {
+	if slack != nil {
+		postMeetingNotices(app)
+	}
+}
+
 // postMeetingNotices runs every few minutes: one announcement per meeting
 // once it is less than 3 days away, one reminder once less than 1 day away.
 // Sent posts are recorded, so reschedules never cause duplicates.
 func postMeetingNotices(app core.App) {
+	noticesMu.Lock()
+	defer noticesMu.Unlock()
 	ch, err := slack.channel()
 	if err != nil {
 		slog.Warn("slack: channel", "error", err)
