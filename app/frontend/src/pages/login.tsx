@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useNavigate } from "react-router"
+import { useLocation, useNavigate } from "react-router"
 import { useTranslation } from "react-i18next"
 
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -29,6 +29,10 @@ const QUICK_ACCOUNTS = [
 export function LoginPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const location = useLocation()
+  // Back to the page that sent us here (e.g. a check-in QR link).
+  const from = (location.state as { from?: { pathname?: string; search?: string } } | null)?.from
+  const back = from?.pathname && from.pathname !== "/login" ? from.pathname + (from.search ?? "") : "/dashboard"
   const login = useAuthStore((s) => s.login)
 
   const [email, setEmail] = useState("")
@@ -47,7 +51,7 @@ export function LoginPage() {
     setLoading(true)
     try {
       await login(email, password)
-      navigate("/dashboard", { replace: true })
+      navigate(back, { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : t("login.loginFailed"))
     } finally {

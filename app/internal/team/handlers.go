@@ -117,6 +117,7 @@ type meetingView struct {
 	CanCheck bool      `json:"can_check_in"`
 	Notice   string    `json:"notice,omitempty"` // my "can't come" reason, sent ahead
 	Late     bool      `json:"notice_late,omitempty"`
+	Member   bool      `json:"member,omitempty"` // the viewer is in this meeting's list
 }
 
 type weekHours struct {
@@ -370,10 +371,12 @@ func handleUpcoming(e *core.RequestEvent) error {
 	}
 	out := make([]meetingView, 0, len(recs))
 	for _, m := range recs {
-		if !Can(e.Auth, PermTeamView) && !slices.Contains(m.GetStringSlice("members"), e.Auth.Id) {
+		member := slices.Contains(m.GetStringSlice("members"), e.Auth.Id)
+		if !Can(e.Auth, PermTeamView) && !member {
 			continue
 		}
 		v := toView(m, "", now)
+		v.Member = member
 		if a, err := e.App.FindFirstRecordByFilter(colAttendance, "meeting = {:m} && user = {:u}", dbx.Params{"m": m.Id, "u": e.Auth.Id}); err == nil {
 			v.State = a.GetString("state")
 			if a.GetString("source") == "notice" {

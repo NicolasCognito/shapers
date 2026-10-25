@@ -75,7 +75,6 @@ export function MemberDetailView({
   const s = detail.summary
   const past = detail.past ?? []
   const upcoming = detail.upcoming ?? []
-  const openNow = upcoming.concat(past).filter((m) => m.can_check_in)
 
   return (
     <div className="@container">
@@ -171,30 +170,6 @@ export function MemberDetailView({
             </div>
           </CardContent>
         </Card>
-
-        {editable && openNow.length > 0 && (
-          <Card className="border-primary/40 bg-primary/5 @3xl:col-span-3">
-            <CardHeader>
-              <CardTitle>{t("memberDetail.clockIn")}</CardTitle>
-              <CardDescription>{t("memberDetail.clockInDesc")}</CardDescription>
-            </CardHeader>
-            <CardContent className="divide-y">
-              {openNow.map((m) => (
-                <MeetingRow
-                  key={m.id}
-                  m={m}
-                  action={
-                    <CheckinButtons
-                      meetingId={m.id}
-                      state={m.state}
-                      onDone={onChanged}
-                    />
-                  }
-                />
-              ))}
-            </CardContent>
-          </Card>
-        )}
 
         {/* Hours history */}
         <Card className="@3xl:col-span-2">
@@ -530,51 +505,6 @@ function RecentLogs({
           </div>
         ))}
       </div>
-    </div>
-  )
-}
-
-export function CheckinButtons({
-  meetingId,
-  state,
-  onDone,
-}: {
-  meetingId: string
-  state: string
-  onDone: () => void
-}) {
-  const { t } = useTranslation()
-  const [busy, setBusy] = useState(false)
-  if (state === "present" || state === "remote") {
-    return <StateBadge state={state} />
-  }
-  const go = async (remote: boolean) => {
-    setBusy(true)
-    try {
-      await teamApi.checkin(meetingId, remote)
-      toast.success(
-        remote ? t("memberDetail.joinedRemote") : t("memberDetail.youreIn")
-      )
-      onDone()
-    } catch (e) {
-      toast.error(extractErrorMessage(e, t("common.somethingWrong")))
-    } finally {
-      setBusy(false)
-    }
-  }
-  return (
-    <div className="flex gap-2">
-      <Button size="sm" disabled={busy} onClick={() => go(false)}>
-        {t("memberDetail.imHere")}
-      </Button>
-      <Button
-        size="sm"
-        variant="outline"
-        disabled={busy}
-        onClick={() => go(true)}
-      >
-        {t("memberDetail.remote")}
-      </Button>
     </div>
   )
 }

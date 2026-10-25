@@ -56,7 +56,14 @@ export function TeamPage() {
     (id: string | null) => setSearchParams(id ? { member: id } : {}, { replace: !id }),
     [setSearchParams]
   )
-  const [rollCall, setRollCall] = useState<string | null>(null)
+  // Roll call opens from a button here or from ?rollcall=<meeting> (the "meeting now" bar).
+  const [rollCallLocal, setRollCallLocal] = useState<string | null>(null)
+  const rollCallParam = searchParams.get("rollcall")
+  const rollCall = rollCallParam ?? rollCallLocal
+  const setRollCall = (id: string | null) => {
+    setRollCallLocal(id)
+    if (!id && rollCallParam) setSearchParams({}, { replace: true })
+  }
 
   const load = useCallback(() => {
     teamApi.overview().then(setData)

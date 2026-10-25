@@ -67,6 +67,8 @@ export type MeetingView = {
   can_check_in: boolean
   notice?: string
   notice_late?: boolean
+  /** The viewer is in this meeting's list (only from /meetings/upcoming). */
+  member?: boolean
 }
 
 export type MemberDetail = {
