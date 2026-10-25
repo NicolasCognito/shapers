@@ -1,7 +1,10 @@
 import { useTranslation } from "react-i18next"
 import { useEffect, useMemo, useState } from "react"
 
-import { JARVIS_ASK_EVENT, takePendingQuestion } from "@/lib/jarvis-ask"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { ArrowUp02Icon, Loading03Icon, StopIcon } from "@hugeicons/core-free-icons"
+
+import { JARVIS_ASK_EVENT, takePendingQuestion, takePendingVoice } from "@/lib/jarvis-ask"
 
 import type { UseChatHelpers } from "@ai-sdk/react"
 import type { ChatStatus } from "ai"
@@ -28,15 +31,16 @@ import {
   PromptInputSelectItem,
   PromptInputSelectTrigger,
   PromptInputSelectValue,
-  PromptInputSubmit,
   PromptInputTextarea,
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input"
-import { VoiceButton } from "@/components/chat/voice-button"
+import { MicButton, VoiceLangChip } from "@/components/chat/voice-button"
+import { useDictation } from "@/lib/use-dictation"
 import { VoiceWaveform } from "@/components/chat/voice-waveform"
 import { pb } from "@/lib/pocketbase"
 import { useLlmSettingsStore } from "@/store/llm-settings"
 import type { ChatUIMessage } from "@/types/chat"
+import { cn } from "@/lib/utils"
 
 export type ChatContextInfo = {
   usedTokens: number
@@ -89,7 +93,8 @@ export function ChatPromptInput({
   >(initialModelConfigId || null)
   const modelConfigId = selectedModelConfigId ?? defaultModelId
   const [text, setText] = useState("")
-  const [voiceState, setVoiceState] = useState<"idle" | "recording" | "processing">("idle")
+  const dictation = useDictation({ text, setText })
+  const voiceState = dictation.state
 
   const [askTick, setAskTick] = useState(0)
   useEffect(() => {
@@ -104,6 +109,12 @@ export function ChatPromptInput({
     if (question) void handleSubmit({ text: question, files: [] })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [acceptsAsk, askTick, disabled, modelConfigId, status])
+  // The launcher's mic: start listening as soon as the engines are ready.
+  useEffect(() => {
+    if (!acceptsAsk || disabled || !dictation.supported || voiceState !== "idle") return
+    if (takePendingVoice()) dictation.start()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [acceptsAsk, askTick, disabled, dictation.supported])
 
   const handleSubmit = async (message: PromptInputMessage) => {
     const content = message.text.trim()
@@ -142,10 +153,17 @@ export function ChatPromptInput({
   const canSend =
     !disabled && !!text.trim() && !!modelConfigId && models.length > 0
   const selectedModel = models.find((model) => model.id === modelConfigId)
+  const voiceBusy = voiceState !== "idle"
+  const micDisabled = disabled || generating || models.length === 0
+  // The round button: mic while the input is empty, send once there is text,
+  // stop while Jarvis answers.
+  const primary: "mic" | "send" | "stop" =
+    generating ? "stop" : voiceBusy || (!text.trim() && dictation.supported) ? "mic" : "send"
 
   return (
     <div className="p-3 px-4 @3xl:px-16 @5xl:px-24">
-      <PromptInput onSubmit={handleSubmit} className="rounded-xl">
+      <div className="flex items-end gap-2">
+      <PromptInput onSubmit={handleSubmit} className="min-w-0 flex-1 rounded-xl">
         <PromptInputBody>
           {voiceState !== "idle" && <VoiceWaveform state={voiceState} />}
           <PromptInputTextarea
@@ -176,6 +194,7 @@ export function ChatPromptInput({
                 ))}
               </PromptInputSelectContent>
             </PromptInputSelect>
+            <VoiceLangChip dictation={dictation} />
             {selectedModel && contextInfo && (
               <Context
                 maxTokens={selectedModel.maxContextTokens}
@@ -203,21 +222,33 @@ export function ChatPromptInput({
               </Context>
             )}
           </PromptInputTools>
-          <div className="flex items-center gap-1">
-            <VoiceButton
-              text={text}
-              setText={setText}
-              disabled={disabled || generating || models.length === 0}
-              onStateChange={setVoiceState}
-            />
-            <PromptInputSubmit
-              disabled={!generating && !canSend}
-              status={status}
-              onStop={() => void handleStop()}
-            />
-          </div>
         </PromptInputFooter>
       </PromptInput>
+      {primary === "send" && dictation.supported && !voiceBusy && (
+        <MicButton dictation={dictation} disabled={micDisabled} />
+      )}
+      {primary === "mic" ? (
+        <MicButton dictation={dictation} disabled={micDisabled} big />
+      ) : (
+        <button
+          type="button"
+          onClick={() => (primary === "stop" ? void handleStop() : void handleSubmit({ text, files: [] }))}
+          disabled={primary === "send" && !canSend}
+          aria-label={primary === "stop" ? t("chat.stop") : t("chat.send")}
+          title={primary === "stop" ? t("chat.stop") : t("chat.send")}
+          className={cn(
+            "flex size-12 shrink-0 items-center justify-center rounded-full shadow-md transition-all disabled:opacity-40",
+            primary === "stop" ? "bg-foreground text-background" : "bg-primary text-primary-foreground hover:scale-105"
+          )}
+        >
+          <HugeiconsIcon
+            icon={status === "submitted" ? Loading03Icon : primary === "stop" ? StopIcon : ArrowUp02Icon}
+            strokeWidth={2}
+            className={cn("size-6", status === "submitted" && "animate-spin")}
+          />
+        </button>
+      )}
+      </div>
     </div>
   )
 }

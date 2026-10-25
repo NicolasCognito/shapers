@@ -15,3 +15,17 @@ export function takePendingQuestion(): string | null {
   pending = null
   return q
 }
+
+// The mic on the Jarvis launcher: open the panel and start dictation.
+let pendingVoice = false
+
+export function askJarvisByVoice() {
+  pendingVoice = true
+  window.dispatchEvent(new Event(JARVIS_ASK_EVENT))
+}
+
+export function takePendingVoice(): boolean {
+  const v = pendingVoice
+  pendingVoice = false
+  return v
+}

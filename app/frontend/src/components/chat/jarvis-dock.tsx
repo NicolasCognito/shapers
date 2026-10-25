@@ -10,6 +10,7 @@ import {
   ArrowLeft01Icon,
   Cancel01Icon,
   MinusSignIcon,
+  Mic01Icon,
   Clock01Icon,
   SparklesIcon,
 } from "@hugeicons/core-free-icons"
@@ -22,7 +23,8 @@ import { extractErrorMessage } from "@/lib/error"
 import { pb } from "@/lib/pocketbase"
 import { workspaceRecordUrl } from "@/lib/workspace-navigation"
 import { useChatStore } from "@/store/chat"
-import { JARVIS_ASK_EVENT } from "@/lib/jarvis-ask"
+import { askJarvisByVoice, JARVIS_ASK_EVENT } from "@/lib/jarvis-ask"
+import { voiceLikelySupported } from "@/lib/use-dictation"
 import { useLlmSettingsStore } from "@/store/llm-settings"
 import type { Conversation } from "@/types/chat"
 import { cn } from "@/lib/utils"
@@ -156,17 +158,35 @@ export function JarvisDock() {
   if (!session.open || session.minimized) {
     const resume = session.open && session.minimized
     return (
-      <button
-        type="button"
-        onClick={() => update(resume ? { ...session, minimized: false } : { open: true, id: null })}
+      <div
         data-tour="jarvis"
-        className="fixed right-4 bottom-4 z-40 flex items-center gap-2 rounded-full bg-primary py-3 pr-5 pl-4 text-sm font-medium text-primary-foreground shadow-lg transition-transform hover:scale-105 md:right-6 md:bottom-6"
-        aria-label={resume ? t("dock.restore") : t("dock.open")}
+        className="fixed right-4 bottom-4 z-40 flex items-center overflow-hidden rounded-full bg-primary text-primary-foreground shadow-lg md:right-6 md:bottom-6"
       >
-        <HugeiconsIcon icon={SparklesIcon} strokeWidth={2} className="size-5" />
-        {resume ? t("dock.continue") : t("dock.ask")}
-        {resume && <span className="size-2 rounded-full bg-emerald-400" aria-hidden />}
-      </button>
+        <button
+          type="button"
+          onClick={() => update(resume ? { ...session, minimized: false } : { open: true, id: null })}
+          className="flex items-center gap-2 py-3 pr-4 pl-4 text-sm font-medium transition-colors hover:bg-white/10"
+          aria-label={resume ? t("dock.restore") : t("dock.open")}
+        >
+          <HugeiconsIcon icon={SparklesIcon} strokeWidth={2} className="size-5" />
+          {resume ? t("dock.continue") : t("dock.ask")}
+          {resume && <span className="size-2 rounded-full bg-emerald-400" aria-hidden />}
+        </button>
+        {voiceLikelySupported() && (
+          <>
+            <span className="h-7 w-px bg-primary-foreground/30" aria-hidden />
+            <button
+              type="button"
+              onClick={askJarvisByVoice}
+              className="flex items-center justify-center self-stretch px-4 transition-colors hover:bg-white/10"
+              aria-label={t("dock.speak")}
+              title={t("dock.speak")}
+            >
+              <HugeiconsIcon icon={Mic01Icon} strokeWidth={2} className="size-6" />
+            </button>
+          </>
+        )}
+      </div>
     )
   }
 

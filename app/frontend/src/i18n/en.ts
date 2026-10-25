@@ -478,11 +478,14 @@ export const en = {
     createFailed: "Could not start a chat",
     open: "Open Jarvis",
     ask: "Ask Jarvis",
+    speak: "Talk to Jarvis",
     full: "Open full chat",
     close: "Close",
   },
   chat: {
     backToChat: "Back to chat",
+    send: "Send",
+    stop: "Stop the answer",
     navigate: {
       opening: "Opening…",
       opened: "Opened",
@@ -583,7 +586,7 @@ export const en = {
     responding: "Responding",
     search: "Search conversations...",
     selectModel: "Select model",
-    sendPlaceholder: "Send a message...",
+    sendPlaceholder: "Type, or tap the mic and talk…",
     startDesc: "Select a conversation from the sidebar, or create a new one to begin chatting.",
     startTitle: "Start a conversation",
     statesCount_few: "{{count}} states",

@@ -488,11 +488,14 @@ export const sl = {
     createFailed: "Pogovora ni bilo mogoče začeti",
     open: "Odpri Jarvisa",
     ask: "Vprašaj Jarvisa",
+    speak: "Govorite z Jarvisom",
     full: "Odpri celoten klepet",
     close: "Zapri",
   },
   chat: {
     backToChat: "Nazaj na klepet",
+    send: "Pošlji",
+    stop: "Ustavi odgovor",
     navigate: {
       opening: "Odpiram …",
       opened: "Odprto",
@@ -593,7 +596,7 @@ export const sl = {
     responding: "Odgovarja",
     search: "Išči pogovore ...",
     selectModel: "Izberite model",
-    sendPlaceholder: "Pošljite sporočilo ...",
+    sendPlaceholder: "Napišite ali tapnite mikrofon in govorite …",
     startDesc: "Izberite pogovor v stranski vrstici ali ustvarite novega.",
     startTitle: "Začnite pogovor",
     statesCount_few: "{{count}} statusi",

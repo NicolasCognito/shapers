@@ -103,7 +103,7 @@ const en: TourContent = {
   },
   jarvis: {
     title: "Jarvis does the rest",
-    text: "Your assistant, on every page. Type or talk: it logs hours, tells the team you can't come, asks for a pause, creates and assigns tasks, and opens the right page.",
+    text: "Your assistant, on every page. Tap the mic and just say it: it logs hours, tells the team you can't come, asks for a pause, creates and assigns tasks, and opens the right page.",
   },
   tryIt: "Try one:",
   memberAsks: [
@@ -191,7 +191,7 @@ const sl: TourContent = {
   },
   jarvis: {
     title: "Jarvis naredi ostalo",
-    text: "Vaš pomočnik na vsaki strani. Pišite ali govorite: zapiše ure, sporoči ekipi, da ne pridete, zaprosi za premor, ustvari in dodeli naloge ter odpre pravo stran.",
+    text: "Vaš pomočnik na vsaki strani. Tapnite mikrofon in povejte: zapiše ure, sporoči ekipi, da ne pridete, zaprosi za premor, ustvari in dodeli naloge ter odpre pravo stran.",
   },
   tryIt: "Poskusite:",
   memberAsks: [
