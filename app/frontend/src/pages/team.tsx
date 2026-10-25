@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next"
 
 import { MemberDetailView } from "@/components/team/member-detail"
 import { RollCallSheet } from "@/components/team/roll-call"
+import { UpcomingMeetingsCard } from "@/components/team/upcoming-meetings"
 import {
   ProgressBar,
   StatTile,
@@ -335,6 +336,8 @@ function OverviewTab({
           ))}
         </CardContent>
       </Card>
+
+      <UpcomingMeetingsCard />
     </div>
   )
 }

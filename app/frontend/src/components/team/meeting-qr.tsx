@@ -1,6 +1,8 @@
 import { useTranslation } from "react-i18next"
 import { QRCodeSVG } from "qrcode.react"
+import { toast } from "sonner"
 
+import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 /**
@@ -29,6 +31,25 @@ export function MeetingQrDialog({
               <QRCodeSVG value={url} size={280} marginSize={0} className="h-auto w-full max-w-[280px]" />
             </div>
             <p className="max-w-full truncate font-mono text-xs text-muted-foreground">{url}</p>
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button asChild variant="outline" size="sm">
+                <a href={`/api/team/qr/${meeting.id}`} download={`checkin-${meeting.id}.png`}>
+                  {t("checkin.downloadQr")}
+                </a>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  void navigator.clipboard
+                    ?.writeText(url)
+                    .then(() => toast.success(t("checkin.linkCopied")))
+                    .catch(() => {})
+                }
+              >
+                {t("checkin.copyLink")}
+              </Button>
+            </div>
           </div>
         )}
       </DialogContent>

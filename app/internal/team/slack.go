@@ -184,7 +184,8 @@ func meetingText(app core.App, m *core.Record, remind bool) string {
 		fmt.Fprintf(&b, " · %s", loc)
 	}
 	if base := strings.TrimRight(os.Getenv("PUBLIC_URL"), "/"); base != "" {
-		fmt.Fprintf(&b, "\n<%s/me|Check in on Shapers>", base)
+		// Opens the clock-in for this meeting (works 30 min before to 30 min after).
+		fmt.Fprintf(&b, "\n<%s|✅ Check in at the meeting> (opens 30 min before)", checkinURL(base, m.Id))
 	}
 	if remind {
 		var tags []string
@@ -232,9 +233,15 @@ func postMeetingNotices(app core.App) {
 			var out struct {
 				TS string `json:"ts"`
 			}
-			if err := slack.call("chat.postMessage", url.Values{
+			params := url.Values{
 				"channel": {ch}, "text": {meetingText(app, m, kind == "remind")}, "unfurl_links": {"false"},
-			}, &out); err != nil {
+			}
+			if kind == "remind" {
+				if blocks := reminderBlocks(params.Get("text"), m.Id); blocks != "" {
+					params.Set("blocks", blocks)
+				}
+			}
+			if err := slack.call("chat.postMessage", params, &out); err != nil {
 				slog.Warn("slack: post", "meeting", m.Id, "error", err)
 				continue
 			}
@@ -247,6 +254,22 @@ func postMeetingNotices(app core.App) {
 			_ = app.Save(r)
 		}
 	}
+}
+
+// reminderBlocks is the reminder text with the room QR code under it, so an
+// admin can put it on the screen straight from Slack. Needs PUBLIC_URL:
+// Slack downloads the image from there.
+func reminderBlocks(text, meetingID string) string {
+	base := strings.TrimRight(os.Getenv("PUBLIC_URL"), "/")
+	if base == "" {
+		return ""
+	}
+	blocks := []map[string]any{
+		{"type": "section", "text": map[string]string{"type": "mrkdwn", "text": text}},
+		{"type": "image", "image_url": base + "/api/team/qr/" + meetingID, "alt_text": "Check-in QR code for the room screen"},
+	}
+	data, _ := json.Marshal(blocks)
+	return string(data)
 }
 
 func meetingWhen(t time.Time) string {

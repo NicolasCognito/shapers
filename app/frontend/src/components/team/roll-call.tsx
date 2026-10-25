@@ -3,7 +3,11 @@ import { format, parseISO } from "date-fns"
 import { toast } from "sonner"
 import { useTranslation } from "react-i18next"
 
+import { HugeiconsIcon } from "@hugeicons/react"
+import { QrCodeIcon } from "@hugeicons/core-free-icons"
+
 import { Button } from "@/components/ui/button"
+import { MeetingQrDialog } from "@/components/team/meeting-qr"
 import {
   Sheet,
   SheetContent,
@@ -38,6 +42,7 @@ export function RollCallSheet({
   const [meeting, setMeeting] = useState<{ title: string; start_at: string; members: string[] } | null>(null)
   const [states, setStates] = useState<Record<string, AttendanceState | "">>({})
   const [busy, setBusy] = useState(false)
+  const [qrOpen, setQrOpen] = useState(false)
 
   useEffect(() => {
     if (!meetingId) return
@@ -81,7 +86,22 @@ export function RollCallSheet({
     <Sheet open={!!meetingId} onOpenChange={(o) => !o && onClose()}>
       <SheetContent className="flex w-full flex-col sm:max-w-lg">
         <SheetHeader>
-          <SheetTitle>{meeting?.title ?? t("rollCall.title")}</SheetTitle>
+          <div className="flex items-start justify-between gap-2 pr-8">
+            <SheetTitle>{meeting?.title ?? t("rollCall.title")}</SheetTitle>
+            {meeting && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 shrink-0"
+                onClick={() => setQrOpen(true)}
+                aria-label={t("checkin.showQr")}
+                title={t("checkin.showQr")}
+              >
+                <HugeiconsIcon icon={QrCodeIcon} strokeWidth={2} />
+                QR
+              </Button>
+            )}
+          </div>
           <SheetDescription>
             {meeting &&
               format(parseISO(meeting.start_at), "EEEE d MMM, HH:mm", {
@@ -150,6 +170,10 @@ export function RollCallSheet({
           </Button>
         </SheetFooter>
       </SheetContent>
+      <MeetingQrDialog
+        meeting={qrOpen && meetingId && meeting ? { id: meetingId, title: meeting.title } : null}
+        onClose={() => setQrOpen(false)}
+      />
     </Sheet>
   )
 }

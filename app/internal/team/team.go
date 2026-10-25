@@ -41,6 +41,7 @@ func Register(app *pocketbase.PocketBase) {
 	registerTierRules(app)
 
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
+		se.Router.GET("/api/team/qr/{id}", handleMeetingQR) // public, see qr.go
 		g := se.Router.Group("/api/team")
 		g.Bind(apis.RequireAuth(colUsers))
 		g.POST("/checkin", handleCheckin)
