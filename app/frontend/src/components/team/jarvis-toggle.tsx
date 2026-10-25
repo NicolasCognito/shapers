@@ -16,7 +16,6 @@ export function JarvisToggle({ userId, initial, onChanged }: { userId: string; i
     setOn(next)
     try {
       await teamApi.setJarvis(userId, next)
-      toast.success(next ? t("jarvisAccess.on") : t("jarvisAccess.off"))
       onChanged?.()
     } catch (e) {
       setOn(!next)
@@ -24,13 +23,14 @@ export function JarvisToggle({ userId, initial, onChanged }: { userId: string; i
     }
   }
   return (
-    <label className="flex items-center gap-3 rounded-lg border px-3 py-2 text-sm">
+    // Only the switch toggles (not the whole row); no toast — the switch shows the state.
+    <div className="flex items-center gap-3 rounded-lg border px-3 py-2 text-sm">
       <HugeiconsIcon icon={SparklesIcon} strokeWidth={2} className="size-4 text-violet-600" />
       <span className="flex-1">
         <span className="font-medium">{t("jarvisAccess.label")}</span>
         <span className="block text-xs text-muted-foreground">{t("jarvisAccess.hint")}</span>
       </span>
-      <Switch checked={on} onCheckedChange={(v) => void toggle(v)} />
-    </label>
+      <Switch checked={on} onCheckedChange={(v) => void toggle(v)} aria-label={t("jarvisAccess.label")} />
+    </div>
   )
 }

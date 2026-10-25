@@ -195,20 +195,20 @@ export function VacationToggle({ userId }: { userId: string }) {
     setOn(next)
     try {
       await pb.send(`/api/team/tree/member/${userId}/vacation`, { method: "POST", body: { on: next } })
-      toast.success(next ? t("tree.vacationOn") : t("tree.vacationOff"))
     } catch (e) {
       setOn(!next)
       toast.error((e as Error).message)
     }
   }
   return (
-    <label className="flex items-center gap-3 rounded-lg border px-3 py-2 text-sm">
+    // Only the switch toggles (not the whole row); no toast — the switch shows the state.
+    <div className="flex items-center gap-3 rounded-lg border px-3 py-2 text-sm">
       <HugeiconsIcon icon={Plant01Icon} strokeWidth={2} className="size-4 text-emerald-600" />
       <span className="flex-1">
         <span className="font-medium">{t("tree.vacation")}</span>
         <span className="block text-xs text-muted-foreground">{t("tree.vacationHint")}</span>
       </span>
-      <Switch checked={on} onCheckedChange={(v) => void toggle(v)} />
-    </label>
+      <Switch checked={on} onCheckedChange={(v) => void toggle(v)} aria-label={t("tree.vacation")} />
+    </div>
   )
 }
