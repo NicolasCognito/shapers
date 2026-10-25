@@ -70,6 +70,7 @@ export function TeamPage() {
   }
 
   const load = useCallback(() => {
+    if (!can("team.view")) return // members are redirected below
     teamApi.overview().then(setData)
   }, [])
   useEffect(() => {
