@@ -96,7 +96,7 @@ export function DocumentLinkDialog({
     return () => {
       active = false
     }
-  }, [open, projectId])
+  }, [open, projectId, t])
 
   const visibleOptions = useMemo(() => {
     const normalized = query.trim().toLowerCase()

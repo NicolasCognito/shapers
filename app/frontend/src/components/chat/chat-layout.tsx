@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { ArrowLeft01Icon, Menu01Icon } from "@hugeicons/core-free-icons"
@@ -14,7 +14,12 @@ export function ChatLayout() {
   const { t } = useTranslation()
   const activeId = useChatStore((s) => s.activeConversationId)
   const [listOpen, setListOpen] = useState(false)
-  useEffect(() => setListOpen(false), [activeId])
+  // Picking a conversation closes the list (adjust state on change, no effect).
+  const [shownId, setShownId] = useState(activeId)
+  if (shownId !== activeId) {
+    setShownId(activeId)
+    setListOpen(false)
+  }
 
   return (
     <div className="-m-4 flex h-[calc(100vh-4rem)] overflow-hidden md:-m-6">

@@ -69,6 +69,8 @@ export function MyTasksPage() {
   }, [me])
 
   useEffect(() => {
+    // Data fetch: state is set when the requests resolve.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load().catch((e) =>
       notify.error(extractErrorMessage(e, tr("myTasks.loadFailed")))
     )
@@ -79,7 +81,7 @@ export function MyTasksPage() {
         fields: "id,name",
       })
       .then(setUsers)
-  }, [load])
+  }, [load, tr])
 
   const update = async (t: TaskRec, patch: Partial<TaskRec>, msg?: string) => {
     // Optimistic: the list feels instant, the server keeps the history.

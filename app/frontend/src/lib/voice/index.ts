@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react"
 
 import { BrowserSpeechEngine } from "./browser-engine"
 import { ServerSpeechEngine } from "./server-engine"
@@ -68,8 +68,14 @@ export function useVoiceInput({
   const [supported, setSupported] = useState(false)
   const engines = useRef<SpeechEngine[]>([])
   const active = useRef<SpeechEngine | null>(null)
+  const [engineId, setEngineId] = useState<string | undefined>()
+  // Latest callbacks for the engines, updated after each render.
   const cbs = useRef({ onText, onPartial, onError })
-  cbs.current = { onText, onPartial, onError }
+  useLayoutEffect(() => {
+    cbs.current = { onText, onPartial, onError }
+  })
+  // run() hands over to the next engine on failure; it calls itself via this ref.
+  const runRef = useRef<(index: number, order: SpeechEngine[]) => void>(() => {})
 
   useEffect(() => {
     let alive = true
@@ -89,6 +95,7 @@ export function useVoiceInput({
       const engine = order[index]
       if (!engine) return
       active.current = engine
+      setEngineId(engine.id)
       // Only engines that detect the language get "" (auto); others need a tag.
       const tag = lang === "auto" && !engine.detectsLanguage ? TAG[fallbackLang] || "en-US" : TAG[lang]
       void engine.start(tag, {
@@ -100,7 +107,7 @@ export function useVoiceInput({
         },
         onError: (message, opts) => {
           if (opts?.fallback && order[index + 1]) {
-            run(index + 1, order) // e.g. browser recognition has no network → record and use the server
+            runRef.current(index + 1, order) // e.g. browser recognition has no network → record and use the server
             return
           }
           setState("idle")
@@ -110,6 +117,9 @@ export function useVoiceInput({
     },
     [lang, fallbackLang]
   )
+  useLayoutEffect(() => {
+    runRef.current = run
+  }, [run])
 
   const start = useCallback(() => {
     if (active.current) return
@@ -124,5 +134,5 @@ export function useVoiceInput({
   const cancel = useCallback(() => active.current?.cancel(), [])
   const toggle = useCallback(() => (active.current ? stop() : start()), [start, stop])
 
-  return { supported, state, start, stop, cancel, toggle, engine: active.current?.id }
+  return { supported, state, start, stop, cancel, toggle, engine: engineId }
 }

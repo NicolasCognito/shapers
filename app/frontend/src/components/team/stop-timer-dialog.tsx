@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { notify } from "@/lib/notify"
-import { useTree } from "@/components/team/tree-card"
+import { useTree } from "@/lib/tree-store"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -49,15 +49,15 @@ export function StopTimerDialog() {
   const elapsed = timer ? elapsedSeconds(timer, now) : 0
   const isOpen = open && !!timer
 
-  useEffect(() => {
+  // Fresh suggestion each time the dialog opens (adjust state on change).
+  const [wasOpen, setWasOpen] = useState(false)
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen)
     if (isOpen) {
-      const current = useWorkTimer.getState().timer
-      if (current) {
-        setHours(suggestedHours(elapsedSeconds(current, Date.now())))
-      }
+      if (timer) setHours(suggestedHours(elapsedSeconds(timer, now)))
       setNote("")
     }
-  }, [isOpen])
+  }
 
   const limit = maxHours(elapsed)
   const parsed = Math.min(hours, limit)

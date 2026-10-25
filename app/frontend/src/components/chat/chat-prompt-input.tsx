@@ -103,12 +103,6 @@ export function ChatPromptInput({
     window.addEventListener(JARVIS_ASK_EVENT, bump)
     return () => window.removeEventListener(JARVIS_ASK_EVENT, bump)
   }, [acceptsAsk])
-  useEffect(() => {
-    if (!acceptsAsk || disabled || !modelConfigId || status !== "ready") return
-    const question = takePendingQuestion()
-    if (question) void handleSubmit({ text: question, files: [] })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [acceptsAsk, askTick, disabled, modelConfigId, status])
   // The launcher's mic: start listening as soon as the engines are ready.
   useEffect(() => {
     if (!acceptsAsk || disabled || !dictation.supported || voiceState !== "idle") return
@@ -135,6 +129,16 @@ export function ChatPromptInput({
       { body: { runId, conversationId, modelConfigId } }
     )
   }
+
+  // A question passed with askJarvis(): send it once the chat is ready.
+  useEffect(() => {
+    if (!acceptsAsk || disabled || !modelConfigId || status !== "ready") return
+    const question = takePendingQuestion()
+    // Sending a queued question is a one-off action per ask, not derived state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (question) void handleSubmit({ text: question, files: [] })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [acceptsAsk, askTick, disabled, modelConfigId, status])
 
   const handleStop = async () => {
     try {

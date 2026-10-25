@@ -85,7 +85,7 @@ export function ArchivedProjectsDialog({
         )
       })
       .finally(() => setLoading(false))
-  }, [load, open])
+  }, [load, open, t])
 
   const restore = async (id: string) => {
     try {

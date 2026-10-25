@@ -2,36 +2,13 @@ import { useEffect, useState } from "react"
 import { Link } from "react-router"
 import { useTranslation } from "react-i18next"
 import { notify } from "@/lib/notify"
-import { create } from "zustand"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Plant01Icon } from "@hugeicons/core-free-icons"
 
 import { Switch } from "@/components/ui/switch"
 import { pb } from "@/lib/pocketbase"
+import { useTree, type Mood, type Tree } from "@/lib/tree-store"
 import { cn } from "@/lib/utils"
-
-type Mood = "happy" | "calm" | "sad" | "wilted"
-export type Tree = {
-  drops: number
-  waterings: number
-  stage: number // 0 sprout … 4 blooming
-  stage_progress: number
-  mood: Mood
-  days_dry: number
-  bonus?: number
-  vacation?: boolean
-  demo?: boolean
-}
-
-// Shared so the timer can refresh it after a planned session pays out water.
-export const useTree = create<{ tree: Tree | null; load: () => Promise<void> }>((set) => ({
-  tree: null,
-  load: async () => {
-    const tree = await pb.send<Tree>("/api/team/tree", {})
-    set({ tree })
-    if (tree.bonus) notify.success(`+${tree.bonus} 💧`)
-  },
-}))
 
 const LEAF: Record<Mood, string> = {
   happy: "#34b36b",

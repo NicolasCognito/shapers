@@ -6,7 +6,8 @@ import { DropletIcon, HelpCircleIcon } from "@hugeicons/core-free-icons"
 
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { TreeArt, useTree, type Tree } from "@/components/team/tree-card"
+import { TreeArt } from "@/components/team/tree-card"
+import { useTree, type Tree } from "@/lib/tree-store"
 import { pb } from "@/lib/pocketbase"
 
 const WATERINGS_PER_STAGE = 5

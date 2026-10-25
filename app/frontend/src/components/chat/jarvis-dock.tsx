@@ -110,6 +110,8 @@ export function JarvisDock() {
         .then(setConversation)
         .catch(() => void startNew())
     } else {
+      // Starting a chat creates a record; state follows the request.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       void startNew()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

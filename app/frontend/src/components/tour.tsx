@@ -87,7 +87,7 @@ async function waitFor(selector: string, ms = 4000) {
 
 let running = false
 
-export function startTour(navigate: NavigateFunction, lang: string) {
+function startTour(navigate: NavigateFunction, lang: string) {
   if (running) return
   running = true
   const c = tourContent(lang)

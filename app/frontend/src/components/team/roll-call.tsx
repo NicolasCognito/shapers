@@ -39,17 +39,19 @@ export function RollCallSheet({
 }) {
   const { t } = useTranslation()
   const locale = useDateLocale()
-  const [meeting, setMeeting] = useState<{ title: string; start_at: string; members: string[] } | null>(null)
+  type MeetingInfo = { title: string; start_at: string; members: string[] }
+  // Kept with its id, so another meeting never shows stale data while loading.
+  const [loaded, setLoaded] = useState<{ id: string; meeting: MeetingInfo } | null>(null)
+  const meeting = loaded && loaded.id === meetingId ? loaded.meeting : null
   const [states, setStates] = useState<Record<string, AttendanceState | "">>({})
   const [busy, setBusy] = useState(false)
   const [qrOpen, setQrOpen] = useState(false)
 
   useEffect(() => {
     if (!meetingId) return
-    setMeeting(null)
     Promise.all([teamApi.meeting(meetingId), teamApi.meetingAttendance(meetingId)]).then(
       ([m, att]) => {
-        setMeeting(m)
+        setLoaded({ id: meetingId, meeting: m })
         const s: Record<string, AttendanceState | ""> = {}
         for (const id of m.members) s[id] = ""
         for (const a of att) s[a.user] = a.state

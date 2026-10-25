@@ -119,10 +119,12 @@ export function ProjectGrid({
   }, [me])
 
   useEffect(() => {
+    // Data fetch: state is set when the requests resolve.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load().catch((e) =>
       notify.error(extractErrorMessage(e, t("board.loadFailed")))
     )
-  }, [load, reloadKey])
+  }, [load, reloadKey, t])
 
   const togglePin = async (item: Item) => {
     setItems(

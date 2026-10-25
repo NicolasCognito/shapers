@@ -80,7 +80,7 @@ export function ArchivedTasksDialog({
         )
       })
       .finally(() => setLoading(false))
-  }, [load, open])
+  }, [load, open, t])
 
   const restore = async (id: string) => {
     setRestoringId(id)

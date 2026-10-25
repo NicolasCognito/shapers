@@ -33,7 +33,8 @@ import { useDateLocale } from "@/i18n"
 import { can } from "@/lib/permissions"
 import { VacationToggle } from "@/components/team/tree-card"
 import { JarvisToggle } from "@/components/team/jarvis-toggle"
-import { MemberSlack, SlackCell, useSlack } from "@/components/team/slack-activity"
+import { MemberSlack, SlackCell } from "@/components/team/slack-activity"
+import { useSlack } from "@/lib/slack-store"
 import { pb } from "@/lib/pocketbase"
 import { cn } from "@/lib/utils"
 import {
@@ -348,6 +349,34 @@ function OverviewTab({
 
 type SortKey = "name" | "progress" | "attendance" | "streak" | "tasks"
 
+function SortHeader({
+  k,
+  sort,
+  setSort,
+  children,
+  className,
+}: {
+  k: SortKey
+  sort: SortKey
+  setSort: (k: SortKey) => void
+  children: string
+  className?: string
+}) {
+  return (
+    <th className={cn("px-3 py-2 font-medium", className)}>
+      <button
+        onClick={() => setSort(k)}
+        className={cn(
+          "-mx-1 -my-1.5 rounded px-1 py-1.5 hover:text-foreground",
+          sort === k && "text-foreground underline"
+        )}
+      >
+        {children}
+      </button>
+    </th>
+  )
+}
+
 function MembersTab({
   members,
   onSelect,
@@ -381,27 +410,6 @@ function MembersTab({
     })
   }, [members, sort, tier])
 
-  const H = ({
-    k,
-    children,
-    className,
-  }: {
-    k: SortKey
-    children: string
-    className?: string
-  }) => (
-    <th className={cn("px-3 py-2 font-medium", className)}>
-      <button
-        onClick={() => setSort(k)}
-        className={cn(
-          "-mx-1 -my-1.5 rounded px-1 py-1.5 hover:text-foreground",
-          sort === k && "text-foreground underline"
-        )}
-      >
-        {children}
-      </button>
-    </th>
-  )
 
   return (
     <Card>
@@ -427,14 +435,14 @@ function MembersTab({
           <table className="w-full text-sm">
             <thead className="text-left text-xs text-muted-foreground">
               <tr>
-                <H k="name">{t("team.member")}</H>
-                <H k="progress" className="min-w-48">
+                <SortHeader sort={sort} setSort={setSort} k="name">{t("team.member")}</SortHeader>
+                <SortHeader sort={sort} setSort={setSort} k="progress" className="min-w-48">
                   {t("team.thisWeek")}
-                </H>
+                </SortHeader>
                 <th className="px-3 py-2 font-medium">{t("team.last6")}</th>
-                <H k="streak">{t("team.streak")}</H>
-                <H k="attendance">{t("team.showedUp")}</H>
-                <H k="tasks">{t("team.tasks")}</H>
+                <SortHeader sort={sort} setSort={setSort} k="streak">{t("team.streak")}</SortHeader>
+                <SortHeader sort={sort} setSort={setSort} k="attendance">{t("team.showedUp")}</SortHeader>
+                <SortHeader sort={sort} setSort={setSort} k="tasks">{t("team.tasks")}</SortHeader>
                 {slackEnabled && <th className="px-3 py-2 font-medium">Slack</th>}
               </tr>
             </thead>
@@ -691,11 +699,13 @@ function MemberSheet({
   onChanged?: () => void
 }) {
   const { t } = useTranslation()
-  const [detail, setDetail] = useState<MemberDetail | null>(null)
+  // Loaded detail is kept with its member id, so switching members shows
+  // nothing stale while the next one loads.
+  const [loaded, setLoaded] = useState<{ id: string; detail: MemberDetail } | null>(null)
+  const detail = loaded && loaded.id === id ? loaded.detail : null
   useEffect(() => {
     if (!id) return
-    setDetail(null)
-    teamApi.member(id).then(setDetail)
+    teamApi.member(id).then((d) => setLoaded({ id, detail: d }))
   }, [id])
   return (
     <Sheet open={!!id} onOpenChange={(o) => !o && onClose()}>
@@ -715,7 +725,7 @@ function MemberSheet({
               editable={false}
               canModerate={can("tasks.moderate")}
               onChanged={() => {
-                if (id) void teamApi.member(id).then(setDetail)
+                if (id) void teamApi.member(id).then((d) => setLoaded({ id, detail: d }))
                 onChanged?.()
               }}
             />

@@ -541,7 +541,7 @@ function ArchivedNotificationsDialog({
     } finally {
       setLoading(false)
     }
-  }, [page])
+  }, [page, t])
 
   useEffect(() => {
     if (!open) return
