@@ -26,6 +26,7 @@ import (
 	"github.com/xusenlin/workavera/internal/notifications"
 	"github.com/xusenlin/workavera/internal/preferences"
 	"github.com/xusenlin/workavera/internal/reading"
+	"github.com/xusenlin/workavera/internal/slack"
 	"github.com/xusenlin/workavera/internal/team"
 	"github.com/xusenlin/workavera/internal/voice"
 	_ "github.com/xusenlin/workavera/migrations"
@@ -53,6 +54,7 @@ func main() {
 	memory.Register(app)
 	chat.Register(app)
 	team.Register(app)
+	slack.Register(app)
 	voice.Register(app)
 
 	migratecmd.MustRegister(app, app.RootCmd, migratecmd.Config{

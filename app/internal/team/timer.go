@@ -7,18 +7,15 @@ import (
 	"time"
 
 	"github.com/pocketbase/dbx"
-	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
+	"github.com/xusenlin/workavera/internal/org"
 )
 
-const (
-	colTimers   = "work_timers"
-	maxTimerHrs = 12.0 // longer than this is a forgotten timer, not work
-)
+const maxTimerHrs = 12.0 // longer than this is a forgotten timer, not work
 
 type TimerView struct {
-	ID             string    `json:"id"`
-	StartedAt      time.Time `json:"started_at"`
+	ID             string     `json:"id"`
+	StartedAt      time.Time  `json:"started_at"`
 	PlannedMinutes int        `json:"planned_minutes"` // 0 = open-ended
 	ElapsedMinutes float64    `json:"elapsed_minutes"` // work time, pauses excluded
 	PausedAt       *time.Time `json:"paused_at"`       // set while paused
@@ -39,28 +36,8 @@ func timerView(r *core.Record) *TimerView {
 	return v
 }
 
-// PauseTimer pauses or resumes the actor's timer.
-func PauseTimer(app core.App, userID string, pause bool) (*TimerView, error) {
-	r, err := findTimer(app, userID)
-	if err != nil {
-		return nil, errors.New("no timer is running")
-	}
-	p := r.GetDateTime("paused_at").Time()
-	switch {
-	case pause && p.IsZero():
-		r.Set("paused_at", dbTime(time.Now()))
-	case !pause && !p.IsZero():
-		// Move the start forward by the pause: exact to the millisecond,
-		// unlike summing whole seconds.
-		start := r.GetDateTime("started_at").Time()
-		r.Set("started_at", dbTime(start.Add(time.Since(p))))
-		r.Set("paused_at", "")
-	}
-	return timerView(r), app.Save(r)
-}
-
 func findTimer(app core.App, userID string) (*core.Record, error) {
-	return app.FindFirstRecordByFilter(colTimers, "user = {:u}", dbx.Params{"u": userID})
+	return app.FindFirstRecordByFilter(org.ColTimers, "user = {:u}", dbx.Params{"u": userID})
 }
 
 // StartTimer starts (or restarts) the actor's timer. planned is in minutes, 0 = open-ended.
@@ -71,13 +48,13 @@ func StartTimer(app core.App, userID string, planned int) (*TimerView, error) {
 	if r, err := findTimer(app, userID); err == nil {
 		return timerView(r), errors.New("a timer is already running")
 	}
-	col, err := app.FindCollectionByNameOrId(colTimers)
+	col, err := app.FindCollectionByNameOrId(org.ColTimers)
 	if err != nil {
 		return nil, err
 	}
 	r := core.NewRecord(col)
 	r.Set("user", userID)
-	r.Set("started_at", dbTime(time.Now()))
+	r.Set("started_at", org.DBTime(time.Now()))
 	r.Set("planned_minutes", planned)
 	return timerView(r), app.Save(r)
 }
@@ -96,6 +73,26 @@ func ExtendTimer(app core.App, userID string, minutes int) (*TimerView, error) {
 		base = int(timerView(r).ElapsedMinutes)
 	}
 	r.Set("planned_minutes", base+minutes)
+	return timerView(r), app.Save(r)
+}
+
+// PauseTimer pauses or resumes the actor's timer.
+func PauseTimer(app core.App, userID string, pause bool) (*TimerView, error) {
+	r, err := findTimer(app, userID)
+	if err != nil {
+		return nil, errors.New("no timer is running")
+	}
+	p := r.GetDateTime("paused_at").Time()
+	switch {
+	case pause && p.IsZero():
+		r.Set("paused_at", org.DBTime(time.Now()))
+	case !pause && !p.IsZero():
+		// Move the start forward by the pause: exact to the millisecond,
+		// unlike summing whole seconds.
+		start := r.GetDateTime("started_at").Time()
+		r.Set("started_at", org.DBTime(start.Add(time.Since(p))))
+		r.Set("paused_at", "")
+	}
 	return timerView(r), app.Save(r)
 }
 
@@ -122,13 +119,13 @@ func StopTimer(app core.App, userID string, log bool, hours float64, note string
 			if hours > elapsed || hours > maxTimerHrs {
 				return errors.New("that is more than the timer ran")
 			}
-			col, err := tx.FindCollectionByNameOrId(colHours)
+			col, err := tx.FindCollectionByNameOrId(org.ColHourLogs)
 			if err != nil {
 				return err
 			}
 			l := core.NewRecord(col)
 			l.Set("user", userID)
-			l.Set("date", dbTime(v.StartedAt))
+			l.Set("date", org.DBTime(v.StartedAt))
 			l.Set("hours", hours)
 			l.Set("note", strings.TrimSpace(note))
 			l.Set("source", "timer")
@@ -146,60 +143,61 @@ func StopTimer(app core.App, userID string, log bool, hours float64, note string
 	})
 }
 
-func registerTimerRoutes(se *core.ServeEvent) {
-	g := se.Router.Group("/api/team/timer")
-	g.Bind(apis.RequireAuth(colUsers))
-	g.GET("", func(e *core.RequestEvent) error {
-		r, err := findTimer(e.App, e.Auth.Id)
-		if err != nil {
-			return e.JSON(200, map[string]any{"timer": nil})
-		}
-		return e.JSON(200, map[string]any{"timer": timerView(r)})
-	})
-	g.POST("/start", func(e *core.RequestEvent) error {
-		var in struct {
-			PlannedMinutes int `json:"planned_minutes"`
-		}
-		_ = e.BindBody(&in)
-		v, err := StartTimer(e.App, e.Auth.Id, in.PlannedMinutes)
-		if err != nil {
-			return e.BadRequestError(err.Error(), nil)
-		}
-		return e.JSON(200, map[string]any{"timer": v})
-	})
-	g.POST("/extend", func(e *core.RequestEvent) error {
-		var in struct {
-			Minutes int `json:"minutes"`
-		}
-		_ = e.BindBody(&in)
-		v, err := ExtendTimer(e.App, e.Auth.Id, in.Minutes)
-		if err != nil {
-			return e.BadRequestError(err.Error(), nil)
-		}
-		return e.JSON(200, map[string]any{"timer": v})
-	})
-	pauseRoute := func(pause bool) func(e *core.RequestEvent) error {
-		return func(e *core.RequestEvent) error {
-			v, err := PauseTimer(e.App, e.Auth.Id, pause)
-			if err != nil {
-				return e.BadRequestError(err.Error(), nil)
-			}
-			return e.JSON(200, map[string]any{"timer": v})
-		}
+// GET /api/team/timer
+func handleGetTimer(e *core.RequestEvent) error {
+	r, err := findTimer(e.App, e.Auth.Id)
+	if err != nil {
+		return e.JSON(200, map[string]any{"timer": nil})
 	}
-	g.POST("/pause", pauseRoute(true))
-	g.POST("/resume", pauseRoute(false))
-	g.POST("/stop", func(e *core.RequestEvent) error {
-		var in struct {
-			Log   bool    `json:"log"`
-			Hours float64 `json:"hours"`
-			Note  string  `json:"note"`
-		}
-		_ = e.BindBody(&in)
-		out, err := StopTimer(e.App, e.Auth.Id, in.Log, in.Hours, in.Note)
-		if err != nil {
-			return e.BadRequestError(err.Error(), nil)
-		}
-		return e.JSON(200, out)
-	})
+	return e.JSON(200, map[string]any{"timer": timerView(r)})
+}
+
+func replyTimer(e *core.RequestEvent, v *TimerView, err error) error {
+	if err != nil {
+		return e.BadRequestError(err.Error(), nil)
+	}
+	return e.JSON(200, map[string]any{"timer": v})
+}
+
+// POST /api/team/timer/start {"planned_minutes": 60}
+func handleStartTimer(e *core.RequestEvent) error {
+	var in struct {
+		PlannedMinutes int `json:"planned_minutes"`
+	}
+	_ = e.BindBody(&in)
+	v, err := StartTimer(e.App, e.Auth.Id, in.PlannedMinutes)
+	return replyTimer(e, v, err)
+}
+
+// POST /api/team/timer/extend {"minutes": 15}
+func handleExtendTimer(e *core.RequestEvent) error {
+	var in struct {
+		Minutes int `json:"minutes"`
+	}
+	_ = e.BindBody(&in)
+	v, err := ExtendTimer(e.App, e.Auth.Id, in.Minutes)
+	return replyTimer(e, v, err)
+}
+
+// POST /api/team/timer/pause and /resume
+func handlePauseTimer(pause bool) func(*core.RequestEvent) error {
+	return func(e *core.RequestEvent) error {
+		v, err := PauseTimer(e.App, e.Auth.Id, pause)
+		return replyTimer(e, v, err)
+	}
+}
+
+// POST /api/team/timer/stop {"log": true, "hours": 1.5, "note": "..."}
+func handleStopTimer(e *core.RequestEvent) error {
+	var in struct {
+		Log   bool    `json:"log"`
+		Hours float64 `json:"hours"`
+		Note  string  `json:"note"`
+	}
+	_ = e.BindBody(&in)
+	out, err := StopTimer(e.App, e.Auth.Id, in.Log, in.Hours, in.Note)
+	if err != nil {
+		return e.BadRequestError(err.Error(), nil)
+	}
+	return e.JSON(200, out)
 }

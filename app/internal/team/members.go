@@ -7,9 +7,8 @@ import (
 
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/core"
+	"github.com/xusenlin/workavera/internal/org"
 )
-
-var memberTiers = []string{"Core", "Impact", "GO!"}
 
 // POST /api/team/members — an admin adds a member: the account exists at once
 // and the admin passes the password on. The member can change it in Profile.
@@ -35,15 +34,15 @@ func handleCreateMember(e *core.RequestEvent) error {
 		return e.BadRequestError("A valid email is required.", nil)
 	case len(in.Password) < 8:
 		return e.BadRequestError("The password needs at least 8 characters.", nil)
-	case !slices.Contains(memberTiers, in.Tier):
+	case !slices.Contains(org.Tiers, in.Tier):
 		return e.BadRequestError("Pick a tier: Core, Impact or GO!.", nil)
 	}
-	if _, err := e.App.FindAuthRecordByEmail(colUsers, in.Email); err == nil {
+	if _, err := e.App.FindAuthRecordByEmail(org.ColUsers, in.Email); err == nil {
 		return e.BadRequestError("Someone with this email is already a member.", nil)
 	}
 	var series []string
 	for _, s := range in.Series {
-		if slices.Contains(knownSeries, s) && s != "Community" && !slices.Contains(series, s) {
+		if slices.Contains(org.Series, s) && s != "Community" && !slices.Contains(series, s) {
 			series = append(series, s)
 		}
 	}
@@ -51,7 +50,7 @@ func handleCreateMember(e *core.RequestEvent) error {
 		in.WeeklyHours = typicalWeeklyHours(e.App, in.Tier)
 	}
 
-	col, err := e.App.FindCollectionByNameOrId(colUsers)
+	col, err := e.App.FindCollectionByNameOrId(org.ColUsers)
 	if err != nil {
 		return e.InternalServerError("", err)
 	}
@@ -75,7 +74,7 @@ func handleCreateMember(e *core.RequestEvent) error {
 
 // typicalWeeklyHours is the most common commitment among members of the tier.
 func typicalWeeklyHours(app core.App, tier string) float64 {
-	recs, _ := app.FindRecordsByFilter(colUsers, "tier = {:t}", "", 0, 0, dbx.Params{"t": tier})
+	recs, _ := app.FindRecordsByFilter(org.ColUsers, "tier = {:t}", "", 0, 0, dbx.Params{"t": tier})
 	count := map[float64]int{}
 	best, bestN := 0.0, 0
 	for _, r := range recs {
@@ -94,7 +93,7 @@ func inSeries(u *core.Record, series string) bool {
 
 // joinFutureMeetings adds a new member to upcoming meetings of their series.
 func joinFutureMeetings(app core.App, u *core.Record) int {
-	recs, err := app.FindRecordsByFilter(colMeetings, "start_at > {:now}", "", 0, 0, dbx.Params{"now": dbTime(time.Now())})
+	recs, err := app.FindRecordsByFilter(org.ColMeetings, "start_at > {:now}", "", 0, 0, dbx.Params{"now": org.DBTime(time.Now())})
 	if err != nil {
 		return 0
 	}
@@ -115,7 +114,7 @@ func joinFutureMeetings(app core.App, u *core.Record) int {
 // appAddedMembers are members added in the app who belong to this series and
 // already existed when the meeting starts. Calendar sync keeps them in.
 func appAddedMembers(app core.App, series string, start time.Time) []string {
-	recs, err := app.FindRecordsByFilter(colUsers, "added_by != '' && tier != ''", "", 0, 0)
+	recs, err := app.FindRecordsByFilter(org.ColUsers, "added_by != '' && tier != ''", "", 0, 0)
 	if err != nil {
 		return nil
 	}
@@ -137,7 +136,7 @@ func handleSetJarvis(e *core.RequestEvent) error {
 	if err := e.BindBody(&in); err != nil {
 		return e.BadRequestError("Invalid body.", err)
 	}
-	u, err := e.App.FindRecordById(colUsers, e.Request.PathValue("id"))
+	u, err := e.App.FindRecordById(org.ColUsers, e.Request.PathValue("id"))
 	if err != nil {
 		return e.NotFoundError("Member not found.", err)
 	}

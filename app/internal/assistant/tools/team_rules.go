@@ -7,6 +7,7 @@ import (
 	"charm.land/fantasy"
 	"github.com/pocketbase/pocketbase/core"
 
+	"github.com/xusenlin/workavera/internal/org"
 	"github.com/xusenlin/workavera/internal/team"
 )
 
@@ -90,8 +91,8 @@ func newTeamRequestPauseTool(app core.App, actorID string) fantasy.AgentTool {
 			if err != nil {
 				return calendarToolResult(app, actorID, "team request pause", nil, err)
 			}
-			start, err1 := time.ParseInLocation("2006-01-02", input.Start, team.Location)
-			end, err2 := time.ParseInLocation("2006-01-02", input.End, team.Location)
+			start, err1 := time.ParseInLocation("2006-01-02", input.Start, org.Location)
+			end, err2 := time.ParseInLocation("2006-01-02", input.End, org.Location)
 			if err1 != nil || err2 != nil {
 				return fantasy.NewTextErrorResponse("start and end must be YYYY-MM-DD"), nil
 			}

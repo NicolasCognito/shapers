@@ -1,7 +1,9 @@
 package team
 
 import (
+	"context"
 	"fmt"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -13,6 +15,9 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/spf13/cobra"
 	"github.com/xuri/excelize/v2"
+	"github.com/xusenlin/workavera/internal/board"
+	"github.com/xusenlin/workavera/internal/gcal"
+	"github.com/xusenlin/workavera/internal/org"
 )
 
 // `workavera import-sandbox <dir>` loads roster, meetings, attendance and
@@ -83,9 +88,9 @@ func excelDate(v string) (time.Time, error) {
 		if err != nil {
 			return time.Time{}, err
 		}
-		return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, Location), nil
+		return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, org.Location), nil
 	}
-	t, err := time.ParseInLocation("2006-01-02", v[:min(10, len(v))], Location)
+	t, err := time.ParseInLocation("2006-01-02", v[:min(10, len(v))], org.Location)
 	return t, err
 }
 
@@ -94,7 +99,7 @@ func importRoster(app core.App, dir string) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	col, err := app.FindCollectionByNameOrId(colUsers)
+	col, err := app.FindCollectionByNameOrId(org.ColUsers)
 	if err != nil {
 		return 0, err
 	}
@@ -108,7 +113,7 @@ func importRoster(app core.App, dir string) (int, error) {
 		if email == "" {
 			continue
 		}
-		rec, err := app.FindAuthRecordByEmail(colUsers, email)
+		rec, err := app.FindAuthRecordByEmail(org.ColUsers, email)
 		if err != nil {
 			rec = core.NewRecord(col)
 			rec.SetEmail(email)
@@ -145,7 +150,7 @@ func importMeetings(app core.App, dir string) (int, error) {
 		return 0, err
 	}
 	n := 0
-	for _, ev := range ParseICS(string(data)) {
+	for _, ev := range gcal.ParseICS(string(data)) {
 		ok, err := UpsertMeeting(app, ev, users)
 		if err != nil {
 			return n, err
@@ -166,17 +171,17 @@ func importAttendance(app core.App, dir string) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	meetings, err := app.FindAllRecords(colMeetings)
+	meetings, err := app.FindAllRecords(org.ColMeetings)
 	if err != nil {
 		return 0, err
 	}
 	// series|YYYY-MM-DD (local) -> meeting id
 	byKey := map[string]string{}
 	for _, m := range meetings {
-		day := m.GetDateTime("start_at").Time().In(Location).Format("2006-01-02")
+		day := m.GetDateTime("start_at").Time().In(org.Location).Format("2006-01-02")
 		byKey[m.GetString("series")+"|"+day] = m.Id
 	}
-	col, err := app.FindCollectionByNameOrId(colAttendance)
+	col, err := app.FindCollectionByNameOrId(org.ColAttendance)
 	if err != nil {
 		return 0, err
 	}
@@ -190,7 +195,7 @@ func importAttendance(app core.App, dir string) (int, error) {
 		if mid == "" || uid == "" {
 			continue
 		}
-		rec, err := app.FindFirstRecordByFilter(colAttendance, "meeting = {:m} && user = {:u}", dbx.Params{"m": mid, "u": uid})
+		rec, err := app.FindFirstRecordByFilter(org.ColAttendance, "meeting = {:m} && user = {:u}", dbx.Params{"m": mid, "u": uid})
 		if err != nil {
 			rec = core.NewRecord(col)
 			rec.Set("meeting", mid)
@@ -215,7 +220,7 @@ func importHours(app core.App, dir string) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	col, err := app.FindCollectionByNameOrId(colHours)
+	col, err := app.FindCollectionByNameOrId(org.ColHourLogs)
 	if err != nil {
 		return 0, err
 	}
@@ -239,6 +244,97 @@ func importHours(app core.App, dir string) (int, error) {
 		rec.Set("source", "import")
 		if err := app.Save(rec); err != nil {
 			return n, err
+		}
+		n++
+	}
+	return n, nil
+}
+
+// The sandbox promises "ten project names" but none were shipped; these are
+// placeholders until the organisers send the real list.
+var sandboxProjects = []struct {
+	name, desc string
+	tasks      []string
+}{
+	{"Summer School 2027", "Programme, venue and applications for next summer", []string{"Book the venue", "Draft programme outline", "Open applications form", "Invite three guest lecturers", "Budget v1"}},
+	{"Erasmus+ grant", "KA2 partnership application", []string{"Find two partner organisations", "Write project rationale", "Budget table", "Collect letters of intent", "Submit before deadline"}},
+	{"Shape Talks season", "Monthly public talks", []string{"Shortlist speakers", "Book Impact Hub event room", "Design poster template", "Set up registration page", "Record and publish talk #1"}},
+	{"Community onboarding", "Make the first month easy for newcomers", []string{"Write welcome guide", "Buddy system pairs", "Onboarding checklist in Slack", "First-week coffee meetups"}},
+	{"Website relaunch", "New site with events and team pages", []string{"Content inventory", "Pick a template", "Team page photos", "Events page from calendar", "Launch and announce"}},
+	{"Shapers Voice podcast", "Monthly episode with members and alumni", []string{"Episode 1 guest", "Record intro jingle", "Publish on Spotify", "Write show notes"}},
+	{"Shapers Tech platform", "Internal tools for the institute", []string{"Collect pain points from members", "Hackathon handover", "Set up hosting", "Train admins"}},
+	{"Annual report 2026", "Numbers and stories from the year", []string{"Collect hours and attendance stats", "Interview five members", "Layout draft", "Board review"}},
+	{"Partnerships", "Companies and NGOs we work with", []string{"Partner list update", "Meeting with Impact Hub", "Sponsorship deck", "Follow-up emails"}},
+	{"Fundraising dinner", "Year-end event for supporters", []string{"Pick a date", "Guest list", "Catering offers", "Program and speakers"}},
+}
+
+func importProjects(app core.App, _ string) (int, error) {
+	admin, err := app.FindFirstRecordByFilter(org.ColUsers, "is_admin = true && tier != ''")
+	if err != nil {
+		return 0, fmt.Errorf("no admin to own projects: %w", err)
+	}
+	users, err := app.FindRecordsByFilter(org.ColUsers, "tier != ''", "", 0, 0)
+	if err != nil {
+		return 0, err
+	}
+	rng := rand.New(rand.NewSource(42))
+	ctx := context.Background()
+	now := time.Now()
+	priorities := []string{"none", "low", "medium", "medium", "high", "urgent"}
+	n := 0
+	for _, sp := range sandboxProjects {
+		if _, err := app.FindFirstRecordByFilter("board_projects", "name = {:n}", dbx.Params{"n": sp.name}); err == nil {
+			continue // already imported
+		}
+		res, err := board.CreateProject(ctx, app, admin.Id, board.CreateProjectCommand{
+			Name: sp.name, Description: sp.desc,
+			States: []board.TemplateState{
+				{Name: "To do", Color: "#94a3b8", Category: "pending"},
+				{Name: "In progress", Color: "#3b82f6", Category: "active"},
+				{Name: "Done", Color: "#22c55e", Category: "completed"},
+			},
+		})
+		if err != nil {
+			return n, fmt.Errorf("%s: %w", sp.name, err)
+		}
+		project, err := app.FindRecordById("board_projects", res.ID)
+		if err != nil {
+			return n, err
+		}
+		if err := addEveryoneToProject(app, project); err != nil {
+			return n, err
+		}
+		states, err := app.FindRecordsByFilter("board_project_states", "project = {:p}", "sort_order", 0, 0, dbx.Params{"p": res.ID})
+		if err != nil || len(states) < 3 {
+			return n, fmt.Errorf("%s: states missing", sp.name)
+		}
+		for i, title := range sp.tasks {
+			// Earlier tasks in each list are more likely to be finished.
+			stateIdx := 0
+			switch r := rng.Float64(); {
+			case i < 2 && r < 0.8, r < 0.3:
+				stateIdx = 2
+			case r < 0.6:
+				stateIdx = 1
+			}
+			assignee := users[rng.Intn(len(users))].Id
+			due := now.AddDate(0, 0, rng.Intn(28)-7).Format("2006-01-02") + " 12:00:00.000Z"
+			task, err := board.CreateTask(ctx, app, admin.Id, board.CreateTaskCommand{
+				ProjectID: res.ID, StateID: states[stateIdx].Id, Title: title,
+				Priority: priorities[rng.Intn(len(priorities))], DueDate: due,
+				AssigneeIDs: []string{assignee},
+			})
+			if err != nil {
+				return n, fmt.Errorf("%s / %s: %w", sp.name, title, err)
+			}
+			if stateIdx == 2 {
+				// Spread completions over the last six weeks for the analytics.
+				done := now.AddDate(0, 0, -rng.Intn(42)).UTC().Format("2006-01-02 15:04:05.000Z")
+				if _, err := app.DB().NewQuery("UPDATE board_tasks SET updated = {:d} WHERE id = {:id}").
+					Bind(dbx.Params{"d": done, "id": task.ID}).Execute(); err != nil {
+					return n, err
+				}
+			}
 		}
 		n++
 	}

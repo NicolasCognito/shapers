@@ -1,71 +1,52 @@
-// Package team adds the volunteer-organisation features on top of the
-// workavera workspace: member tiers, hours against weekly commitment,
-// meeting attendance (meetings read from Google Calendar) and analytics.
+// Package team is the Shapers domain on top of the Workavera workspace:
+// member tiers, weekly hours, meetings and attendance, requests, pauses,
+// the tier rules from the organisers, the tree, and the analytics that tie
+// them together.
+//
+// Where things are (files are grouped by prefix):
+//
+//	team.go             Register: hooks, jobs, the import command
+//	routes.go           every HTTP route of this package, in one table
+//	meetings*.go        calendar sync into meetings, upcoming list, room QR
+//	attendance*.go      check-in, roll call, absence notices, meeting hours
+//	hours.go            hour logs and the "today or yesterday" rule
+//	timer.go            the work timer
+//	requests*.go        hours / handoff / pause requests and their decisions
+//	pauses.go           pause periods and their tier limits
+//	community.go        Community attendance rules and GO! follow-up tasks
+//	tasks.go            board task rules: owner, cancel/restore, completed lists
+//	projects.go         who belongs to which board project
+//	members.go          adding members, the Jarvis toggle
+//	stats.go            the in-memory dataset behind all analytics
+//	overview.go         My week, admin overview and member drill-down
+//	reports.go          read-only queries for the Jarvis tools
+//	settings.go         organisation settings (admin switches)
+//	tree.go             the gamified tree
+//	importer.go         `import-sandbox` CLI for the hackathon data
+//
+// Shared basics (timezone, permissions, collection names) live in
+// internal/org; Slack and Google Calendar adapters in internal/slack and
+// internal/gcal. Jarvis tools that call this package: internal/assistant/tools.
 package team
 
 import (
-	"log/slog"
 	"os"
-	"time"
 
 	"github.com/pocketbase/pocketbase"
-	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
 )
 
-const (
-	colMeetings   = "meetings"
-	colAttendance = "attendance"
-	colHours      = "hour_logs"
-	colUsers      = "users"
-)
-
-// Location is the organisation's timezone; weeks start on Monday here.
-var Location = mustLoadLocation("Europe/Ljubljana")
-
-func mustLoadLocation(name string) *time.Location {
-	loc, err := time.LoadLocation(name)
-	if err != nil {
-		return time.UTC
-	}
-	return loc
-}
-
-// Register wires routes, the calendar sync job and the import command.
+// Register wires hooks, background jobs, routes and the import command.
 func Register(app *pocketbase.PocketBase) {
 	app.RootCmd.AddCommand(newImportCommand(app))
-	registerProjectHooks(app)
-	registerJarvisModel(app)
-	registerHourLimits(app)
-	registerSlack(app)
-	registerTierRules(app)
+
+	registerProjectHooks(app)   // admins join every project
+	registerTaskHooks(app)      // every task has an owner
+	registerHourLimits(app)     // members log only today/yesterday
+	registerCommunityRules(app) // GO! follow-up task for a missed Community meeting
 
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
-		se.Router.GET("/api/team/qr/{id}", handleMeetingQR) // public, see qr.go
-		g := se.Router.Group("/api/team")
-		g.Bind(apis.RequireAuth(colUsers))
-		g.POST("/checkin", handleCheckin)
-		g.GET("/me", handleMe)
-		g.GET("/meetings/upcoming", handleUpcoming)
-		g.POST("/attendance/bulk", requirePerm(PermAttendanceRecord, handleBulkAttendance))
-		g.GET("/overview", requirePerm(PermTeamView, handleOverview))
-		g.GET("/members/{id}", requirePerm(PermTeamView, handleMember))
-		g.POST("/members", requirePerm(PermMembersManage, handleCreateMember))
-		g.POST("/members/{id}/jarvis", requirePerm(PermMembersManage, handleSetJarvis))
-		g.GET("/settings", requirePerm(PermTeamView, handleGetSettings))
-		g.POST("/settings", requirePerm(PermMembersManage, handleSetSettings))
-		g.POST("/calendar/sync", requirePerm(PermCalendarSync, func(e *core.RequestEvent) error {
-			n, err := SyncGoogleCalendar(e.App)
-			if err != nil {
-				return e.BadRequestError("Calendar sync failed: "+err.Error(), err)
-			}
-			SlackNoticesNow(e.App) // moved/new meetings show up in Slack at once
-			return e.JSON(200, map[string]any{"synced": n})
-		}))
-		registerRequestRoutes(se)
-		registerTimerRoutes(se)
-		registerTreeRoutes(se)
-		registerRuleRoutes(se)
+		registerRoutes(se)
 		return se.Next()
 	})
 
@@ -76,22 +57,4 @@ func Register(app *pocketbase.PocketBase) {
 		})
 		app.Cron().MustAdd("team_gcal_sync", "*/10 * * * *", func() { runSync(app) })
 	}
-}
-
-func runSync(app core.App) {
-	n, err := SyncGoogleCalendar(app)
-	if err != nil {
-		slog.Warn("google calendar sync failed", "error", err)
-		return
-	}
-	slog.Info("google calendar synced", "meetings", n)
-	SlackNoticesNow(app)
-}
-
-// WeekStart returns Monday 00:00 (organisation time) of the week containing t.
-func WeekStart(t time.Time) time.Time {
-	t = t.In(Location)
-	offset := (int(t.Weekday()) + 6) % 7
-	d := time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, Location)
-	return d.AddDate(0, 0, -offset)
 }

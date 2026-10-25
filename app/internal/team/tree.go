@@ -6,12 +6,11 @@ import (
 	"time"
 
 	"github.com/pocketbase/dbx"
-	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
+	"github.com/xusenlin/workavera/internal/org"
 )
 
 const (
-	colTrees        = "trees"
 	dropsPerPlan    = 1 // finishing a planned work session
 	dropsPerQuota   = 3 // meeting the weekly quota, once a week
 	wateringsPerAge = 5 // waterings needed to reach the next stage
@@ -36,10 +35,10 @@ type TreeView struct {
 func demoEnabled() bool { return os.Getenv("TREE_DEMO") == "1" }
 
 func treeFor(app core.App, userID string) (*core.Record, error) {
-	if r, err := app.FindFirstRecordByFilter(colTrees, "user = {:u}", dbx.Params{"u": userID}); err == nil {
+	if r, err := app.FindFirstRecordByFilter(org.ColTrees, "user = {:u}", dbx.Params{"u": userID}); err == nil {
 		return r, nil
 	}
-	col, err := app.FindCollectionByNameOrId(colTrees)
+	col, err := app.FindCollectionByNameOrId(org.ColTrees)
 	if err != nil {
 		return nil, err
 	}
@@ -96,12 +95,12 @@ func LoadTree(app core.App, userID string) (TreeView, error) {
 		return TreeView{}, err
 	}
 	bonus := 0
-	week := WeekStart(time.Now())
+	week := org.WeekStart(time.Now())
 	key := week.Format("2006-01-02")
 	if r.GetString("quota_bonus_week") != key {
-		if u, err := findUser(app, userID); err == nil && u.GetFloat("weekly_hours") > 0 {
-			logs, _ := app.FindRecordsByFilter(colHours, "user = {:u} && date >= {:from} && date < {:to}", "", 0, 0,
-				dbx.Params{"u": userID, "from": dbTime(week), "to": dbTime(week.AddDate(0, 0, 7))})
+		if u, err := org.FindUser(app, userID); err == nil && u.GetFloat("weekly_hours") > 0 {
+			logs, _ := app.FindRecordsByFilter(org.ColHourLogs, "user = {:u} && date >= {:from} && date < {:to}", "", 0, 0,
+				dbx.Params{"u": userID, "from": org.DBTime(week), "to": org.DBTime(week.AddDate(0, 0, 7))})
 			total := 0.0
 			for _, l := range logs {
 				total += l.GetFloat("hours")
@@ -135,7 +134,7 @@ func WaterTree(app core.App, userID string) (TreeView, error) {
 	}
 	r.Set("drops", r.GetInt("drops")-1)
 	r.Set("waterings", r.GetInt("waterings")+1)
-	r.Set("last_watered_at", dbTime(time.Now()))
+	r.Set("last_watered_at", org.DBTime(time.Now()))
 	return viewTree(r), app.Save(r)
 }
 
@@ -154,13 +153,13 @@ func TreeDemo(app core.App, userID, action string) (TreeView, error) {
 		if last.IsZero() {
 			last = r.GetDateTime("created").Time()
 		}
-		r.Set("last_watered_at", dbTime(last.Add(-24*time.Hour)))
+		r.Set("last_watered_at", org.DBTime(last.Add(-24*time.Hour)))
 	case "add-water":
 		r.Set("drops", r.GetInt("drops")+5)
 	case "reset":
 		r.Set("drops", 1)
 		r.Set("waterings", 0)
-		r.Set("last_watered_at", dbTime(time.Now()))
+		r.Set("last_watered_at", org.DBTime(time.Now()))
 		r.Set("vacation", false)
 	default:
 		return TreeView{}, errors.New("unknown demo action")
@@ -182,51 +181,54 @@ func SetVacation(app core.App, memberID string, on bool) (TreeView, error) {
 	}
 	r.Set("vacation", on)
 	if !on {
-		r.Set("last_watered_at", dbTime(time.Now()))
+		r.Set("last_watered_at", org.DBTime(time.Now()))
 	}
 	return viewTree(r), app.Save(r)
 }
 
-func registerTreeRoutes(se *core.ServeEvent) {
-	g := se.Router.Group("/api/team/tree")
-	g.Bind(apis.RequireAuth(colUsers))
-	g.GET("", func(e *core.RequestEvent) error {
-		v, err := LoadTree(e.App, e.Auth.Id)
-		if err != nil {
-			return e.InternalServerError("", err)
-		}
-		return e.JSON(200, v)
-	})
-	g.POST("/demo/{action}", func(e *core.RequestEvent) error {
-		v, err := TreeDemo(e.App, e.Auth.Id, e.Request.PathValue("action"))
-		if err != nil {
-			return e.BadRequestError(err.Error(), nil)
-		}
-		return e.JSON(200, v)
-	})
-	g.GET("/member/{id}", requirePerm(PermMembersManage, func(e *core.RequestEvent) error {
-		r, err := treeFor(e.App, e.Request.PathValue("id"))
-		if err != nil {
-			return e.NotFoundError("", err)
-		}
-		return e.JSON(200, viewTree(r))
-	}))
-	g.POST("/member/{id}/vacation", requirePerm(PermMembersManage, func(e *core.RequestEvent) error {
-		var in struct {
-			On bool `json:"on"`
-		}
-		_ = e.BindBody(&in)
-		v, err := SetVacation(e.App, e.Request.PathValue("id"), in.On)
-		if err != nil {
-			return e.BadRequestError(err.Error(), nil)
-		}
-		return e.JSON(200, v)
-	}))
-	g.POST("/water", func(e *core.RequestEvent) error {
-		v, err := WaterTree(e.App, e.Auth.Id)
-		if err != nil {
-			return e.BadRequestError(err.Error(), nil)
-		}
-		return e.JSON(200, v)
-	})
+func replyTree(e *core.RequestEvent, v TreeView, err error) error {
+	if err != nil {
+		return e.BadRequestError(err.Error(), nil)
+	}
+	return e.JSON(200, v)
+}
+
+// GET /api/team/tree
+func handleGetTree(e *core.RequestEvent) error {
+	v, err := LoadTree(e.App, e.Auth.Id)
+	if err != nil {
+		return e.InternalServerError("", err)
+	}
+	return e.JSON(200, v)
+}
+
+// POST /api/team/tree/water
+func handleWaterTree(e *core.RequestEvent) error {
+	v, err := WaterTree(e.App, e.Auth.Id)
+	return replyTree(e, v, err)
+}
+
+// POST /api/team/tree/demo/{action} (TREE_DEMO=1 only)
+func handleTreeDemo(e *core.RequestEvent) error {
+	v, err := TreeDemo(e.App, e.Auth.Id, e.Request.PathValue("action"))
+	return replyTree(e, v, err)
+}
+
+// GET /api/team/tree/member/{id} (admins)
+func handleMemberTree(e *core.RequestEvent) error {
+	r, err := treeFor(e.App, e.Request.PathValue("id"))
+	if err != nil {
+		return e.NotFoundError("", err)
+	}
+	return e.JSON(200, viewTree(r))
+}
+
+// POST /api/team/tree/member/{id}/vacation {"on": true} (admins)
+func handleSetVacation(e *core.RequestEvent) error {
+	var in struct {
+		On bool `json:"on"`
+	}
+	_ = e.BindBody(&in)
+	v, err := SetVacation(e.App, e.Request.PathValue("id"), in.On)
+	return replyTree(e, v, err)
 }

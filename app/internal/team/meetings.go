@@ -1,12 +1,7 @@
 package team
 
 import (
-	"encoding/json"
-	"errors"
-	"fmt"
 	"log/slog"
-	"net/http"
-	"net/url"
 	"os"
 	"slices"
 	"strings"
@@ -14,19 +9,60 @@ import (
 
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/core"
+	"github.com/xusenlin/workavera/internal/gcal"
+	"github.com/xusenlin/workavera/internal/org"
+	"github.com/xusenlin/workavera/internal/slack"
 )
 
-// MeetingInput is one calendar event, from Google Calendar or an .ics file.
-type MeetingInput struct {
-	ExternalID  string
-	Title       string
-	Description string
-	Location    string
-	Category    string
-	Start, End  time.Time
+type meetingView struct {
+	ID       string    `json:"id"`
+	Title    string    `json:"title"`
+	Series   string    `json:"series"`
+	Start    time.Time `json:"start"`
+	End      time.Time `json:"end"`
+	Location string    `json:"location"`
+	State    string    `json:"state"` // my state, "" if not recorded
+	CanCheck bool      `json:"can_check_in"`
+	Notice   string    `json:"notice,omitempty"` // my "can't come" reason, sent ahead
+	Late     bool      `json:"notice_late,omitempty"`
+	Member   bool      `json:"member,omitempty"` // the viewer is in this meeting's list
 }
 
-var knownSeries = []string{"Summer School", "Grants", "Shape Talks", "Community", "Shapers Tech", "Shapers Voice"}
+func toView(m *core.Record, state string, now time.Time) meetingView {
+	start, end := m.GetDateTime("start_at").Time(), m.GetDateTime("end_at").Time()
+	return meetingView{
+		ID: m.Id, Title: m.GetString("title"), Series: m.GetString("series"),
+		Start: start, End: end, Location: m.GetString("location"), State: state,
+		CanCheck: !now.Before(start.Add(-checkinEarly)) && !now.After(end.Add(checkinLate)),
+	}
+}
+
+// GET /api/team/meetings/upcoming — meetings around now (for clock-in and admin roll-call).
+func handleUpcoming(e *core.RequestEvent) error {
+	now := time.Now()
+	recs, err := e.App.FindRecordsByFilter(org.ColMeetings, "end_at >= {:from} && start_at <= {:to}", "start_at", 50, 0,
+		dbx.Params{"from": org.DBTime(now.AddDate(0, 0, -7)), "to": org.DBTime(now.AddDate(0, 0, 14))})
+	if err != nil {
+		return e.InternalServerError("", err)
+	}
+	out := make([]meetingView, 0, len(recs))
+	for _, m := range recs {
+		member := slices.Contains(m.GetStringSlice("members"), e.Auth.Id)
+		if !org.Can(e.Auth, org.PermTeamView) && !member {
+			continue
+		}
+		v := toView(m, "", now)
+		v.Member = member
+		if a, err := e.App.FindFirstRecordByFilter(org.ColAttendance, "meeting = {:m} && user = {:u}", dbx.Params{"m": m.Id, "u": e.Auth.Id}); err == nil {
+			v.State = a.GetString("state")
+			if a.GetString("source") == "notice" {
+				v.Notice, v.Late = a.GetString("note"), a.GetBool("notice_late")
+			}
+		}
+		out = append(out, v)
+	}
+	return e.JSON(200, out)
+}
 
 // parseDescription reads "Series: X" and "Members: a@x, b@y" lines.
 func parseDescription(desc string) (series string, emails []string) {
@@ -65,9 +101,9 @@ func stripTags(s string) string {
 	return b.String()
 }
 
-func resolveSeries(in MeetingInput, fromDesc string) string {
+func resolveSeries(in gcal.Event, fromDesc string) string {
 	for _, cand := range []string{fromDesc, in.Category, in.Title} {
-		for _, s := range knownSeries {
+		for _, s := range org.Series {
 			if strings.EqualFold(strings.TrimSpace(cand), s) || strings.HasPrefix(strings.ToLower(cand), strings.ToLower(s)) {
 				return s
 			}
@@ -78,16 +114,16 @@ func resolveSeries(in MeetingInput, fromDesc string) string {
 
 // UpsertMeeting stores a meeting keyed by its calendar UID. Events that do not
 // belong to one of the six series are ignored (returns false).
-func UpsertMeeting(app core.App, in MeetingInput, userByEmail map[string]string) (bool, error) {
+func UpsertMeeting(app core.App, in gcal.Event, userByEmail map[string]string) (bool, error) {
 	seriesDesc, emails := parseDescription(in.Description)
 	series := resolveSeries(in, seriesDesc)
 	if series == "" || in.ExternalID == "" {
 		return false, nil
 	}
 
-	rec, err := app.FindFirstRecordByFilter(colMeetings, "external_id = {:id}", dbx.Params{"id": in.ExternalID})
+	rec, err := app.FindFirstRecordByFilter(org.ColMeetings, "external_id = {:id}", dbx.Params{"id": in.ExternalID})
 	if err != nil {
-		col, cerr := app.FindCollectionByNameOrId(colMeetings)
+		col, cerr := app.FindCollectionByNameOrId(org.ColMeetings)
 		if cerr != nil {
 			return false, cerr
 		}
@@ -124,7 +160,7 @@ func UpsertMeeting(app core.App, in MeetingInput, userByEmail map[string]string)
 
 // usersByEmail maps roster members (users with a tier) by email.
 func usersByEmail(app core.App) (map[string]string, error) {
-	recs, err := app.FindRecordsByFilter(colUsers, "tier != ''", "", 0, 0)
+	recs, err := app.FindRecordsByFilter(org.ColUsers, "tier != ''", "", 0, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -135,139 +171,52 @@ func usersByEmail(app core.App) (map[string]string, error) {
 	return m, nil
 }
 
-// ---- Google Calendar (read-only, public calendar + API key) ----
-
-type gcalEvent struct {
-	ID          string `json:"id"`
-	ICalUID     string `json:"iCalUID"`
-	RecurringID string `json:"recurringEventId"`
-	Status      string `json:"status"`
-	Summary     string `json:"summary"`
-	Description string `json:"description"`
-	Location    string `json:"location"`
-	Start       struct {
-		DateTime time.Time `json:"dateTime"`
-	} `json:"start"`
-	End struct {
-		DateTime time.Time `json:"dateTime"`
-	} `json:"end"`
-}
-
-// SyncGoogleCalendar pulls all events from GOOGLE_CALENDAR_ID and upserts them.
-func SyncGoogleCalendar(app core.App) (int, error) {
-	calID, key := os.Getenv("GOOGLE_CALENDAR_ID"), os.Getenv("GOOGLE_CALENDAR_API_KEY")
-	if calID == "" || key == "" {
-		return 0, errors.New("GOOGLE_CALENDAR_ID and GOOGLE_CALENDAR_API_KEY must be set")
+// SyncCalendar pulls GOOGLE_CALENDAR_ID and upserts its events as meetings;
+// future meetings no longer in the calendar are removed (with a Slack note).
+func SyncCalendar(app core.App) (int, error) {
+	events, err := gcal.Fetch(os.Getenv("GOOGLE_CALENDAR_ID"), os.Getenv("GOOGLE_CALENDAR_API_KEY"), time.Now().AddDate(0, -6, 0))
+	if err != nil {
+		return 0, err
 	}
 	users, err := usersByEmail(app)
 	if err != nil {
 		return 0, err
 	}
-
-	client := &http.Client{Timeout: 20 * time.Second}
-	count, pageToken := 0, ""
+	count := 0
 	seen := map[string]bool{}
-	for {
-		q := url.Values{
-			"key":          {key},
-			"singleEvents": {"true"},
-			"orderBy":      {"startTime"},
-			"maxResults":   {"2500"},
-			"timeMin":      {time.Now().AddDate(0, -6, 0).Format(time.RFC3339)},
-		}
-		if pageToken != "" {
-			q.Set("pageToken", pageToken)
-		}
-		endpoint := "https://www.googleapis.com/calendar/v3/calendars/" + url.PathEscape(calID) + "/events?" + q.Encode()
-		resp, err := client.Get(endpoint)
+	for _, ev := range events {
+		seen[ev.ExternalID] = true
+		ok, err := UpsertMeeting(app, ev, users)
 		if err != nil {
 			return count, err
 		}
-		var body struct {
-			Items         []gcalEvent `json:"items"`
-			NextPageToken string      `json:"nextPageToken"`
-			Error         *struct {
-				Message string `json:"message"`
-			} `json:"error"`
+		if ok {
+			count++
 		}
-		err = json.NewDecoder(resp.Body).Decode(&body)
-		resp.Body.Close()
-		if err != nil {
-			return count, err
-		}
-		if body.Error != nil {
-			return count, fmt.Errorf("google: %s", body.Error.Message)
-		}
-		for _, ev := range body.Items {
-			if ev.Status == "cancelled" || ev.Start.DateTime.IsZero() {
-				continue
-			}
-			id := ev.ICalUID
-			if ev.RecurringID != "" || id == "" {
-				id = "gcal:" + ev.ID
-			}
-			seen[id] = true
-			ok, err := UpsertMeeting(app, MeetingInput{
-				ExternalID: id, Title: ev.Summary, Description: ev.Description,
-				Location: ev.Location, Start: ev.Start.DateTime, End: ev.End.DateTime,
-			}, users)
-			if err != nil {
-				return count, err
-			}
-			if ok {
-				count++
-			}
-		}
-		if body.NextPageToken == "" {
-			pruneRemovedMeetings(app, seen)
-			return count, nil
-		}
-		pageToken = body.NextPageToken
 	}
+	pruneRemovedMeetings(app, seen)
+	return count, nil
 }
 
-// ---- Minimal .ics reader (sandbox file / offline fallback) ----
-
-func ParseICS(data string) []MeetingInput {
-	data = strings.ReplaceAll(data, "\r\n", "\n")
-	data = strings.ReplaceAll(data, "\n ", "") // unfold continuation lines
-	var out []MeetingInput
-	var cur *MeetingInput
-	for _, line := range strings.Split(data, "\n") {
-		switch {
-		case line == "BEGIN:VEVENT":
-			cur = &MeetingInput{}
-		case line == "END:VEVENT":
-			if cur != nil {
-				out = append(out, *cur)
-			}
-			cur = nil
-		case cur != nil:
-			name, value, ok := strings.Cut(line, ":")
-			if !ok {
-				continue
-			}
-			name, _, _ = strings.Cut(name, ";")
-			value = strings.NewReplacer(`\,`, ",", `\;`, ";").Replace(value)
-			switch name {
-			case "UID":
-				cur.ExternalID = value
-			case "SUMMARY":
-				cur.Title = value
-			case "DESCRIPTION":
-				cur.Description = value
-			case "LOCATION":
-				cur.Location = value
-			case "CATEGORIES":
-				cur.Category = value
-			case "DTSTART":
-				cur.Start, _ = time.Parse("20060102T150405Z", value)
-			case "DTEND":
-				cur.End, _ = time.Parse("20060102T150405Z", value)
-			}
-		}
+// runSync is the scheduled sync; new or moved meetings reach Slack at once.
+func runSync(app core.App) {
+	n, err := SyncCalendar(app)
+	if err != nil {
+		slog.Warn("google calendar sync failed", "error", err)
+		return
 	}
-	return out
+	slog.Info("google calendar synced", "meetings", n)
+	slack.NoticesNow(app)
+}
+
+// POST /api/team/calendar/sync — sync now (admins).
+func handleCalendarSync(e *core.RequestEvent) error {
+	n, err := SyncCalendar(e.App)
+	if err != nil {
+		return e.BadRequestError("Calendar sync failed: "+err.Error(), err)
+	}
+	slack.NoticesNow(e.App) // moved/new meetings show up in Slack at once
+	return e.JSON(200, map[string]any{"synced": n})
 }
 
 // pruneRemovedMeetings deletes future meetings that are no longer in the
@@ -275,7 +224,7 @@ func ParseICS(data string) []MeetingInput {
 // attached to them. Runs only after a complete sync, so a failed page never
 // wipes anything.
 func pruneRemovedMeetings(app core.App, seen map[string]bool) {
-	future, err := app.FindRecordsByFilter(colMeetings, "start_at > {:now}", "", 0, 0, dbx.Params{"now": dbTime(time.Now())})
+	future, err := app.FindRecordsByFilter(org.ColMeetings, "start_at > {:now}", "", 0, 0, dbx.Params{"now": org.DBTime(time.Now())})
 	if err != nil {
 		return
 	}
@@ -283,7 +232,7 @@ func pruneRemovedMeetings(app core.App, seen map[string]bool) {
 		if seen[m.GetString("external_id")] {
 			continue
 		}
-		slackMeetingCancelled(app, m)
+		slack.MeetingCancelled(app, m)
 		if err := app.Delete(m); err != nil {
 			slog.Warn("calendar: remove meeting", "id", m.Id, "error", err)
 		}

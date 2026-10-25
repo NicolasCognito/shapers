@@ -6,60 +6,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
+	"github.com/xusenlin/workavera/internal/org"
 )
 
-const colRequests = "requests"
-
-// ---------- hours: members log only today and yesterday ----------
-
-// selfLogAllowed reports whether a member may log hours for this date
-// without a request: today or yesterday in organisation time.
-func selfLogAllowed(date time.Time) bool {
-	now := time.Now().In(Location)
-	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, Location)
-	return !date.Before(today.AddDate(0, 0, -1))
-}
-
-var ErrOldDate = errors.New("you can log hours only for today or yesterday; for older dates send a request to the admins")
-
-func registerHourLimits(app core.App) {
-	check := func(e *core.RecordRequestEvent) error {
-		if Can(e.Auth, PermHoursManage) {
-			return e.Next()
-		}
-		dates := []time.Time{e.Record.GetDateTime("date").Time()}
-		if !e.Record.IsNew() {
-			dates = append(dates, e.Record.Original().GetDateTime("date").Time())
-		}
-		for _, d := range dates {
-			if !selfLogAllowed(d) {
-				return e.BadRequestError(ErrOldDate.Error(), nil)
-			}
-		}
-		return e.Next()
-	}
-	app.OnRecordCreateRequest(colHours).BindFunc(check)
-	app.OnRecordUpdateRequest(colHours).BindFunc(check)
-
-	// Every task has an owner: the creator unless set otherwise.
-	app.OnRecordCreate("board_tasks").BindFunc(func(e *core.RecordEvent) error {
-		if e.Record.GetString("owner") == "" {
-			owner := e.Record.GetString("created_by")
-			if owner == "" && len(e.Record.GetStringSlice("assignees")) > 0 {
-				owner = e.Record.GetStringSlice("assignees")[0]
-			}
-			e.Record.Set("owner", owner)
-		}
-		return e.Next()
-	})
-}
-
-// ---------- requests ----------
-
 func newRequest(app core.App, typ, requester string) (*core.Record, error) {
-	col, err := app.FindCollectionByNameOrId(colRequests)
+	col, err := app.FindCollectionByNameOrId(org.ColRequests)
 	if err != nil {
 		return nil, err
 	}
@@ -88,15 +40,10 @@ func RequestHours(app core.App, actorID string, date time.Time, hours float64, n
 	if err != nil {
 		return nil, err
 	}
-	r.Set("date", dbTime(date))
+	r.Set("date", org.DBTime(date))
 	r.Set("hours", hours)
 	r.Set("note", strings.TrimSpace(note))
 	return r, app.Save(r)
-}
-
-func isCompleted(app core.App, task *core.Record) bool {
-	st, err := app.FindRecordById("board_project_states", task.GetString("state"))
-	return err == nil && st.GetString("category") == "completed"
 }
 
 // RequestHandoff: the task owner asks another member to take the task over.
@@ -115,7 +62,7 @@ func RequestHandoff(app core.App, actorID, taskID, toID string) (*core.Record, e
 	case toID == actorID:
 		return nil, errors.New("you already own this task")
 	}
-	if _, err := app.FindRecordById(colUsers, toID); err != nil {
+	if _, err := app.FindRecordById(org.ColUsers, toID); err != nil {
 		return nil, errors.New("recipient not found")
 	}
 	r, err := newRequest(app, "handoff", actorID)
@@ -136,7 +83,7 @@ func RequestHandoff(app core.App, actorID, taskID, toID string) (*core.Record, e
 // DecideRequest approves or rejects a pending request. Hours requests are
 // decided by admins (a reason is required to reject), handoffs by the recipient.
 func DecideRequest(app core.App, actor *core.Record, id string, approve bool, note string) (*core.Record, error) {
-	r, err := app.FindRecordById(colRequests, id)
+	r, err := app.FindRecordById(org.ColRequests, id)
 	if err != nil {
 		return nil, errors.New("request not found")
 	}
@@ -146,14 +93,14 @@ func DecideRequest(app core.App, actor *core.Record, id string, approve bool, no
 	note = strings.TrimSpace(note)
 	switch r.GetString("type") {
 	case "hours":
-		if !Can(actor, PermHoursManage) {
+		if !org.Can(actor, org.PermHoursManage) {
 			return nil, errors.New("only admins decide hour requests")
 		}
 		if !approve && note == "" {
 			return nil, errors.New("write a reason, the member will see it")
 		}
 	case "pause":
-		if !Can(actor, PermMembersManage) {
+		if !org.Can(actor, org.PermMembersManage) {
 			return nil, errors.New("only admins decide pause requests")
 		}
 		if !approve && note == "" {
@@ -167,13 +114,13 @@ func DecideRequest(app core.App, actor *core.Record, id string, approve bool, no
 	r.Set("status", map[bool]string{true: "approved", false: "rejected"}[approve])
 	r.Set("decision_note", note)
 	r.Set("decided_by", actor.Id)
-	r.Set("decided_at", dbTime(time.Now()))
+	r.Set("decided_at", org.DBTime(time.Now()))
 
 	return r, app.RunInTransaction(func(tx core.App) error {
 		switch r.GetString("type") {
 		case "hours":
 			if approve {
-				col, err := tx.FindCollectionByNameOrId(colHours)
+				col, err := tx.FindCollectionByNameOrId(org.ColHourLogs)
 				if err != nil {
 					return err
 				}
@@ -189,8 +136,8 @@ func DecideRequest(app core.App, actor *core.Record, id string, approve bool, no
 			}
 		case "pause":
 			if approve {
-				if _, err := SetPause(tx, actor.Id, r.GetString("requester"), dayOf(r.GetDateTime("date").Time()),
-					dayOf(r.GetDateTime("end_date").Time()), r.GetString("note")); err != nil {
+				if _, err := SetPause(tx, actor.Id, r.GetString("requester"), org.DayOf(r.GetDateTime("date").Time()),
+					org.DayOf(r.GetDateTime("end_date").Time()), r.GetString("note")); err != nil {
 					return err
 				}
 			}
@@ -219,7 +166,7 @@ func DecideRequest(app core.App, actor *core.Record, id string, approve bool, no
 
 // WithdrawRequest lets the requester take back a pending request.
 func WithdrawRequest(app core.App, actorID, id string) (*core.Record, error) {
-	r, err := app.FindRecordById(colRequests, id)
+	r, err := app.FindRecordById(org.ColRequests, id)
 	if err != nil || r.GetString("requester") != actorID {
 		return nil, errors.New("request not found")
 	}
@@ -240,106 +187,49 @@ func WithdrawRequest(app core.App, actorID, id string) (*core.Record, error) {
 	})
 }
 
-// CancelTask: an admin takes a finished task off someone's record. The task
-// stays (shown struck through) but no longer counts as done.
-func CancelTask(app core.App, actor *core.Record, taskID, reason string) (*core.Record, error) {
-	if !Can(actor, PermTasksModerate) {
-		return nil, errors.New("only admins can cancel finished tasks")
+// POST /api/team/requests/hours {"date": "YYYY-MM-DD", "hours": 2, "note": "..."}
+func handleRequestHours(e *core.RequestEvent) error {
+	var in struct {
+		Date  string  `json:"date"`
+		Hours float64 `json:"hours"`
+		Note  string  `json:"note"`
 	}
-	reason = strings.TrimSpace(reason)
-	if reason == "" {
-		return nil, errors.New("write a reason, the member will see it")
+	if err := e.BindBody(&in); err != nil {
+		return e.BadRequestError("Invalid body.", err)
 	}
-	task, err := app.FindRecordById("board_tasks", taskID)
+	d, err := org.ParseDay(in.Date)
 	if err != nil {
-		return nil, errors.New("task not found")
+		return e.BadRequestError("date must be YYYY-MM-DD", nil)
 	}
-	if !isCompleted(app, task) {
-		return nil, errors.New("only finished tasks can be cancelled")
-	}
-	task.Set("cancelled", true)
-	task.Set("cancel_reason", reason)
-	task.Set("cancelled_by", actor.Id)
-	return task, app.Save(task)
+	rec, err := RequestHours(e.App, e.Auth.Id, d.Add(12*time.Hour), in.Hours, in.Note)
+	return replyRecord(e, rec, err)
 }
 
-// ---------- HTTP ----------
-
-// RestoreTask: an admin undoes a cancel; the task counts as done again.
-func RestoreTask(app core.App, actor *core.Record, taskID string) (*core.Record, error) {
-	if !Can(actor, PermTasksModerate) {
-		return nil, errors.New("only admins can restore tasks")
+// POST /api/team/requests/handoff {"task": "...", "to": "..."}
+func handleRequestHandoff(e *core.RequestEvent) error {
+	var in struct{ Task, To string }
+	if err := e.BindBody(&in); err != nil {
+		return e.BadRequestError("Invalid body.", err)
 	}
-	task, err := app.FindRecordById("board_tasks", taskID)
-	if err != nil {
-		return nil, errors.New("task not found")
-	}
-	task.Set("cancelled", false)
-	task.Set("cancel_reason", "")
-	task.Set("cancelled_by", "")
-	return task, app.Save(task)
+	rec, err := RequestHandoff(e.App, e.Auth.Id, in.Task, in.To)
+	return replyRecord(e, rec, err)
 }
 
-func registerRequestRoutes(se *core.ServeEvent) {
-	g := se.Router.Group("/api/team")
-	g.Bind(apis.RequireAuth(colUsers))
-	reply := func(e *core.RequestEvent, rec *core.Record, err error) error {
-		if err != nil {
-			return e.BadRequestError(err.Error(), nil)
-		}
-		return e.JSON(200, rec)
+// POST /api/team/requests/{id}/decide {"approve": true, "note": "..."}
+func handleDecideRequest(e *core.RequestEvent) error {
+	var in struct {
+		Approve bool   `json:"approve"`
+		Note    string `json:"note"`
 	}
-	g.POST("/requests/hours", func(e *core.RequestEvent) error {
-		var in struct {
-			Date  string  `json:"date"`
-			Hours float64 `json:"hours"`
-			Note  string  `json:"note"`
-		}
-		if err := e.BindBody(&in); err != nil {
-			return e.BadRequestError("Invalid body.", err)
-		}
-		d, err := time.ParseInLocation("2006-01-02", in.Date, Location)
-		if err != nil {
-			return e.BadRequestError("date must be YYYY-MM-DD", nil)
-		}
-		rec, err := RequestHours(e.App, e.Auth.Id, d.Add(12*time.Hour), in.Hours, in.Note)
-		return reply(e, rec, err)
-	})
-	g.POST("/requests/handoff", func(e *core.RequestEvent) error {
-		var in struct{ Task, To string }
-		if err := e.BindBody(&in); err != nil {
-			return e.BadRequestError("Invalid body.", err)
-		}
-		rec, err := RequestHandoff(e.App, e.Auth.Id, in.Task, in.To)
-		return reply(e, rec, err)
-	})
-	g.POST("/requests/{id}/decide", func(e *core.RequestEvent) error {
-		var in struct {
-			Approve bool   `json:"approve"`
-			Note    string `json:"note"`
-		}
-		if err := e.BindBody(&in); err != nil {
-			return e.BadRequestError("Invalid body.", err)
-		}
-		rec, err := DecideRequest(e.App, e.Auth, e.Request.PathValue("id"), in.Approve, in.Note)
-		return reply(e, rec, err)
-	})
-	g.POST("/requests/{id}/withdraw", func(e *core.RequestEvent) error {
-		rec, err := WithdrawRequest(e.App, e.Auth.Id, e.Request.PathValue("id"))
-		return reply(e, rec, err)
-	})
-	g.POST("/tasks/{id}/cancel", func(e *core.RequestEvent) error {
-		var in struct {
-			Reason string `json:"reason"`
-		}
-		if err := e.BindBody(&in); err != nil {
-			return e.BadRequestError("Invalid body.", err)
-		}
-		rec, err := CancelTask(e.App, e.Auth, e.Request.PathValue("id"), in.Reason)
-		return reply(e, rec, err)
-	})
-	g.POST("/tasks/{id}/restore", func(e *core.RequestEvent) error {
-		rec, err := RestoreTask(e.App, e.Auth, e.Request.PathValue("id"))
-		return reply(e, rec, err)
-	})
+	if err := e.BindBody(&in); err != nil {
+		return e.BadRequestError("Invalid body.", err)
+	}
+	rec, err := DecideRequest(e.App, e.Auth, e.Request.PathValue("id"), in.Approve, in.Note)
+	return replyRecord(e, rec, err)
+}
+
+// POST /api/team/requests/{id}/withdraw
+func handleWithdrawRequest(e *core.RequestEvent) error {
+	rec, err := WithdrawRequest(e.App, e.Auth.Id, e.Request.PathValue("id"))
+	return replyRecord(e, rec, err)
 }

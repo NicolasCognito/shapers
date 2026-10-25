@@ -9,6 +9,7 @@ const modelsCollection = "llm_models"
 
 // Register attaches the authenticated LLM configuration management routes.
 func Register(app core.App) {
+	registerJarvisModel(app)
 	app.OnServe().BindFunc(func(event *core.ServeEvent) error {
 		group := event.Router.Group("/api/llm").Bind(apis.RequireAuth("users"))
 		group.GET("/models", listModels)

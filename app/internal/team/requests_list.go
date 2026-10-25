@@ -7,6 +7,7 @@ import (
 
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/core"
+	"github.com/xusenlin/workavera/internal/org"
 )
 
 // RequestItem is one request as Jarvis sees it.
@@ -33,7 +34,7 @@ type RequestItem struct {
 // status: pending | decided (approved/rejected/withdrawn) | all.
 // scope: "mine" limits admins to their own and addressed-to-them requests.
 func ListRequests(app core.App, actorID, status, typ, scope string, limit int) (map[string]any, error) {
-	actor, err := app.FindRecordById(colUsers, actorID)
+	actor, err := app.FindRecordById(org.ColUsers, actorID)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +42,7 @@ func ListRequests(app core.App, actorID, status, typ, scope string, limit int) (
 		limit = 20
 	}
 	visible := "(requester = {:me} || recipient = {:me})"
-	if scope != "mine" && Can(actor, PermHoursManage) {
+	if scope != "mine" && org.Can(actor, org.PermHoursManage) {
 		visible = "(requester = {:me} || recipient = {:me} || type = 'hours' || type = 'pause')"
 	}
 	filter := []string{visible}
@@ -59,13 +60,13 @@ func ListRequests(app core.App, actorID, status, typ, scope string, limit int) (
 	}
 	params := dbx.Params{"me": actorID, "type": typ}
 	where := strings.Join(filter, " && ")
-	recs, err := app.FindRecordsByFilter(colRequests, where, "-created", limit, 0, params)
+	recs, err := app.FindRecordsByFilter(org.ColRequests, where, "-created", limit, 0, params)
 	if err != nil {
 		return nil, err
 	}
 	total := len(recs)
 	if total == limit {
-		if all, err := app.FindRecordsByFilter(colRequests, where, "", 0, 0, params); err == nil {
+		if all, err := app.FindRecordsByFilter(org.ColRequests, where, "", 0, 0, params); err == nil {
 			total = len(all)
 		}
 	}
@@ -78,7 +79,7 @@ func ListRequests(app core.App, actorID, status, typ, scope string, limit int) (
 			return n
 		}
 		n := id
-		if u, err := app.FindRecordById(colUsers, id); err == nil {
+		if u, err := app.FindRecordById(org.ColUsers, id); err == nil {
 			n = u.GetString("name")
 		}
 		names[id] = n
@@ -86,7 +87,7 @@ func ListRequests(app core.App, actorID, status, typ, scope string, limit int) (
 	}
 	day := func(r *core.Record, f string) string {
 		if t := r.GetDateTime(f).Time(); !t.IsZero() {
-			return t.In(Location).Format("2006-01-02")
+			return t.In(org.Location).Format("2006-01-02")
 		}
 		return ""
 	}
@@ -98,10 +99,10 @@ func ListRequests(app core.App, actorID, status, typ, scope string, limit int) (
 			Date: day(r, "date"), EndDate: day(r, "end_date"), Hours: r.GetFloat("hours"),
 			Note: r.GetString("note"), DecisionNote: r.GetString("decision_note"),
 			DecidedBy: name(r.GetString("decided_by")),
-			Created:   r.GetDateTime("created").Time().In(Location).Format(time.DateTime),
+			Created:   r.GetDateTime("created").Time().In(org.Location).Format(time.DateTime),
 		}
 		if t := r.GetDateTime("decided_at").Time(); !t.IsZero() {
-			it.DecidedAt = t.In(Location).Format(time.DateTime)
+			it.DecidedAt = t.In(org.Location).Format(time.DateTime)
 		}
 		if id := r.GetString("task"); id != "" {
 			if task, err := app.FindRecordById("board_tasks", id); err == nil {

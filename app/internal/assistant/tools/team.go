@@ -9,6 +9,7 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 
 	workagent "github.com/xusenlin/workavera/internal/agent"
+	"github.com/xusenlin/workavera/internal/org"
 	"github.com/xusenlin/workavera/internal/team"
 )
 
@@ -49,9 +50,9 @@ func newTeamLogHoursTool(app core.App, actorID string) fantasy.AgentTool {
 		"team_log_hours",
 		"Log volunteer hours for the current user only, for today or yesterday. Call it when the user says they worked some hours (e.g. 'I worked 2 hours on the website yesterday'). Resolve relative dates against the current time. For older dates use team_request_hours instead. Returns the new week total against the weekly quota. Before calling, if the user has not said it, ask in one short message for: what they worked on (the note) and, if it matters, which project; if they already said it, log right away.",
 		func(ctx context.Context, input teamLogHoursInput, _ fantasy.ToolCall) (fantasy.ToolResponse, error) {
-			date := time.Now().In(team.Location)
+			date := time.Now().In(org.Location)
 			if input.Date != "" {
-				parsed, err := time.ParseInLocation("2006-01-02", input.Date, team.Location)
+				parsed, err := time.ParseInLocation("2006-01-02", input.Date, org.Location)
 				if err != nil {
 					return fantasy.NewTextErrorResponse("date must be YYYY-MM-DD"), nil
 				}
@@ -74,7 +75,7 @@ func newTeamRequestHoursTool(app core.App, actorID string) fantasy.AgentTool {
 		"team_request_hours",
 		"Send the admins a request to log hours for a date older than yesterday (members cannot log those themselves). The admins approve or reject it on the Requests page. Before calling, if the user has not said it, ask in one short message for: the date, the hours and what they worked on (required: admins approve based on it).",
 		func(ctx context.Context, input teamRequestHoursInput, _ fantasy.ToolCall) (fantasy.ToolResponse, error) {
-			date, err := time.ParseInLocation("2006-01-02", input.Date, team.Location)
+			date, err := time.ParseInLocation("2006-01-02", input.Date, org.Location)
 			if err != nil {
 				return fantasy.NewTextErrorResponse("date must be YYYY-MM-DD"), nil
 			}
