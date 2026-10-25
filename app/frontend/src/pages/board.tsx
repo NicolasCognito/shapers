@@ -11,6 +11,7 @@ import {
 
 import { Button } from "@/components/ui/button"
 import { ArchivedProjectsDialog } from "@/components/board/archived-projects-dialog"
+import { DeadlineView } from "@/components/board/deadline-view"
 import { KanbanBoard } from "@/components/board/kanban-board"
 import { ProjectGrid } from "@/components/board/project-grid"
 import { ProjectSheet } from "@/components/board/project-sheet"
@@ -20,6 +21,16 @@ import {
 } from "@/lib/workspace-navigation"
 import { useBoardStore, type Project } from "@/store/board"
 
+const MODE_KEY = "shapers.board.mode"
+
+function readMode(): "projects" | "deadlines" {
+  try {
+    return localStorage.getItem(MODE_KEY) === "deadlines" ? "deadlines" : "projects"
+  } catch {
+    return "projects"
+  }
+}
+
 export function BoardPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -28,6 +39,15 @@ export function BoardPage() {
   const requestedProjectId = searchParams.get("project")
   const [projectSheetOpen, setProjectSheetOpen] = useState(false)
   const [archivedOpen, setArchivedOpen] = useState(false)
+  const [mode, setModeState] = useState(readMode)
+  const setMode = (m: "projects" | "deadlines") => {
+    setModeState(m)
+    try {
+      localStorage.setItem(MODE_KEY, m)
+    } catch {
+      /* ignore */
+    }
+  }
   const [editingProject, setEditingProject] = useState<Project | null>(null)
   const [resolvedTaskId, setResolvedTaskId] = useState<string | undefined>()
   const initialized = useBoardStore((state) => state.initialized)
@@ -127,7 +147,25 @@ export function BoardPage() {
             {t("board.subtitle")}
           </p>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex flex-wrap items-center justify-end gap-1">
+          <div className="mr-1 flex rounded-lg border p-0.5 text-sm" role="tablist">
+            {(["projects", "deadlines"] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                role="tab"
+                aria-selected={mode === m}
+                onClick={() => setMode(m)}
+                className={
+                  mode === m
+                    ? "rounded-md bg-foreground px-2.5 py-1 text-background"
+                    : "rounded-md px-2.5 py-1 text-muted-foreground hover:text-foreground"
+                }
+              >
+                {t(m === "projects" ? "deadlines.modeProjects" : "deadlines.modeDeadlines")}
+              </button>
+            ))}
+          </div>
           <Button
             variant="ghost"
             size="icon-sm"
@@ -147,7 +185,9 @@ export function BoardPage() {
         </div>
       </div>
 
-      {focusedProjectId ? (
+      {mode === "deadlines" ? (
+        <DeadlineView key={focusedProjectId ?? "all"} projectId={focusedProjectId} onOpenTask={() => setMode("projects")} />
+      ) : focusedProjectId ? (
         <>
           <div className="-mb-3 flex items-center gap-2">
             <Button
