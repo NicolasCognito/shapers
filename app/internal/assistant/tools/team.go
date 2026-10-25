@@ -173,3 +173,21 @@ func newTeamDeleteHoursTool(app core.App, actorID string) fantasy.AgentTool {
 		},
 	)
 }
+
+type teamListRequestsInput struct {
+	Status string `json:"status,omitempty" description:"pending (default): waiting for a decision; decided: approved, rejected or withdrawn; all"`
+	Type   string `json:"type,omitempty" description:"Optional: hours, pause or handoff"`
+	Scope  string `json:"scope,omitempty" description:"Admins only: 'mine' for just their own and addressed-to-them requests; default shows every hours and pause request too"`
+	Limit  int    `json:"limit,omitempty" description:"How many, newest first; default 20, max 50"`
+}
+
+func newTeamListRequestsTool(app core.App, actorID string) fantasy.AgentTool {
+	return fantasy.NewAgentTool(
+		"team_list_requests",
+		"Requests from the Requests page (/requests): hours for older dates, pauses, task handoffs. Members see their own and those addressed to them; admins also see everyone's hours and pause requests. Use for 'what requests are waiting', 'did my request get approved', 'what did I reject last week', 'requests from Nina'. Returns total and the newest items with who asked, status, dates, hours, note and the decision with its reason.",
+		func(ctx context.Context, input teamListRequestsInput, _ fantasy.ToolCall) (fantasy.ToolResponse, error) {
+			result, err := team.ListRequests(app, actorID, input.Status, input.Type, input.Scope, input.Limit)
+			return calendarToolResult(app, actorID, "team list requests", result, err)
+		},
+	)
+}

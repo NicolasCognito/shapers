@@ -43,6 +43,7 @@ func (f *Factory) ForActor(actorID string) []fantasy.AgentTool {
 		newTeamMyWeekTool(f.app, actorID),
 		newTeamLogHoursTool(f.app, actorID),
 		newTeamRequestHoursTool(f.app, actorID),
+		newTeamListRequestsTool(f.app, actorID),
 		newTeamDeleteHoursTool(f.app, actorID),
 		newTeamWhoIsBehindTool(f.app, actorID),
 		newTeamMemberTool(f.app, actorID),

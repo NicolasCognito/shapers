@@ -20,8 +20,8 @@ import (
 func TestFactoryRegistersOnlyProductionTools(t *testing.T) {
 	factory := NewFactory(nil)
 	registered := factory.ForActor("actor-1")
-	if len(registered) != 29 {
-		t.Fatalf("expected twenty-nine production tools, got %d", len(registered))
+	if len(registered) != 30 {
+		t.Fatalf("expected thirty production tools, got %d", len(registered))
 	}
 	names := map[string]bool{}
 	for _, tool := range registered {
@@ -54,6 +54,7 @@ func TestFactoryRegistersOnlyProductionTools(t *testing.T) {
 		"team_who_is_behind",
 		"team_member_report",
 		"team_attendance",
+		"team_list_requests",
 	} {
 		if !names[name] {
 			t.Fatalf("missing production tool %q in registry: %#v", name, names)
