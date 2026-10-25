@@ -61,5 +61,6 @@ export type Dictation = ReturnType<typeof useDictation>
 
 /** Best guess before the engines load: can this browser take voice at all? */
 export function voiceLikelySupported() {
-  return typeof MediaRecorder !== "undefined" && !!navigator.mediaDevices?.getUserMedia
+  const w = window as unknown as Record<string, unknown>
+  return !!(w.SpeechRecognition || w.webkitSpeechRecognition || navigator.mediaDevices?.getUserMedia)
 }

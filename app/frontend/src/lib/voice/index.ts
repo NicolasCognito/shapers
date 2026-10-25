@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 
+import { BrowserSpeechEngine } from "./browser-engine"
 import { ServerSpeechEngine } from "./server-engine"
 import type { SpeechEngine, VoiceState } from "./types"
 
@@ -8,9 +9,19 @@ export type { SpeechEngine, VoiceState } from "./types"
 // Preference order. The first available engine is used; if it fails with a
 // fallback-worthy error, the next one takes over. To change providers, reorder
 // or add engines here — the mic button and chat stay untouched.
-// Only the server engine (Groq Whisper) is used; the browser Web Speech engine
-// is kept as legacy in ./legacy/browser-engine.ts.
-const ENGINES: SpeechEngine[] = [new ServerSpeechEngine()]
+//
+// Why two engines, not one:
+// - Browser (Web Speech, Chrome/Edge/Safari): real-time — words appear in the
+//   input while you speak, free, no upload. But only some browsers, it needs
+//   the language set in advance, and audio goes to the browser vendor.
+// - Server (Groq Whisper): works everywhere MediaRecorder does (Firefox,
+//   Slack/Telegram in-app WebViews), detects the language itself, our key and
+//   our provider. But text only after you stop, and it costs per minute.
+// So: language "Auto" → server first (detection); a fixed language → browser
+// first (live text); either falls back to the other when it fails. Both sit
+// behind the same SpeechEngine interface, so this is one list, not two code
+// paths. Groq-only variant: git tag `voice-groq-only` (cherry-pick it).
+const ENGINES: SpeechEngine[] = [new BrowserSpeechEngine(), new ServerSpeechEngine()]
 
 /** Languages offered in the mic chip. "auto" lets the server model detect it. */
 export const VOICE_LANGS = [
