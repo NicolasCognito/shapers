@@ -26,6 +26,8 @@ type TaskRec = {
   project: string
   assignees: string[]
   cancelled: boolean
+  priority: string
+  due_date: string
   expand?: { state?: { category: string } }
 }
 type Item = {
@@ -36,6 +38,10 @@ type Item = {
   pinned: boolean
   open: number
   mine: number
+  /** Open tasks due tomorrow or earlier (overdue included). */
+  hot: number
+  /** Open tasks with priority "urgent". */
+  urgent: number
 }
 
 const VIEW_KEY = "shapers.board.view"
@@ -70,18 +76,26 @@ export function ProjectGrid({
       }),
       pb.collection("board_tasks").getFullList<TaskRec>({
         filter: "archived != true",
-        fields: "project,assignees,cancelled,expand.state.category",
+        fields: "project,assignees,cancelled,priority,due_date,expand.state.category",
         expand: "state",
         requestKey: null,
       }),
     ])
     const open: Record<string, number> = {}
     const mine: Record<string, number> = {}
+    const hot: Record<string, number> = {}
+    const urgent: Record<string, number> = {}
+    // "Hot" = due by the end of tomorrow, overdue included.
+    const hotUntil = new Date()
+    hotUntil.setHours(0, 0, 0, 0)
+    hotUntil.setDate(hotUntil.getDate() + 2)
+    const bump = (m: Record<string, number>, k: string) => (m[k] = (m[k] ?? 0) + 1)
     for (const t of tasks) {
       if (t.cancelled || t.expand?.state?.category === "completed") continue
-      open[t.project] = (open[t.project] ?? 0) + 1
-      if (t.assignees?.includes(me))
-        mine[t.project] = (mine[t.project] ?? 0) + 1
+      bump(open, t.project)
+      if (t.assignees?.includes(me)) bump(mine, t.project)
+      if (t.due_date && new Date(t.due_date.replace(" ", "T")) < hotUntil) bump(hot, t.project)
+      if (t.priority === "urgent") bump(urgent, t.project)
     }
     setItems(
       prefs.flatMap((p) =>
@@ -95,6 +109,8 @@ export function ProjectGrid({
                 pinned: p.pinned,
                 open: open[p.project] ?? 0,
                 mine: mine[p.project] ?? 0,
+                hot: hot[p.project] ?? 0,
+                urgent: urgent[p.project] ?? 0,
               },
             ]
           : []
@@ -236,6 +252,22 @@ export function ProjectGrid({
               >
                 {t("board.open", { count: item.open })}
               </span>
+              {item.hot > 0 && (
+                <span
+                  className="ml-2 rounded-md bg-rose-500/10 px-1.5 py-0.5 font-medium text-rose-700 ring-1 ring-rose-500/25 dark:text-rose-300"
+                  title={t("board.hotHint")}
+                >
+                  🔥 {t("board.hot", { count: item.hot })}
+                </span>
+              )}
+              {item.urgent > 0 && (
+                <span
+                  className="ml-2 rounded-md bg-red-600/10 px-1.5 py-0.5 font-medium text-red-700 ring-1 ring-red-600/30 dark:text-red-300"
+                  title={t("board.urgentHint")}
+                >
+                  ⚡ {t("board.urgent", { count: item.urgent })}
+                </span>
+              )}
             </span>
           )
           return view === "grid" ? (

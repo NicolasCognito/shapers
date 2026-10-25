@@ -257,6 +257,10 @@ export const sl = {
     star: "Označi z zvezdico",
     yours: "{{count}} vaših",
     open: "{{count}} odprtih",
+    hot: "{{count}} z rokom",
+    hotHint: "Odprte naloge z rokom do jutri ali že zamujene",
+    urgent: "{{count}} nujnih",
+    urgentHint: "Odprte naloge z nujno prioriteto",
     loadFailed: "Projektov ni bilo mogoče naložiti",
   },
   team: {

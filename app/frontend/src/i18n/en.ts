@@ -253,6 +253,10 @@ export const en = {
     star: "Star project",
     yours: "{{count}} yours",
     open: "{{count}} open",
+    hot: "{{count}} due",
+    hotHint: "Open tasks due by tomorrow or already overdue",
+    urgent: "{{count}} urgent",
+    urgentHint: "Open tasks with Urgent priority",
     loadFailed: "Could not load projects",
   },
   team: {
