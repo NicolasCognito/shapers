@@ -178,10 +178,19 @@ export function selfLogAllowed(day: string) {
 }
 
 export const requestsApi = {
-  list: () =>
+  // Open requests stay few; decided ones grow, so they come in pages.
+  pending: () =>
     pb.collection("requests").getFullList<RequestRec>({
+      filter: "status = 'pending'",
       expand: "requester,recipient,task",
       sort: "-created",
+    }),
+  page: (filter: string, page: number, perPage: number) =>
+    pb.collection("requests").getList<RequestRec>(page, perPage, {
+      filter,
+      expand: "requester,recipient,task",
+      sort: "-created",
+      requestKey: null,
     }),
   hours: (date: string, hours: number, note: string) =>
     pb.send("/api/team/requests/hours", {
