@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 
-import { BrowserSpeechEngine } from "./browser-engine"
 import { ServerSpeechEngine } from "./server-engine"
 import type { SpeechEngine, VoiceState } from "./types"
 
@@ -9,7 +8,9 @@ export type { SpeechEngine, VoiceState } from "./types"
 // Preference order. The first available engine is used; if it fails with a
 // fallback-worthy error, the next one takes over. To change providers, reorder
 // or add engines here — the mic button and chat stay untouched.
-const ENGINES: SpeechEngine[] = [new BrowserSpeechEngine(), new ServerSpeechEngine()]
+// Only the server engine (Groq Whisper) is used; the browser Web Speech engine
+// is kept as legacy in ./legacy/browser-engine.ts.
+const ENGINES: SpeechEngine[] = [new ServerSpeechEngine()]
 
 /** Languages offered in the mic chip. "auto" lets the server model detect it. */
 export const VOICE_LANGS = [
