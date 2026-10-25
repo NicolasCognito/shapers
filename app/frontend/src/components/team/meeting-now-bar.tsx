@@ -11,6 +11,7 @@ import { MeetingQrDialog } from "@/components/team/meeting-qr"
 import { useDateLocale } from "@/i18n"
 import { extractErrorMessage } from "@/lib/error"
 import { can } from "@/lib/permissions"
+import { pb } from "@/lib/pocketbase"
 import { teamApi, type MeetingView } from "@/lib/team"
 import { cn } from "@/lib/utils"
 
@@ -56,6 +57,28 @@ export function MeetingNowBar() {
       window.removeEventListener("hours-changed", load)
     }
   }, [load])
+
+  // An admin's roll call (or a check-in from another device) changes my
+  // attendance: refresh the bar and My week at once instead of on the next poll.
+  useEffect(() => {
+    const me = pb.authStore.record?.id
+    if (!me) return
+    let unsubscribe: (() => void) | undefined
+    let disposed = false
+    pb.collection("attendance")
+      .subscribe<{ user: string }>("*", (e) => {
+        if (e.record.user === me) window.dispatchEvent(new Event("hours-changed"))
+      })
+      .then((u) => {
+        if (disposed) void u()
+        else unsubscribe = () => void u()
+      })
+      .catch(() => {})
+    return () => {
+      disposed = true
+      unsubscribe?.()
+    }
+  }, [])
 
   const hide = (id: string) => {
     const next = [...hidden, id]
