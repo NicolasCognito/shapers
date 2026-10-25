@@ -1,5 +1,5 @@
 import { useEffect } from "react"
-import { useNavigate, type NavigateFunction } from "react-router"
+import { useLocation, useNavigate, type NavigateFunction } from "react-router"
 import { useTranslation } from "react-i18next"
 import { driver } from "driver.js"
 import "driver.js/dist/driver.css"
@@ -162,13 +162,15 @@ export function TourAutostart() {
   const navigate = useNavigate()
   const { i18n } = useTranslation()
   const uid = pb.authStore.record?.id
+  // Don't pull people away from a QR check-in confirmation; start on the next page.
+  const onCheckin = useLocation().pathname.startsWith("/checkin")
   useEffect(() => {
-    if (!uid || isDone(uid)) return
+    if (!uid || isDone(uid) || onCheckin) return
     const id = setTimeout(() => startTour(navigate, i18n.language), 1000)
     return () => clearTimeout(id)
     // Once per sign-in; language changes don't restart it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uid])
+  }, [uid, onCheckin])
   return null
 }
 

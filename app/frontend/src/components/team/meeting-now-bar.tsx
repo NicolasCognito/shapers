@@ -104,7 +104,7 @@ export function MeetingNowBar() {
                 {!done && <span className="absolute inset-0 animate-ping rounded-full bg-emerald-500/60" />}
                 <span className="relative size-2.5 rounded-full bg-emerald-500" />
               </span>
-              <div className="min-w-0 flex-1 text-sm leading-tight">
+              <div className="min-w-48 flex-1 text-sm leading-tight">
                 <p className="truncate font-medium">
                   {when(m)} · {m.title}
                 </p>
