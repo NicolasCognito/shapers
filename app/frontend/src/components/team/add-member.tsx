@@ -113,7 +113,7 @@ export function AddMemberButton({ members, onAdded }: { members: MemberSummary[]
           if (!o) reset()
         }}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-md">
           {done ? (
             <>
               <DialogHeader>

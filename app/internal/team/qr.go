@@ -13,10 +13,11 @@ func checkinURL(base, meetingID string) string {
 	return strings.TrimRight(base, "/") + "/checkin/" + meetingID
 }
 
-// publicBase is PUBLIC_URL, or the address the request came to.
+// publicBase is the address the request came to (so the QR matches the page
+// that shows it), or PUBLIC_URL when the host is unknown.
 func publicBase(e *core.RequestEvent) string {
-	if base := os.Getenv("PUBLIC_URL"); base != "" {
-		return base
+	if e.Request.Host == "" {
+		return os.Getenv("PUBLIC_URL")
 	}
 	scheme := "http"
 	if e.Request.TLS != nil || e.Request.Header.Get("X-Forwarded-Proto") == "https" {

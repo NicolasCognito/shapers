@@ -1000,7 +1000,7 @@ export const sl = {
     shareSent_two: "Vabilo za deljenje poslano {{count}} uporabnikoma.",
     shareWithUsers: "Deli z uporabniki",
     sharedBy: "Deli: {{name}}",
-    subtitle: "Upravljajte svoje nastavitve in ponudnike modelov.",
+    subtitle: "Vaš jezik in tema; skrbniki tudi nastavitve za celotno organizacijo.",
     theme: "Tema",
     themeDark: "Temna",
     themeFailed: "Teme ni bilo mogoče posodobiti",

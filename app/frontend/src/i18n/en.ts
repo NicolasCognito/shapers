@@ -986,7 +986,7 @@ export const en = {
     shareSent_two: "Share invitation sent to {{count}} users.",
     shareWithUsers: "Share with users",
     sharedBy: "Shared by {{name}}",
-    subtitle: "Manage your preferences and configure model providers.",
+    subtitle: "Your language and theme; admins also set organisation-wide options.",
     theme: "Theme",
     themeDark: "Dark",
     themeFailed: "Could not update your theme",
