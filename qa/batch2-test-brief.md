@@ -21,7 +21,10 @@ You are testing a web app. Report problems; **do not change the app's code**.
 5. **Project cards** (Board → Projects grid and list view): next to the amber "N open" badge, a rose "🔥 N due" (due by tomorrow or overdue) and red "⚡ N urgent" appear when > 0; tooltips explain. Fit on phones.
 6. **Project members on create** (as Ana). Board → New project: dialog opens on the **Members** tab, hint "Admins are in every project automatically", admins not offered in the picker, **Add everyone (N)** adds all others. Create one project with only Zala → Zala sees it on her board, Nina does not. In project settings → Members there is also "Add everyone".
 7. **Deadlines view.** Board header toggle **Projects | Deadlines**. Deadlines groups open tasks: Overdue / Today / Tomorrow / This week / Next week / Later / No deadline, sorted by date then priority. Filters: search, project, assignee (everyone / me / unassigned / person), priority, Show done. Counter updates. Clicking a task opens it in its project board. When a project is open on the board, Deadlines starts filtered to it. Check as member too (only their projects). Phones: no horizontal scroll.
-8. Anything else broken on these screens (both themes if quick).
+8. **Member sheet toggles** (Team → click a member): "Vacation" and "Jarvis" rows. Only the switch itself toggles (clicking the text does nothing) and no pop-up notification appears on success.
+9. **Settings page** (`/settings`): only Language, Appearance, Organisation (admins only) and Jarvis memory (only if Jarvis is visible). No LLM models, MCP servers or API keys. Organisation → "Meetings count as hours" switch (off by default): turn it on, mark Zala present in a roll call → an hour entry "Meeting: …" appears in her My week; mark her absent → it disappears. **Turn the switch off again at the end.**
+10. **Meeting bar realtime**: if a meeting is open for check-in (a Google Calendar event may be open today), Zala's bar shows "I'm here"; when Ana marks Zala present in roll call, Zala's bar switches to "✓ You're in" within a few seconds without reload.
+11. Anything else broken on these screens (both themes if quick).
 
 ## Report
 
