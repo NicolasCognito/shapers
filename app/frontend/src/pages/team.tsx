@@ -221,42 +221,7 @@ function OverviewTab({
         </CardContent>
       </Card>
 
-      <Card data-tour="team-attention">
-        <CardHeader>
-          <CardTitle>{t("team.needsAttention")}</CardTitle>
-          <CardDescription>
-            {t("team.needsAttentionDesc")}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {attention.length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              {t("team.everyoneFine")}
-            </p>
-          )}
-          {attention.map(({ x }) => (
-            <button
-              key={x.id}
-              onClick={() => onSelect(x.id)}
-              className="flex w-full items-center gap-2 rounded-lg p-2 text-left hover:bg-muted"
-            >
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium">
-                  {x.name}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {t("team.memberLine", {
-                    hours: fmtHours(x.this_week),
-                    goal: fmtHours(x.weekly_hours),
-                    rate: pct(x.attendance.rate),
-                  })}
-                </span>
-              </span>
-              <TierBadge tier={x.tier} />
-            </button>
-          ))}
-        </CardContent>
-      </Card>
+      <UpcomingMeetingsCard onRollCall={onRollCall} />
 
       <Card>
         <CardHeader>
@@ -341,7 +306,42 @@ function OverviewTab({
         </CardContent>
       </Card>
 
-      <UpcomingMeetingsCard />
+      <Card data-tour="team-attention">
+        <CardHeader>
+          <CardTitle>{t("team.needsAttention")}</CardTitle>
+          <CardDescription>
+            {t("team.needsAttentionDesc")}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {attention.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              {t("team.everyoneFine")}
+            </p>
+          )}
+          {attention.map(({ x }) => (
+            <button
+              key={x.id}
+              onClick={() => onSelect(x.id)}
+              className="flex w-full items-center gap-2 rounded-lg p-2 text-left hover:bg-muted"
+            >
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium">
+                  {x.name}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {t("team.memberLine", {
+                    hours: fmtHours(x.this_week),
+                    goal: fmtHours(x.weekly_hours),
+                    rate: pct(x.attendance.rate),
+                  })}
+                </span>
+              </span>
+              <TierBadge tier={x.tier} />
+            </button>
+          ))}
+        </CardContent>
+      </Card>
     </div>
   )
 }

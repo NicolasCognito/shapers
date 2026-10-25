@@ -333,6 +333,7 @@ export const sl = {
     tapToRecord: "Tapnite za vnos prisotnosti",
     upcomingMeetings: "Prihajajoči sestanki",
     upcomingQrHint: "QR koda za prostor: natisnite jo ali prikažite na zaslonu. Ko jo član skenira, je prijavljen.",
+    meetingEnded: "končan",
     noUpcoming: "V naslednjih dveh tednih ni sestankov",
     unmarked: "{{count}} neoznačenih",
     allTiers: "Vse stopnje",

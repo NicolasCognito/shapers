@@ -325,6 +325,7 @@ export const en = {
     tapToRecord: "Tap to record attendance",
     upcomingMeetings: "Upcoming meetings",
     upcomingQrHint: "QR code for the room: print it or put it on the screen. Scanning clocks members in.",
+    meetingEnded: "ended",
     noUpcoming: "No meetings in the next two weeks",
     unmarked: "{{count}} unmarked",
     allTiers: "All tiers",
