@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { format, formatDistanceToNow } from "date-fns"
 import { Link } from "react-router"
 
+import { jarvisVisible } from "@/lib/permissions"
+
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   Add01Icon,
@@ -388,12 +390,12 @@ export function DashboardPage() {
             Here is what needs your attention across the workspace.
           </p>
         </div>
-        <Button asChild size="sm">
+        {jarvisVisible() && <Button asChild size="sm">
           <Link to="/chat">
             <HugeiconsIcon icon={SparklesIcon} strokeWidth={2} className="size-4" />
             Ask Jarvis
           </Link>
-        </Button>
+        </Button>}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -595,7 +597,7 @@ export function DashboardPage() {
           </CardHeader>
           <CardContent className="grid gap-2">
             {[
-              { label: "Start an AI chat", url: "/chat", icon: SparklesIcon },
+              ...(jarvisVisible() ? [{ label: "Start an AI chat", url: "/chat", icon: SparklesIcon }] : []),
               { label: "Open the board", url: "/board", icon: Task01Icon },
               { label: "Create a document", url: "/docs", icon: DocumentAttachmentIcon },
               { label: "Save something to read", url: "/reading", icon: Add01Icon },

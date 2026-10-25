@@ -39,6 +39,7 @@ export type MemberSummary = {
   tier: "Core" | "Impact" | "GO!" | ""
   weekly_hours: number
   is_admin: boolean
+  jarvis_enabled?: boolean
   role: string
   series: string[]
   weeks: WeekHours[]
@@ -232,6 +233,7 @@ export type NewMember = {
   tier: string
   weekly_hours?: number
   is_admin: boolean
+  jarvis_enabled?: boolean
   series: string[]
 }
 
@@ -241,6 +243,8 @@ export const teamApi = {
   overview: () => pb.send<Overview>("/api/team/overview", {}),
   createMember: (body: NewMember) =>
     pb.send<{ id: string; meetings: number }>("/api/team/members", { method: "POST", body }),
+  setJarvis: (userId: string, enabled: boolean) =>
+    pb.send(`/api/team/members/${userId}/jarvis`, { method: "POST", body: { enabled } }),
   upcoming: () => pb.send<MeetingView[]>("/api/team/meetings/upcoming", {}),
   checkin: (meeting: string, remote: boolean) =>
     pb.send("/api/team/checkin", {

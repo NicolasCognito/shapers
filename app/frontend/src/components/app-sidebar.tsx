@@ -21,7 +21,7 @@ import {
 import { useSidebar } from "@/components/ui/sidebar-context"
 import { Logo } from "@/components/logo"
 import { navGroups } from "@/lib/navigation"
-import { can } from "@/lib/permissions"
+import { can, jarvisVisible } from "@/lib/permissions"
 
 export function AppSidebar() {
   const { t } = useTranslation()
@@ -63,7 +63,7 @@ export function AppSidebar() {
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {group.items.filter((item) => !item.permission || can(item.permission)).map((item) => (
+                {group.items.filter((item) => (!item.permission || can(item.permission)) && (item.url !== "/chat" || jarvisVisible())).map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
                       asChild

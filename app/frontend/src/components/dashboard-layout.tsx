@@ -8,9 +8,13 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { JarvisDock } from "@/components/chat/jarvis-dock"
 import { TourAutostart } from "@/components/tour"
 import { MeetingNowBar } from "@/components/team/meeting-now-bar"
+import { jarvisVisible } from "@/lib/permissions"
+import { useAuthStore } from "@/store/auth"
 
 export function DashboardLayout() {
   const { pathname } = useLocation()
+  useAuthStore((s) => s.user) // re-render when the signed-in user changes
+  const showJarvis = jarvisVisible()
   const isFullBleed =
     pathname.startsWith("/chat") ||
     pathname.startsWith("/docs") ||
@@ -36,7 +40,7 @@ export function DashboardLayout() {
           )}
         </main>
       </SidebarInset>
-      {!pathname.startsWith("/chat") && <JarvisDock />}
+      {!pathname.startsWith("/chat") && showJarvis && <JarvisDock />}
     </SidebarProvider>
   )
 }

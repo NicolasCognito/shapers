@@ -32,6 +32,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useDateLocale } from "@/i18n"
 import { can } from "@/lib/permissions"
 import { VacationToggle } from "@/components/team/tree-card"
+import { JarvisToggle } from "@/components/team/jarvis-toggle"
 import { MemberSlack, SlackCell, useSlack } from "@/components/team/slack-activity"
 import { pb } from "@/lib/pocketbase"
 import { cn } from "@/lib/utils"
@@ -702,6 +703,9 @@ function MemberSheet({
         <SheetHeader>
           <SheetTitle>{detail?.summary.name ?? t("team.member")}</SheetTitle>
           {id && can("members.manage") && <VacationToggle userId={id} />}
+          {id && detail && can("members.manage") && !detail.summary.is_admin && (
+            <JarvisToggle key={id} userId={id} initial={!!detail.summary.jarvis_enabled} onChanged={onChanged} />
+          )}
           {id && <MemberSlack memberId={id} />}
         </SheetHeader>
         <div className="p-4">

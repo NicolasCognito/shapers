@@ -53,6 +53,7 @@ export function AddMemberButton({ members, onAdded }: { members: MemberSummary[]
   const [tier, setTier] = useState<string>("GO!")
   const [hours, setHours] = useState("")
   const [admin, setAdmin] = useState(false)
+  const [jarvis, setJarvis] = useState(false)
   const [series, setSeries] = useState<string[]>([])
   const [password, setPassword] = useState(randomPassword)
   const [busy, setBusy] = useState(false)
@@ -65,6 +66,7 @@ export function AddMemberButton({ members, onAdded }: { members: MemberSummary[]
     setTier("GO!")
     setHours("")
     setAdmin(false)
+    setJarvis(false)
     setSeries([])
     setPassword(randomPassword())
     setDone(null)
@@ -82,6 +84,7 @@ export function AddMemberButton({ members, onAdded }: { members: MemberSummary[]
         tier,
         weekly_hours: hours ? Number(hours) : undefined,
         is_admin: admin,
+        jarvis_enabled: admin || jarvis,
         series,
       })
       setDone({ email: email.trim().toLowerCase(), password, meetings: r.meetings })
@@ -225,6 +228,15 @@ export function AddMemberButton({ members, onAdded }: { members: MemberSummary[]
                 </span>
                 <Switch checked={admin} onCheckedChange={setAdmin} />
               </label>
+              {!admin && (
+                <label className="flex items-center justify-between gap-3 rounded-md border p-3 text-sm">
+                  <span>
+                    <span className="font-medium">{t("jarvisAccess.label")}</span>
+                    <span className="block text-xs text-muted-foreground">{t("jarvisAccess.hint")}</span>
+                  </span>
+                  <Switch checked={jarvis} onCheckedChange={setJarvis} />
+                </label>
+              )}
               <DialogFooter>
                 <Button type="submit" disabled={!valid || busy}>
                   {t("addMember.submit")}

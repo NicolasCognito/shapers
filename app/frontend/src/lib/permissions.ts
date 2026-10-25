@@ -30,3 +30,13 @@ export function currentRole(): string {
 export function can(permission: Permission): boolean {
   return ROLE_PERMISSIONS[currentRole()]?.includes(permission) ?? false
 }
+
+/**
+ * Whether to show Jarvis (floating button, sidebar entry, tour step). Admins
+ * always; members only when an admin turned it on for them. Only the UI is
+ * hidden: /chat and the API still work.
+ */
+export function jarvisVisible(): boolean {
+  const u = pb.authStore.record
+  return !!(u?.is_admin || u?.jarvis_enabled)
+}

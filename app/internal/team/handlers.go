@@ -288,6 +288,7 @@ type memberSummary struct {
 	Tier         string                      `json:"tier"`
 	WeeklyHours  float64                     `json:"weekly_hours"`
 	IsAdmin      bool                        `json:"is_admin"`
+	Jarvis       bool                        `json:"jarvis_enabled"`
 	Role         string                      `json:"role"`
 	Series       []string                    `json:"series"`
 	Weeks        []weekHours                 `json:"weeks"`
@@ -315,7 +316,7 @@ func (ds *dataset) summary(u *core.Record, now time.Time) memberSummary {
 	att, bySeries := ds.memberAttendance(u, now)
 	s := memberSummary{
 		ID: u.Id, Name: u.GetString("name"), Email: u.Email(), Tier: u.GetString("tier"),
-		WeeklyHours: quota, IsAdmin: u.GetBool("is_admin"), Role: RoleOf(u), Series: u.GetStringSlice("series"),
+		WeeklyHours: quota, IsAdmin: u.GetBool("is_admin"), Jarvis: u.GetBool("jarvis_enabled"), Role: RoleOf(u), Series: u.GetStringSlice("series"),
 		Weeks: hist, ThisWeek: this, Expected: expected, Behind: this < expected && !hist[len(hist)-1].Paused,
 		Paused: hist[len(hist)-1].Paused, Pause: currentOrNextPause(ds.pauses[u.Id], now), Community: ds.community(u, now),
 		Streak: streak(hist), Attendance: att, BySeries: bySeries,

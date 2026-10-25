@@ -147,6 +147,12 @@ export const en = {
     copied: "Copied",
     addAnother: "Add another",
   },
+  jarvisAccess: {
+    label: "Jarvis",
+    hint: "Show the Jarvis assistant button to this member. Admins always have it.",
+    on: "Jarvis is on for this member",
+    off: "Jarvis is hidden for this member",
+  },
   quickHours: {
     title: "Log hours",
     today: "Today",

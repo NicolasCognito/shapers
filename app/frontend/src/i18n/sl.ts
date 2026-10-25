@@ -149,6 +149,12 @@ export const sl = {
     copied: "Kopirano",
     addAnother: "Dodaj še enega",
   },
+  jarvisAccess: {
+    label: "Jarvis",
+    hint: "Prikaži gumb pomočnika Jarvis temu članu. Skrbniki ga imajo vedno.",
+    on: "Jarvis je vklopljen za tega člana",
+    off: "Jarvis je skrit za tega člana",
+  },
   quickHours: {
     title: "Vpiši ure",
     today: "Danes",

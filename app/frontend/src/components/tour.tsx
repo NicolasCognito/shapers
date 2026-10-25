@@ -8,7 +8,7 @@ import { HelpCircleIcon } from "@hugeicons/core-free-icons"
 
 import { useSidebar } from "@/components/ui/sidebar-context"
 import { askJarvis } from "@/lib/jarvis-ask"
-import { can } from "@/lib/permissions"
+import { can, jarvisVisible } from "@/lib/permissions"
 import { pb } from "@/lib/pocketbase"
 import { tourContent, type TourContent, type TourStepText } from "@/lib/tour-content"
 
@@ -51,7 +51,7 @@ function buildSteps(admin: boolean, c: TourContent): Step[] {
     { element: el("nav-tasks"), text: c.navTasks, sidebar: true },
     { element: el("nav-requests"), text: c.navRequests, sidebar: true },
     { element: el("nav-tree"), text: c.navTree, sidebar: true },
-    { element: el("jarvis"), text: c.jarvis, asks: c.memberAsks },
+    ...(jarvisVisible() ? [{ element: el("jarvis"), text: c.jarvis, asks: c.memberAsks }] : []),
   ]
 }
 

@@ -21,6 +21,7 @@ func handleCreateMember(e *core.RequestEvent) error {
 		Tier        string   `json:"tier"`
 		WeeklyHours float64  `json:"weekly_hours"`
 		Admin       bool     `json:"is_admin"`
+		Jarvis      bool     `json:"jarvis_enabled"`
 		Series      []string `json:"series"`
 	}
 	if err := e.BindBody(&in); err != nil {
@@ -62,6 +63,7 @@ func handleCreateMember(e *core.RequestEvent) error {
 	u.Set("tier", in.Tier)
 	u.Set("weekly_hours", in.WeeklyHours)
 	u.Set("is_admin", in.Admin)
+	u.Set("jarvis_enabled", in.Jarvis)
 	u.Set("series", series)
 	u.Set("added_by", e.Auth.Id)
 	if err := e.App.Save(u); err != nil {
@@ -124,4 +126,24 @@ func appAddedMembers(app core.App, series string, start time.Time) []string {
 		}
 	}
 	return ids
+}
+
+// POST /api/team/members/{id}/jarvis {"enabled": true} — show or hide the
+// Jarvis button for a member.
+func handleSetJarvis(e *core.RequestEvent) error {
+	var in struct {
+		Enabled bool `json:"enabled"`
+	}
+	if err := e.BindBody(&in); err != nil {
+		return e.BadRequestError("Invalid body.", err)
+	}
+	u, err := e.App.FindRecordById(colUsers, e.Request.PathValue("id"))
+	if err != nil {
+		return e.NotFoundError("Member not found.", err)
+	}
+	u.Set("jarvis_enabled", in.Enabled)
+	if err := e.App.Save(u); err != nil {
+		return e.BadRequestError(err.Error(), err)
+	}
+	return e.JSON(200, map[string]any{"jarvis_enabled": in.Enabled})
 }
