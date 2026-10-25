@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -102,6 +103,12 @@ func UpsertMeeting(app core.App, in MeetingInput, userByEmail map[string]string)
 	}
 	for _, e := range emails {
 		if id, ok := userByEmail[e]; ok {
+			members = append(members, id)
+		}
+	}
+	// Members added in the app aren't in the event description yet.
+	for _, id := range appAddedMembers(app, series, in.Start) {
+		if !slices.Contains(members, id) {
 			members = append(members, id)
 		}
 	}

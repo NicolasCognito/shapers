@@ -3,6 +3,7 @@ import { format, parseISO } from "date-fns"
 import { Navigate, useSearchParams } from "react-router"
 import { useTranslation } from "react-i18next"
 
+import { AddMemberButton } from "@/components/team/add-member"
 import { MemberDetailView } from "@/components/team/member-detail"
 import { RollCallSheet } from "@/components/team/roll-call"
 import { UpcomingMeetingsCard } from "@/components/team/upcoming-meetings"
@@ -109,7 +110,7 @@ export function TeamPage() {
             />
           </TabsContent>
           <TabsContent value="members" className="mt-4">
-            <MembersTab members={data.members} onSelect={setSelected} />
+            <MembersTab members={data.members} onSelect={setSelected} onAdded={load} />
           </TabsContent>
           <TabsContent value="attendance" className="mt-4">
             <AttendanceTab
@@ -349,9 +350,11 @@ type SortKey = "name" | "progress" | "attendance" | "streak" | "tasks"
 function MembersTab({
   members,
   onSelect,
+  onAdded,
 }: {
   members: MemberSummary[]
   onSelect: (id: string) => void
+  onAdded: () => void
 }) {
   const { t } = useTranslation()
   const slackEnabled = useSlack((s) => s.enabled)
@@ -413,6 +416,11 @@ function MembersTab({
               {tn === "all" ? t("team.allTiers") : tn}
             </Button>
           ))}
+          {can("members.manage") && (
+            <div className="ml-auto">
+              <AddMemberButton members={members} onAdded={onAdded} />
+            </div>
+          )}
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">

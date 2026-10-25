@@ -50,6 +50,7 @@ func Register(app *pocketbase.PocketBase) {
 		g.POST("/attendance/bulk", requirePerm(PermAttendanceRecord, handleBulkAttendance))
 		g.GET("/overview", requirePerm(PermTeamView, handleOverview))
 		g.GET("/members/{id}", requirePerm(PermTeamView, handleMember))
+		g.POST("/members", requirePerm(PermMembersManage, handleCreateMember))
 		g.POST("/calendar/sync", requirePerm(PermCalendarSync, func(e *core.RequestEvent) error {
 			n, err := SyncGoogleCalendar(e.App)
 			if err != nil {

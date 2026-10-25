@@ -225,10 +225,22 @@ export const requestsApi = {
     }),
 }
 
+export type NewMember = {
+  name: string
+  email: string
+  password: string
+  tier: string
+  weekly_hours?: number
+  is_admin: boolean
+  series: string[]
+}
+
 export const teamApi = {
   me: () => pb.send<MemberDetail>("/api/team/me", {}),
   member: (id: string) => pb.send<MemberDetail>(`/api/team/members/${id}`, {}),
   overview: () => pb.send<Overview>("/api/team/overview", {}),
+  createMember: (body: NewMember) =>
+    pb.send<{ id: string; meetings: number }>("/api/team/members", { method: "POST", body }),
   upcoming: () => pb.send<MeetingView[]>("/api/team/meetings/upcoming", {}),
   checkin: (meeting: string, remote: boolean) =>
     pb.send("/api/team/checkin", {
