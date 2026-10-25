@@ -16,7 +16,7 @@ import {
   Search02Icon,
 } from "@hugeicons/core-free-icons"
 import type { RecordModel } from "pocketbase"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 
 import { NotificationItem } from "@/components/notifications/notification-item"
 import {
@@ -533,7 +533,7 @@ function ArchivedNotificationsDialog({
       setItems(result.items)
       setTotalPages(Math.max(1, result.totalPages))
     } catch (error) {
-      toast.error(
+      notify.error(
         error instanceof Error
           ? error.message
           : t("notifications.loadArchivedFailed")

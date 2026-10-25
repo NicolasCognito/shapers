@@ -1,6 +1,6 @@
 import { useEffect } from "react"
 import { useTranslation } from "react-i18next"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 
 import { StopTimerDialog } from "@/components/team/stop-timer-dialog"
 import {
@@ -31,7 +31,7 @@ export function TimerWatcher() {
     const text = t("timer.planUp", {
       duration: durationLabel(t, timer.planned_minutes),
     })
-    toast(text, {
+    notify.message(text, {
       duration: Infinity,
       action: {
         label: t("timer.logNow"),
@@ -43,7 +43,7 @@ export function TimerWatcher() {
           useWorkTimer
             .getState()
             .extend(30)
-            .catch((e) => toast.error(String(e?.message ?? e)))
+            .catch((e) => notify.error(String(e?.message ?? e)))
         },
       },
     })

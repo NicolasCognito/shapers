@@ -5,7 +5,7 @@ import {
   File01Icon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 
 import {
   getDocAssetMetadata,
@@ -39,7 +39,7 @@ export function DocAttachmentCard({
 
   const download = () => {
     void openDocAssetDownload(url).catch((error) => {
-      toast.error(extractErrorMessage(error, "Could not download the file."))
+      notify.error(extractErrorMessage(error, "Could not download the file."))
     })
   }
   const activateWithKeyboard = (event: KeyboardEvent<HTMLSpanElement>) => {

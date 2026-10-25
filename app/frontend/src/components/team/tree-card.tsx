@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { Link } from "react-router"
 import { useTranslation } from "react-i18next"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 import { create } from "zustand"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Plant01Icon } from "@hugeicons/core-free-icons"
@@ -29,7 +29,7 @@ export const useTree = create<{ tree: Tree | null; load: () => Promise<void> }>(
   load: async () => {
     const tree = await pb.send<Tree>("/api/team/tree", {})
     set({ tree })
-    if (tree.bonus) toast.success(`+${tree.bonus} 💧`)
+    if (tree.bonus) notify.success(`+${tree.bonus} 💧`)
   },
 }))
 
@@ -197,7 +197,7 @@ export function VacationToggle({ userId }: { userId: string }) {
       await pb.send(`/api/team/tree/member/${userId}/vacation`, { method: "POST", body: { on: next } })
     } catch (e) {
       setOn(!next)
-      toast.error((e as Error).message)
+      notify.error((e as Error).message)
     }
   }
   return (

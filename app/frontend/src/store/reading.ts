@@ -1,5 +1,5 @@
 import { ClientResponseError, type RecordModel } from "pocketbase"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 import { create } from "zustand"
 
 import { pb } from "@/lib/pocketbase"
@@ -239,7 +239,7 @@ export const useReadingStore = create<ReadingState>((set, get) => ({
       if (sequence !== fetchItemsSequence) return
       const message = readingErrorMessage(error, "Could not load reading items")
       set({ error: message })
-      toast.error(message)
+      notify.error(message)
     } finally {
       if (sequence === fetchItemsSequence) set({ loading: false })
     }
@@ -261,7 +261,7 @@ export const useReadingStore = create<ReadingState>((set, get) => ({
         })),
       })
     } catch (error) {
-      toast.error(readingErrorMessage(error, "Could not load projects"))
+      notify.error(readingErrorMessage(error, "Could not load projects"))
     }
   },
 
@@ -288,7 +288,7 @@ export const useReadingStore = create<ReadingState>((set, get) => ({
       return item
     } catch (error) {
       set({ openedItem: null })
-      toast.error(readingErrorMessage(error, "Could not open reading item"))
+      notify.error(readingErrorMessage(error, "Could not open reading item"))
       return null
     }
   },
@@ -311,12 +311,12 @@ export const useReadingStore = create<ReadingState>((set, get) => ({
       set({ openedItem: item })
       await get().fetchItems(1)
       set({ saving: false })
-      toast.success("Reading item added")
+      notify.success("Reading item added")
       return item
     } catch (error) {
       const message = readingErrorMessage(error, "Could not add reading item")
       set({ saving: false, error: message })
-      toast.error(message)
+      notify.error(message)
       throw new Error(message, { cause: error })
     }
   },
@@ -336,14 +336,14 @@ export const useReadingStore = create<ReadingState>((set, get) => ({
       }))
       await get().fetchItems()
       set({ saving: false })
-      toast.success("Reading item updated")
+      notify.success("Reading item updated")
     } catch (error) {
       const message = readingErrorMessage(
         error,
         "Could not update reading item"
       )
       set({ saving: false, error: message })
-      toast.error(message)
+      notify.error(message)
       throw new Error(message, { cause: error })
     }
   },
@@ -361,14 +361,14 @@ export const useReadingStore = create<ReadingState>((set, get) => ({
         await get().fetchItems(currentPage - 1)
       }
       set({ saving: false })
-      toast.success("Reading item deleted")
+      notify.success("Reading item deleted")
     } catch (error) {
       const message = readingErrorMessage(
         error,
         "Could not delete reading item"
       )
       set({ saving: false, error: message })
-      toast.error(message)
+      notify.error(message)
       throw new Error(message, { cause: error })
     }
   },
@@ -385,7 +385,7 @@ export const useReadingStore = create<ReadingState>((set, get) => ({
       await get().fetchItems()
     } catch (error) {
       const message = readingErrorMessage(error, "Could not update pin")
-      toast.error(message)
+      notify.error(message)
       throw new Error(message, { cause: error })
     }
   },
@@ -405,7 +405,7 @@ export const useReadingStore = create<ReadingState>((set, get) => ({
       }))
       await get().fetchItems()
       set({ markingAllRead: false })
-      toast.success(
+      notify.success(
         response.updated === 1
           ? "Marked 1 reading item as read"
           : `Marked ${response.updated} reading items as read`
@@ -417,7 +417,7 @@ export const useReadingStore = create<ReadingState>((set, get) => ({
         "Could not mark all reading items as read"
       )
       set({ markingAllRead: false, error: message })
-      toast.error(message)
+      notify.error(message)
       return 0
     }
   },

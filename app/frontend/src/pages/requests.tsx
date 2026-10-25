@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { Link } from "react-router"
 import { addDays, format, formatDistanceToNow, parseISO } from "date-fns"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 import { useTranslation } from "react-i18next"
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react"
 import {
@@ -156,7 +156,7 @@ export function RequestsPage() {
     requestsApi
       .pending()
       .then(setPending)
-      .catch((e) => toast.error(extractErrorMessage(e, t("requests.loadFailed"))))
+      .catch((e) => notify.error(extractErrorMessage(e, t("requests.loadFailed"))))
   }, [t])
   useEffect(loadPending, [loadPending])
 
@@ -184,10 +184,10 @@ export function RequestsPage() {
   const run = async (p: Promise<unknown>, msg: string) => {
     try {
       await p
-      toast.success(msg)
+      notify.success(msg)
       refresh()
     } catch (e) {
-      toast.error(extractErrorMessage(e, t("common.somethingWrong")))
+      notify.error(extractErrorMessage(e, t("common.somethingWrong")))
     }
   }
 
@@ -210,8 +210,8 @@ export function RequestsPage() {
       return
     const res = await Promise.allSettled(items.map((r) => requestsApi.decide(r.id, true, "")))
     const failed = res.filter((x) => x.status === "rejected").length
-    if (failed) toast.error(t("requests.someFailed", { count: failed }))
-    else toast.success(t("requests.approvedMany", { count: items.length }))
+    if (failed) notify.error(t("requests.someFailed", { count: failed }))
+    else notify.success(t("requests.approvedMany", { count: items.length }))
     refresh()
   }
 
@@ -565,13 +565,13 @@ function HoursDialog({ open, onClose, onSent }: { open: boolean; onClose: () => 
     setBusy(true)
     try {
       await requestsApi.hours(date, Number(hours), note.trim())
-      toast.success(t("requests.sent"))
+      notify.success(t("requests.sent"))
       setHours("")
       setNote("")
       onSent()
       onClose()
     } catch (e) {
-      toast.error(extractErrorMessage(e, t("common.somethingWrong")))
+      notify.error(extractErrorMessage(e, t("common.somethingWrong")))
     } finally {
       setBusy(false)
     }
@@ -627,12 +627,12 @@ function PauseDialog({ open, onClose, onSent }: { open: boolean; onClose: () => 
     setBusy(true)
     try {
       await requestsApi.pause(from, to, note.trim())
-      toast.success(t("rules.pauseRequested"))
+      notify.success(t("rules.pauseRequested"))
       setNote("")
       onSent()
       onClose()
     } catch (e) {
-      toast.error(extractErrorMessage(e, t("common.somethingWrong")))
+      notify.error(extractErrorMessage(e, t("common.somethingWrong")))
     } finally {
       setBusy(false)
     }

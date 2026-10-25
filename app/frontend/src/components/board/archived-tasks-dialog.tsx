@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react"
 import { Archive02Icon, ArchiveRestoreIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import type { RecordModel } from "pocketbase"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -75,7 +75,7 @@ export function ArchivedTasksDialog({
       .then(load)
       .catch((error) => {
         if (isRequestAbort(error)) return
-        toast.error(
+        notify.error(
           extractErrorMessage(error, t("archivedTasks.loadFailed"))
         )
       })

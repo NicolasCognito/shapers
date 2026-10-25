@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 
 import { useVoiceInput, VOICE_LANGS, type VoiceLang } from "@/lib/voice"
 
@@ -32,7 +32,7 @@ export function useDictation({ text, setText }: { text: string; setText: (text: 
     fallbackLang: i18n.language?.startsWith("sl") ? "sl" : "en",
     onPartial: (s) => setText(join(s)),
     onText: (s) => setText(join(s)),
-    onError: (m) => toast.error(t("chat.voice.error", { message: m })),
+    onError: (m) => notify.error(t("chat.voice.error", { message: m })),
   })
 
   const { start: voiceStart, toggle: voiceToggle, state } = voice

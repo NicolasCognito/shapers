@@ -4,7 +4,7 @@ import {
   type RecordListOptions,
   type RecordModel,
 } from "pocketbase"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 
 import i18n from "@/i18n"
 
@@ -644,7 +644,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     } catch (error) {
       const message = messageFromError(error, i18n.t("boardStore.couldNotLoadTheBoard"))
       set({ error: message })
-      toast.error(message)
+      notify.error(message)
     } finally {
       set({ loading: false })
     }
@@ -664,7 +664,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     } catch (error) {
       const message = messageFromError(error, i18n.t("boardStore.couldNotLoadTheBoard"))
       set({ error: message })
-      toast.error(message)
+      notify.error(message)
     } finally {
       set({ loading: false })
     }
@@ -711,7 +711,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     } catch (error) {
       const message = messageFromError(error, i18n.t("boardStore.couldNotOpenTheProject"))
       set({ error: message })
-      toast.error(message)
+      notify.error(message)
       return null
     }
   },
@@ -734,7 +734,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         }
         const message = messageFromError(error, i18n.t("boardStore.couldNotOpenTheTask"))
         set({ error: message })
-        toast.error(message)
+        notify.error(message)
         return null
       }
     }
@@ -788,7 +788,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     } catch (error) {
       const message = messageFromError(error, i18n.t("boardStore.couldNotCreateTheProject"))
       set({ error: message })
-      toast.error(message)
+      notify.error(message)
       throw new Error(message, { cause: error })
     }
   },
@@ -825,7 +825,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     } catch (error) {
       const message = messageFromError(error, i18n.t("boardStore.couldNotUpdateTheProject"))
       set({ error: message })
-      toast.error(message)
+      notify.error(message)
       throw new Error(message, { cause: error })
     }
   },
@@ -846,11 +846,11 @@ export const useBoardStore = create<BoardState>((set, get) => ({
           snapshot.projects.map((project) => project.id)
         )
       }
-      toast.success(i18n.t("boardStore.projectArchived"))
+      notify.success(i18n.t("boardStore.projectArchived"))
     } catch (error) {
       const message = messageFromError(error, i18n.t("boardStore.couldNotArchiveTheProject"))
       set({ error: message })
-      toast.error(message)
+      notify.error(message)
       throw new Error(message, { cause: error })
     }
   },
@@ -874,7 +874,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     } catch (error) {
       const message = messageFromError(error, i18n.t("boardStore.couldNotDeleteTheProject"))
       set({ error: message })
-      toast.error(message)
+      notify.error(message)
       throw new Error(message, { cause: error })
     }
   },
@@ -967,7 +967,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     } catch (error) {
       const message = messageFromError(error, i18n.t("boardStore.couldNotReorderProjects"))
       set({ error: message })
-      toast.error(message)
+      notify.error(message)
       throw new Error(message, { cause: error })
     } finally {
       set({ loading: false })
@@ -995,7 +995,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         i18n.t("boardStore.couldNotTransferProjectOwnership")
       )
       set({ error: message })
-      toast.error(message)
+      notify.error(message)
       throw new Error(message, { cause: error })
     }
   },
@@ -1027,7 +1027,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         i18n.t("boardStore.couldNotSaveTheProjectDisplayState")
       )
       set({ error: message })
-      toast.error(message)
+      notify.error(message)
       throw new Error(message, { cause: error })
     }
   },
@@ -1052,7 +1052,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     } catch (error) {
       const message = messageFromError(error, i18n.t("boardStore.couldNotAddTheState"))
       set({ error: message })
-      toast.error(message)
+      notify.error(message)
       throw new Error(message, { cause: error })
     }
   },
@@ -1066,7 +1066,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     } catch (error) {
       const message = messageFromError(error, i18n.t("boardStore.couldNotUpdateTheState"))
       set({ error: message })
-      toast.error(message)
+      notify.error(message)
       throw new Error(message, { cause: error })
     }
   },
@@ -1083,7 +1083,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         i18n.t("boardStore.moveOrDeleteTheTasksInThisStateFirst")
       )
       set({ error: message })
-      toast.error(message)
+      notify.error(message)
       throw new Error(message, { cause: error })
     }
   },
@@ -1143,7 +1143,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     } catch (error) {
       const message = messageFromError(error, i18n.t("boardStore.couldNotAddTheLabel"))
       set({ error: message })
-      toast.error(message)
+      notify.error(message)
       throw new Error(message, { cause: error })
     }
   },
@@ -1157,7 +1157,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     } catch (error) {
       const message = messageFromError(error, i18n.t("boardStore.couldNotUpdateTheLabel"))
       set({ error: message })
-      toast.error(message)
+      notify.error(message)
       throw new Error(message, { cause: error })
     }
   },
@@ -1183,7 +1183,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     } catch (error) {
       const message = messageFromError(error, i18n.t("boardStore.couldNotDeleteTheLabel"))
       set({ error: message })
-      toast.error(message)
+      notify.error(message)
       throw new Error(message, { cause: error })
     }
   },
@@ -1204,7 +1204,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     } catch (error) {
       const message = messageFromError(error, i18n.t("boardStore.couldNotAddTheMember"))
       set({ error: message })
-      toast.error(message)
+      notify.error(message)
       throw new Error(message, { cause: error })
     }
   },
@@ -1222,7 +1222,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     } catch (error) {
       const message = messageFromError(error, i18n.t("boardStore.couldNotUpdateTheMember"))
       set({ error: message })
-      toast.error(message)
+      notify.error(message)
       throw new Error(message, { cause: error })
     }
   },
@@ -1236,7 +1236,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     } catch (error) {
       const message = messageFromError(error, i18n.t("boardStore.couldNotRemoveTheMember"))
       set({ error: message })
-      toast.error(message)
+      notify.error(message)
       throw new Error(message, { cause: error })
     }
   },
@@ -1265,7 +1265,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     } catch (error) {
       const message = messageFromError(error, i18n.t("boardStore.couldNotCreateTheTask"))
       set({ error: message })
-      toast.error(message)
+      notify.error(message)
       throw new Error(message, { cause: error })
     }
   },
@@ -1285,7 +1285,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     } catch (error) {
       const message = messageFromError(error, i18n.t("boardStore.couldNotUpdateTheTask"))
       set({ error: message })
-      toast.error(message)
+      notify.error(message)
       throw new Error(message, { cause: error })
     }
   },
@@ -1299,11 +1299,11 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         todos: state.todos.filter((item) => item.id !== id),
         openedTask: state.openedTask?.id === id ? null : state.openedTask,
       }))
-      toast.success(i18n.t("boardStore.taskArchived"))
+      notify.success(i18n.t("boardStore.taskArchived"))
     } catch (error) {
       const message = messageFromError(error, i18n.t("boardStore.couldNotArchiveTheTask"))
       set({ error: message })
-      toast.error(message)
+      notify.error(message)
       throw new Error(message, { cause: error })
     }
   },
@@ -1321,11 +1321,11 @@ export const useBoardStore = create<BoardState>((set, get) => ({
           ? upsertById(state.todos, restored)
           : state.todos,
       }))
-      toast.success(i18n.t("boardStore.taskRestored"))
+      notify.success(i18n.t("boardStore.taskRestored"))
     } catch (error) {
       const message = messageFromError(error, i18n.t("boardStore.couldNotRestoreTheTask"))
       set({ error: message })
-      toast.error(message)
+      notify.error(message)
       throw new Error(message, { cause: error })
     }
   },
@@ -1340,7 +1340,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     } catch (error) {
       const message = messageFromError(error, i18n.t("boardStore.couldNotDeleteTheTask"))
       set({ error: message })
-      toast.error(message)
+      notify.error(message)
       throw new Error(message, { cause: error })
     }
   },

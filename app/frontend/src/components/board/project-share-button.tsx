@@ -2,7 +2,7 @@ import { Trans, useTranslation } from "react-i18next"
 
 import i18n from "@/i18n"
 import { useEffect, useState } from "react"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -104,9 +104,9 @@ export function ShareProjectButton({ project }: { project: Project }) {
       )
       setLoaded({ projectId: project.id, share: updated })
       setExpiry(updated.expires ? "keep" : "never")
-      toast.success(share ? t("share.updated") : t("share.created"))
+      notify.success(share ? t("share.updated") : t("share.created"))
     } catch {
-      toast.error(t("share.updateFailed"))
+      notify.error(t("share.updateFailed"))
     } finally {
       setWorking(false)
     }
@@ -120,9 +120,9 @@ export function ShareProjectButton({ project }: { project: Project }) {
       })
       setLoaded({ projectId: project.id, share: null })
       setExpiry("never")
-      toast.success(t("share.revoked"))
+      notify.success(t("share.revoked"))
     } catch {
-      toast.error(t("share.revokeFailed"))
+      notify.error(t("share.revokeFailed"))
     } finally {
       setWorking(false)
     }
@@ -137,9 +137,9 @@ export function ShareProjectButton({ project }: { project: Project }) {
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(url)
-      toast.success(t("share.copied"))
+      notify.success(t("share.copied"))
     } catch {
-      toast.error(t("share.copyFailed"))
+      notify.error(t("share.copyFailed"))
     }
   }
 

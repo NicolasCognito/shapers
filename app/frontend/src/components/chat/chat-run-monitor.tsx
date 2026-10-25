@@ -2,7 +2,7 @@ import { useEffect } from "react"
 import { useNavigate } from "react-router"
 
 import { ClientResponseError, type RecordModel } from "pocketbase"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 
 import i18n from "@/i18n"
 import { pb } from "@/lib/pocketbase"
@@ -57,11 +57,11 @@ export function ChatRunMonitor() {
         onClick: () => viewConversation(record.conversation),
       }
       if (record.status === "complete") {
-        toast.success(i18n.t("chat.newResponse", { title }), { action })
+        notify.success(i18n.t("chat.newResponse", { title }), { action })
       } else if (record.status === "cancelled") {
-        toast.info(i18n.t("chat.stopped", { title }), { action })
+        notify.info(i18n.t("chat.stopped", { title }), { action })
       } else {
-        toast.error(
+        notify.error(
           record.metadata?.error?.message ?? i18n.t("chat.failed", { title }),
           { action }
         )

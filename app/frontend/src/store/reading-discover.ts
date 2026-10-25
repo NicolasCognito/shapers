@@ -1,5 +1,5 @@
 import { type RecordModel } from "pocketbase"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 import { create } from "zustand"
 
 import { pb } from "@/lib/pocketbase"
@@ -173,7 +173,7 @@ export const useReadingDiscoverStore = create<ReadingDiscoverState>(
           selectedSourceIds: previous.length > 0 ? previous : enabledIds,
         })
       } catch (error) {
-        toast.error(readingErrorMessage(error, "Could not load subscriptions"))
+        notify.error(readingErrorMessage(error, "Could not load subscriptions"))
       } finally {
         set({ loadingSources: false })
       }
@@ -188,13 +188,13 @@ export const useReadingDiscoverStore = create<ReadingDiscoverState>(
           .collection("reading_sources")
           .create({ owner: ownerId, ...toSourceRecord(input) })
         await get().loadSources()
-        toast.success("Subscription added")
+        notify.success("Subscription added")
       } catch (error) {
         const message = readingErrorMessage(
           error,
           "Could not add the subscription"
         )
-        toast.error(message)
+        notify.error(message)
         throw new Error(message, { cause: error })
       } finally {
         set({ savingSource: false })
@@ -206,13 +206,13 @@ export const useReadingDiscoverStore = create<ReadingDiscoverState>(
       try {
         await pb.collection("reading_sources").update(id, toSourceRecord(input))
         await get().loadSources()
-        toast.success("Subscription updated")
+        notify.success("Subscription updated")
       } catch (error) {
         const message = readingErrorMessage(
           error,
           "Could not update the subscription"
         )
-        toast.error(message)
+        notify.error(message)
         throw new Error(message, { cause: error })
       } finally {
         set({ savingSource: false })
@@ -224,7 +224,7 @@ export const useReadingDiscoverStore = create<ReadingDiscoverState>(
         await pb.collection("reading_sources").update(id, { enabled })
         await get().loadSources()
       } catch (error) {
-        toast.error(
+        notify.error(
           readingErrorMessage(error, "Could not update the subscription")
         )
       }
@@ -242,9 +242,9 @@ export const useReadingDiscoverStore = create<ReadingDiscoverState>(
           ),
         }))
         await get().loadSources()
-        toast.success("Subscription removed")
+        notify.success("Subscription removed")
       } catch (error) {
-        toast.error(
+        notify.error(
           readingErrorMessage(error, "Could not remove the subscription")
         )
       }
@@ -284,7 +284,7 @@ export const useReadingDiscoverStore = create<ReadingDiscoverState>(
         // The sources carry a fresh fetch time and error now.
         await get().loadSources()
       } catch (error) {
-        toast.error(readingErrorMessage(error, "Could not fetch subscriptions"))
+        notify.error(readingErrorMessage(error, "Could not fetch subscriptions"))
       } finally {
         set({ fetching: false })
       }
@@ -317,7 +317,7 @@ export const useReadingDiscoverStore = create<ReadingDiscoverState>(
           },
         }))
       } catch (error) {
-        toast.error(
+        notify.error(
           readingErrorMessage(error, "Could not summarize this candidate")
         )
       } finally {
@@ -349,7 +349,7 @@ export const useReadingDiscoverStore = create<ReadingDiscoverState>(
           savedCount: state.savedCount + 1,
         }))
       } catch (error) {
-        toast.error(
+        notify.error(
           readingErrorMessage(error, "Could not add this candidate to reading")
         )
       } finally {
@@ -364,7 +364,7 @@ export const useReadingDiscoverStore = create<ReadingDiscoverState>(
       const saved = get().savedCount
       set({ savedCount: 0 })
       await useReadingStore.getState().fetchItems(1)
-      toast.success(
+      notify.success(
         saved === 1 ? "Added 1 reading item" : `Added ${saved} reading items`
       )
     },

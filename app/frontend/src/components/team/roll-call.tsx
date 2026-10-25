@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { format, parseISO } from "date-fns"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 import { useTranslation } from "react-i18next"
 
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -72,11 +72,11 @@ export function RollCallSheet({
         .filter(([, st]) => st)
         .map(([user, state]) => ({ user, state: state as AttendanceState }))
       const r = await teamApi.bulkAttendance(meetingId, entries)
-      toast.success(t("rollCall.saved", { count: r.saved }))
+      notify.success(t("rollCall.saved", { count: r.saved }))
       onSaved()
       onClose()
     } catch (e) {
-      toast.error(extractErrorMessage(e, t("common.couldNotSave")))
+      notify.error(extractErrorMessage(e, t("common.couldNotSave")))
     } finally {
       setBusy(false)
     }

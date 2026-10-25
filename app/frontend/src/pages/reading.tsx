@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useNavigate, useSearchParams } from "react-router"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -264,7 +264,7 @@ export function ReadingPage() {
   const handleSummarize = async () => {
     if (!selectedItem) return
     setSummarizeError(null)
-    const toastId = toast.loading(
+    const toastId = notify.loading(
       `Fetching article and generating summary in ${detailForm.summaryLanguage || "English"}...`
     )
     try {
@@ -275,12 +275,12 @@ export function ReadingPage() {
       const opened = useReadingStore.getState().openedItem
       if (next) setDetailForm(toForm(next))
       else if (opened?.id === selectedItem.id) setDetailForm(toForm(opened))
-      toast.success("Article fetched and summarized", { id: toastId })
+      notify.success("Article fetched and summarized", { id: toastId })
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Failed to fetch or summarize"
       setSummarizeError(message)
-      toast.error(message, { id: toastId })
+      notify.error(message, { id: toastId })
     }
   }
 
@@ -867,7 +867,7 @@ function ArchivedItemsDialog({
       setItems(result.items.map(toReadingItem))
       setTotalPages(Math.max(1, result.totalPages))
     } catch (error) {
-      toast.error(
+      notify.error(
         readingErrorMessage(error, "Could not load archived reading items")
       )
     } finally {
@@ -883,7 +883,7 @@ function ArchivedItemsDialog({
   const unarchive = async (item: ReadingItem) => {
     await updateItem(item.id, { status: "unread" })
     await load()
-    toast.success("Restored.")
+    notify.success("Restored.")
   }
 
   const remove = async () => {
@@ -891,7 +891,7 @@ function ArchivedItemsDialog({
     await deleteItem(deleteTarget.id)
     setDeleteTarget(null)
     await load()
-    toast.success("Deleted.")
+    notify.success("Deleted.")
   }
 
   return (

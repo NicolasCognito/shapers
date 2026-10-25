@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next"
 import { useState } from "react"
 import { useNavigate } from "react-router"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -121,9 +121,9 @@ export function MemoryToolCard({
       )
       setUpdatedResult(undone)
       await refreshMemories(true)
-      toast.success(t("chat.memory.undone"))
+      notify.success(t("chat.memory.undone"))
     } catch (error) {
-      toast.error(
+      notify.error(
         error instanceof Error ? error.message : t("chat.memory.undoFailed")
       )
     } finally {

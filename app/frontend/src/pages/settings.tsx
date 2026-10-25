@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -441,7 +441,7 @@ function AppearanceCard() {
       await persistTheme(value)
     } catch {
       setTheme(previous)
-      toast.error(t("settings.themeFailed"))
+      notify.error(t("settings.themeFailed"))
     }
   }
 

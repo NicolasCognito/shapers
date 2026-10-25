@@ -1,5 +1,5 @@
 import { ClientResponseError, type RecordModel } from "pocketbase"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 import { create } from "zustand"
 
 import { pb } from "@/lib/pocketbase"
@@ -100,18 +100,18 @@ export const useContactsStore = create<ContactState>((set, get) => ({
     } catch (error) {
       const message = errorMessage(error, "Could not load contacts")
       set({ loading: false, error: message })
-      toast.error(message)
+      notify.error(message)
     }
   },
 
   toggleFavorite: async (id) => {
     const ownerId = pb.authStore.record?.id
     if (!ownerId) {
-      toast.error("You must be signed in to favorite contacts")
+      notify.error("You must be signed in to favorite contacts")
       return
     }
     if (id === ownerId) {
-      toast.error("You cannot favorite yourself")
+      notify.error("You cannot favorite yourself")
       return
     }
 
@@ -145,7 +145,7 @@ export const useContactsStore = create<ContactState>((set, get) => ({
         ),
       }))
     } catch (error) {
-      toast.error(errorMessage(error, "Could not update favorite"))
+      notify.error(errorMessage(error, "Could not update favorite"))
     }
   },
 }))

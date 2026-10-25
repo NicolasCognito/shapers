@@ -26,7 +26,7 @@ import {
   SourceCodeIcon,
 } from "@hugeicons/core-free-icons"
 import { ClientResponseError, type RecordModel } from "pocketbase"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 
 import {
   BlockNoteDocumentEditor,
@@ -410,7 +410,7 @@ export function DocsPage() {
       .then(() => loadList())
       .catch((error) => {
         if (isRequestAbort(error)) return
-        toast.error(extractErrorMessage(error, "Could not load documents."))
+        notify.error(extractErrorMessage(error, "Could not load documents."))
       })
       .finally(() => setLoading(false))
   }, [loadList])
@@ -443,7 +443,7 @@ export function DocsPage() {
       .then(() => loadDocument(selectedId))
       .catch((error) => {
         if (isRequestAbort(error)) return
-        toast.error(extractErrorMessage(error, "Could not load the document."))
+        notify.error(extractErrorMessage(error, "Could not load the document."))
         if (requestedDocId === selectedId) {
           setSelectedId(null)
           setPersisted(null)
@@ -526,9 +526,9 @@ export function DocsPage() {
       } else {
         await loadList()
       }
-      toast.success("Folder deleted. Its documents are now in My documents.")
+      notify.success("Folder deleted. Its documents are now in My documents.")
     } catch (error) {
-      toast.error(extractErrorMessage(error, "Could not delete folder."))
+      notify.error(extractErrorMessage(error, "Could not delete folder."))
     }
   }
 
@@ -552,7 +552,7 @@ export function DocsPage() {
       setDraftContent(result.document.content)
       setServerHasNewVersion(false)
       await loadList()
-      toast.success(
+      notify.success(
         result.changed
           ? `Saved revision ${result.document.revision}.`
           : "No changes to save."
@@ -560,9 +560,9 @@ export function DocsPage() {
     } catch (error) {
       if (error instanceof ClientResponseError && error.status === 409) {
         setServerHasNewVersion(true)
-        toast.error("A newer version exists. Your draft has been kept.")
+        notify.error("A newer version exists. Your draft has been kept.")
       } else {
-        toast.error(extractErrorMessage(error, "Could not save the document."))
+        notify.error(extractErrorMessage(error, "Could not save the document."))
       }
     } finally {
       setSaving(false)
@@ -599,7 +599,7 @@ export function DocsPage() {
         "text/html;charset=utf-8"
       )
     } catch (error) {
-      toast.error(extractErrorMessage(error, "Could not export the document."))
+      notify.error(extractErrorMessage(error, "Could not export the document."))
     }
   }
 
@@ -611,7 +611,7 @@ export function DocsPage() {
       })
       await loadList()
     } catch (error) {
-      toast.error(extractErrorMessage(error, "Could not update pin."))
+      notify.error(extractErrorMessage(error, "Could not update pin."))
     }
   }
 
@@ -629,9 +629,9 @@ export function DocsPage() {
         navigate(docsPageUrl(view), { replace: true })
       }
       await loadList()
-      toast.success("Document archived.")
+      notify.success("Document archived.")
     } catch (error) {
-      toast.error(extractErrorMessage(error, "Could not archive document."))
+      notify.error(extractErrorMessage(error, "Could not archive document."))
     }
   }
 
@@ -649,9 +649,9 @@ export function DocsPage() {
         navigate(docsPageUrl(view), { replace: true })
       }
       await loadList()
-      toast.success("Document deleted.")
+      notify.success("Document deleted.")
     } catch (error) {
-      toast.error(extractErrorMessage(error, "Could not delete document."))
+      notify.error(extractErrorMessage(error, "Could not delete document."))
     }
   }
 
@@ -1546,7 +1546,7 @@ function ArchivedDocumentsDialog({
       .then(load)
       .catch((error) => {
         if (isRequestAbort(error)) return
-        toast.error(extractErrorMessage(error, "Could not load archive."))
+        notify.error(extractErrorMessage(error, "Could not load archive."))
       })
       .finally(() => setLoading(false))
   }, [load, open])
@@ -1555,9 +1555,9 @@ function ArchivedDocumentsDialog({
     try {
       await pb.send(`/api/docs/${id}/unarchive`, { method: "POST" })
       await Promise.all([load(), onChanged()])
-      toast.success("Document restored.")
+      notify.success("Document restored.")
     } catch (error) {
-      toast.error(extractErrorMessage(error, "Could not restore document."))
+      notify.error(extractErrorMessage(error, "Could not restore document."))
     }
   }
 
@@ -1567,9 +1567,9 @@ function ArchivedDocumentsDialog({
       await pb.send(`/api/docs/${deleteTarget.id}`, { method: "DELETE" })
       setDeleteTarget(null)
       await Promise.all([load(), onChanged()])
-      toast.success("Document deleted.")
+      notify.success("Document deleted.")
     } catch (error) {
-      toast.error(extractErrorMessage(error, "Could not delete document."))
+      notify.error(extractErrorMessage(error, "Could not delete document."))
     }
   }
 
@@ -1733,9 +1733,9 @@ function FolderEditorDialog({
         : await pb.collection("doc_folders").create<DocFolder>({ name })
       await onSaved(result)
       onOpenChange(false)
-      toast.success(folder ? "Folder renamed." : "Folder created.")
+      notify.success(folder ? "Folder renamed." : "Folder created.")
     } catch (error) {
-      toast.error(extractErrorMessage(error, "Could not save folder."))
+      notify.error(extractErrorMessage(error, "Could not save folder."))
     } finally {
       setSaving(false)
     }
@@ -1815,7 +1815,7 @@ function CreateDocumentDialog({
       setKind("markdown")
       onOpenChange(false)
     } catch (error) {
-      toast.error(extractErrorMessage(error, "Could not create document."))
+      notify.error(extractErrorMessage(error, "Could not create document."))
     } finally {
       setSaving(false)
     }
@@ -1947,9 +1947,9 @@ function MoveDocumentButton({
       )
       onMoved(viewForDocument(moved))
       setOpen(false)
-      toast.success("Document moved.")
+      notify.success("Document moved.")
     } catch (error) {
-      toast.error(extractErrorMessage(error, "Could not move document."))
+      notify.error(extractErrorMessage(error, "Could not move document."))
     } finally {
       setMoving(false)
     }
@@ -2037,7 +2037,7 @@ function ShareDocumentButton({ document }: { document: DocumentResult }) {
       })
       .catch((error) => {
         if (!active || isRequestAbort(error)) return
-        toast.error(extractErrorMessage(error, "Could not load share link."))
+        notify.error(extractErrorMessage(error, "Could not load share link."))
       })
     return () => {
       active = false
@@ -2059,9 +2059,9 @@ function ShareDocumentButton({ document }: { document: DocumentResult }) {
       )
       setLoaded({ docId: document.id, share: updated })
       setExpiry(updated.expires ? "keep" : "never")
-      toast.success(republish ? "Latest revision published." : "Link updated.")
+      notify.success(republish ? "Latest revision published." : "Link updated.")
     } catch (error) {
-      toast.error(extractErrorMessage(error, "Could not update share link."))
+      notify.error(extractErrorMessage(error, "Could not update share link."))
     } finally {
       setWorking(false)
     }
@@ -2073,9 +2073,9 @@ function ShareDocumentButton({ document }: { document: DocumentResult }) {
       await pb.send(`/api/docs/${document.id}/share`, { method: "DELETE" })
       setLoaded({ docId: document.id, share: null })
       setExpiry("never")
-      toast.success("Link revoked.")
+      notify.success("Link revoked.")
     } catch (error) {
-      toast.error(extractErrorMessage(error, "Could not revoke share link."))
+      notify.error(extractErrorMessage(error, "Could not revoke share link."))
     } finally {
       setWorking(false)
     }
@@ -2085,9 +2085,9 @@ function ShareDocumentButton({ document }: { document: DocumentResult }) {
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(url)
-      toast.success("Link copied.")
+      notify.success("Link copied.")
     } catch {
-      toast.error("Could not copy to clipboard.")
+      notify.error("Could not copy to clipboard.")
     }
   }
 
@@ -2262,7 +2262,7 @@ function HistoryDialog({
       .then(setVersions)
       .catch((error) => {
         if (isRequestAbort(error)) return
-        toast.error(extractErrorMessage(error, "Could not load history."))
+        notify.error(extractErrorMessage(error, "Could not load history."))
       })
   }, [document.id, open])
   const inspect = async (version: Version) => {
@@ -2281,9 +2281,9 @@ function HistoryDialog({
       )
       await onRestored(doc)
       onOpenChange(false)
-      toast.success(`Restored as revision ${doc.revision}.`)
+      notify.success(`Restored as revision ${doc.revision}.`)
     } catch (error) {
-      toast.error(extractErrorMessage(error, "Could not restore version."))
+      notify.error(extractErrorMessage(error, "Could not restore version."))
     }
   }
   return (

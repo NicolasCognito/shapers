@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { addDays } from "date-fns"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Clock01Icon } from "@hugeicons/core-free-icons"
 
@@ -36,7 +36,7 @@ export function QuickHours() {
       day.setHours(12, 0, 0, 0)
       const rec = await teamApi.logHours(me, day, h, note.trim())
       window.dispatchEvent(new Event("hours-changed"))
-      toast.success(t("quickHours.logged", { hours: fmtHours(h), day: yesterday ? t("quickHours.yesterday") : t("quickHours.today") }), {
+      notify.success(t("quickHours.logged", { hours: fmtHours(h), day: yesterday ? t("quickHours.yesterday") : t("quickHours.today") }), {
         action: {
           label: t("quickHours.undo"),
           onClick: () =>
@@ -50,7 +50,7 @@ export function QuickHours() {
       setYesterday(false)
       setOpen(false)
     } catch (e) {
-      toast.error(extractErrorMessage(e, t("common.somethingWrong")))
+      notify.error(extractErrorMessage(e, t("common.somethingWrong")))
     } finally {
       setBusy(false)
     }

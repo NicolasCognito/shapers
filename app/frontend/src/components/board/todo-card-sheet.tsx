@@ -12,7 +12,7 @@ import {
   SourceCodeIcon,
   Link02Icon,
 } from "@hugeicons/core-free-icons"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 
 import {
   AlertDialog,
@@ -248,9 +248,9 @@ export function TodoCardSheet({
     if (!todo) return
     try {
       await navigator.clipboard.writeText(`Task:${todo.id}:${todo.title}`)
-      toast.success(t("task.copied"))
+      notify.success(t("task.copied"))
     } catch {
-      toast.error(t("task.copyFailed"))
+      notify.error(t("task.copyFailed"))
     }
   }
 

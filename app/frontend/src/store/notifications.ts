@@ -1,6 +1,6 @@
 import { create } from "zustand"
 import { ClientResponseError, type RecordModel } from "pocketbase"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 
 import { pb } from "@/lib/pocketbase"
 import { useLlmSettingsStore } from "@/store/llm-settings"
@@ -235,7 +235,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
       })
     } catch (error) {
       if (sequence !== loadPageSequence) return
-      toast.error(errorMessage(error, "Could not load notifications"))
+      notify.error(errorMessage(error, "Could not load notifications"))
     } finally {
       if (sequence === loadPageSequence) set({ loading: false })
     }
@@ -254,7 +254,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
         .getOne<NotificationRecord>(notificationId, { requestKey: null })
       return toNotification(record)
     } catch (error) {
-      toast.error(errorMessage(error, "Could not open notification"))
+      notify.error(errorMessage(error, "Could not open notification"))
       return null
     }
   },
@@ -280,7 +280,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
       }))
       if (get().readFilter !== "all") await get().loadPage()
     } catch (error) {
-      toast.error(errorMessage(error, "Could not mark notification as read"))
+      notify.error(errorMessage(error, "Could not mark notification as read"))
     }
   },
 
@@ -289,7 +289,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
       await pb.send("/api/notifications/read-all", { method: "POST" })
       await Promise.all([get().loadRecent(), get().loadPage()])
     } catch (error) {
-      toast.error(
+      notify.error(
         errorMessage(error, "Could not mark all notifications as read")
       )
     }
@@ -300,7 +300,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
       await pb.collection("notifications").update(id, { pinned })
       await Promise.all([get().loadRecent(), get().loadPage()])
     } catch (error) {
-      toast.error(errorMessage(error, "Could not update notification pin"))
+      notify.error(errorMessage(error, "Could not update notification pin"))
       throw error
     }
   },
@@ -313,9 +313,9 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
       const nextPage =
         get().items.length === 1 ? Math.max(1, get().page - 1) : get().page
       await Promise.all([get().loadRecent(), get().loadPage(nextPage)])
-      toast.success("Notification archived")
+      notify.success("Notification archived")
     } catch (error) {
-      toast.error(errorMessage(error, "Could not archive notification"))
+      notify.error(errorMessage(error, "Could not archive notification"))
       throw error
     }
   },
@@ -324,9 +324,9 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
     try {
       await pb.collection("notifications").update(id, { status: "active" })
       await Promise.all([get().loadRecent(), get().loadPage()])
-      toast.success("Notification restored")
+      notify.success("Notification restored")
     } catch (error) {
-      toast.error(errorMessage(error, "Could not restore notification"))
+      notify.error(errorMessage(error, "Could not restore notification"))
       throw error
     }
   },
@@ -339,9 +339,9 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
       if (get().items.length === 0 && currentPage > 1 && get().totalItems > 0) {
         await get().loadPage(currentPage - 1)
       }
-      toast.success("Notification deleted")
+      notify.success("Notification deleted")
     } catch (error) {
-      toast.error(errorMessage(error, "Could not delete notification"))
+      notify.error(errorMessage(error, "Could not delete notification"))
       throw error
     }
   },
@@ -355,13 +355,13 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
       await Promise.all([get().loadRecent(), get().loadPage()])
       if (decision === "accept")
         await useLlmSettingsStore.getState().initialize(true)
-      toast.success(
+      notify.success(
         decision === "accept"
           ? "Model configuration added"
           : "Share invitation declined"
       )
     } catch (error) {
-      toast.error(errorMessage(error, "Could not respond to invitation"))
+      notify.error(errorMessage(error, "Could not respond to invitation"))
       throw error
     }
   },

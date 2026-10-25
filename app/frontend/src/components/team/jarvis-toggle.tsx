@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { SparklesIcon } from "@hugeicons/core-free-icons"
 
@@ -19,7 +19,7 @@ export function JarvisToggle({ userId, initial, onChanged }: { userId: string; i
       onChanged?.()
     } catch (e) {
       setOn(!next)
-      toast.error(extractErrorMessage(e, t("common.couldNotSave")))
+      notify.error(extractErrorMessage(e, t("common.couldNotSave")))
     }
   }
   return (

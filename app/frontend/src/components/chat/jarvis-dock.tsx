@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react"
 import { Link } from "react-router"
 import { useTranslation } from "react-i18next"
 import { format, isToday, parseISO } from "date-fns"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   Add01Icon,
@@ -95,7 +95,7 @@ export function JarvisDock() {
       setShowHistory(false)
       update({ open: true, id: c.id })
     } catch (e) {
-      toast.error(extractErrorMessage(e, t("dock.createFailed")))
+      notify.error(extractErrorMessage(e, t("dock.createFailed")))
     }
   }, [t])
 

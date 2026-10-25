@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -301,7 +301,7 @@ export function McpServersCard() {
       await pb.send(`/api/mcp-servers/${server.id}`, { method: "PATCH", body })
       await loadServers()
     } catch {
-      toast.error("Could not update the server")
+      notify.error("Could not update the server")
     }
   }
 
@@ -314,9 +314,9 @@ export function McpServersCard() {
         current.filter((server) => server.id !== deleteServer.id)
       )
       setDeleteServer(null)
-      toast.success("MCP server removed")
+      notify.success("MCP server removed")
     } catch {
-      toast.error("Could not remove the server")
+      notify.error("Could not remove the server")
     } finally {
       setDeleting(false)
     }
@@ -573,7 +573,7 @@ function ServerSheet({
   const handleSave = async () => {
     const parsed = parseHeaders(headers)
     if (parsed === null) {
-      toast.error("Each header must be written as “Name: value”")
+      notify.error("Each header must be written as “Name: value”")
       return
     }
     setSaving(true)
@@ -592,7 +592,7 @@ function ServerSheet({
           method: "PATCH",
           body,
         })
-        toast.success("MCP server updated")
+        notify.success("MCP server updated")
       } else {
         await pb.send("/api/mcp-servers", {
           method: "POST",
@@ -605,7 +605,7 @@ function ServerSheet({
             headers: parsed,
           },
         })
-        toast.success("MCP server added. Refresh it to load its tools.")
+        notify.success("MCP server added. Refresh it to load its tools.")
       }
       onSaved()
       onOpenChange(false)
@@ -614,7 +614,7 @@ function ServerSheet({
         error && typeof error === "object" && "message" in error
           ? String((error as { message: unknown }).message)
           : "Could not save the server"
-      toast.error(message)
+      notify.error(message)
     } finally {
       setSaving(false)
     }
@@ -770,7 +770,7 @@ function ToolReviewSheet({
       if (!response.ok) {
         const message = response.error ?? "Could not reach the server"
         setRefreshError(message)
-        toast.error(message)
+        notify.error(message)
         return
       }
       setRefreshError("")
@@ -780,7 +780,7 @@ function ToolReviewSheet({
         (response.report?.added.length ?? 0) +
         (response.report?.changed.length ?? 0) +
         (response.report?.removed.length ?? 0)
-      toast.success(
+      notify.success(
         changes === 0
           ? "No changes since the last refresh"
           : "Review the changes, then choose which tools to enable"
@@ -788,7 +788,7 @@ function ToolReviewSheet({
     } catch {
       const message = "Could not refresh the server"
       setRefreshError(message)
-      toast.error(message)
+      notify.error(message)
       onChanged()
     } finally {
       setRefreshing(false)
@@ -808,7 +808,7 @@ function ToolReviewSheet({
           })),
         },
       })
-      toast.success("Tool selection saved")
+      notify.success("Tool selection saved")
       onChanged()
       onOpenChange(false)
     } catch (error) {
@@ -816,7 +816,7 @@ function ToolReviewSheet({
         error && typeof error === "object" && "message" in error
           ? String((error as { message: unknown }).message)
           : "Could not save the tool selection"
-      toast.error(message)
+      notify.error(message)
     } finally {
       setSaving(false)
     }

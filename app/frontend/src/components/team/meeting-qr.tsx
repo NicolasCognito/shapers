@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next"
 import { QRCodeSVG } from "qrcode.react"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -43,7 +43,7 @@ export function MeetingQrDialog({
                 onClick={() =>
                   void navigator.clipboard
                     ?.writeText(url)
-                    .then(() => toast.success(t("checkin.linkCopied")))
+                    .then(() => notify.success(t("checkin.linkCopied")))
                     .catch(() => {})
                 }
               >

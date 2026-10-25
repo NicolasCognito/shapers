@@ -9,7 +9,7 @@ import {
   subMonths,
 } from "date-fns"
 import { useNavigate, useSearchParams } from "react-router"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -82,7 +82,7 @@ export function CalendarPage() {
       return
     const requestedEvent = events.find((event) => event.id === requestedEventId)
     if (!requestedEvent) {
-      toast.error("Could not open calendar event.")
+      notify.error("Could not open calendar event.")
       navigate("/calendar", { replace: true })
       return
     }

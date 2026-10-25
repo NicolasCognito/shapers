@@ -1,5 +1,5 @@
 import { create } from "zustand"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 
 import { pb } from "@/lib/pocketbase"
 import { extractErrorMessage } from "@/lib/error"
@@ -92,7 +92,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           "Could not load conversations"
         )
         set({ error: message, initialized: false })
-        toast.error(message)
+        notify.error(message)
       } finally {
         set({ loading: false })
       }
@@ -113,7 +113,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         totalPages: result.totalPages,
       })
     } catch (error) {
-      toast.error(extractErrorMessage(error, "Could not refresh conversations"))
+      notify.error(extractErrorMessage(error, "Could not refresh conversations"))
     }
   },
 
@@ -130,7 +130,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         totalPages: result.totalPages,
       })
     } catch (error) {
-      toast.error(extractErrorMessage(error, "Could not load page"))
+      notify.error(extractErrorMessage(error, "Could not load page"))
     } finally {
       set({ loading: false })
     }
@@ -157,7 +157,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         .getOne<Conversation>(conversationId, { requestKey: null })
       if (conversation.status !== "active") {
         set({ openedConversation: null })
-        toast.info("This conversation is archived.")
+        notify.info("This conversation is archived.")
         return false
       }
       set({
@@ -167,7 +167,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       return true
     } catch (error) {
       set({ openedConversation: null })
-      toast.error(extractErrorMessage(error, "Could not open conversation"))
+      notify.error(extractErrorMessage(error, "Could not open conversation"))
       return false
     }
   },
@@ -186,7 +186,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }))
       return conversation.id
     } catch (error) {
-      toast.error(extractErrorMessage(error, "Could not create conversation"))
+      notify.error(extractErrorMessage(error, "Could not create conversation"))
       throw error
     }
   },
@@ -215,7 +215,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         }
       })
     } catch (error) {
-      toast.error(extractErrorMessage(error, "Could not delete conversation"))
+      notify.error(extractErrorMessage(error, "Could not delete conversation"))
       throw error
     }
   },
@@ -239,7 +239,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
             : state.openedConversation,
       }))
     } catch (error) {
-      toast.error(extractErrorMessage(error, "Could not pin conversation"))
+      notify.error(extractErrorMessage(error, "Could not pin conversation"))
       throw error
     }
   },
@@ -259,7 +259,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
             : state.openedConversation,
       }))
     } catch (error) {
-      toast.error(extractErrorMessage(error, "Could not rename conversation"))
+      notify.error(extractErrorMessage(error, "Could not rename conversation"))
       throw error
     }
   },
@@ -290,7 +290,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         }
       })
     } catch (error) {
-      toast.error(extractErrorMessage(error, "Could not archive conversation"))
+      notify.error(extractErrorMessage(error, "Could not archive conversation"))
       throw error
     }
   },
@@ -317,7 +317,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         activeConversationId: state.activeConversationId ?? conversation.id,
       }))
     } catch (error) {
-      toast.error(
+      notify.error(
         extractErrorMessage(error, "Could not unarchive conversation")
       )
       throw error

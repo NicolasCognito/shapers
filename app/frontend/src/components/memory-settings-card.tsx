@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { useSearchParams } from "react-router"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -107,7 +107,7 @@ export function MemorySettingsCard() {
     try {
       await updateMemoryEnabled(checked)
     } catch {
-      toast.error("Could not update Chat memory")
+      notify.error("Could not update Chat memory")
     }
   }
 
@@ -115,7 +115,7 @@ export function MemorySettingsCard() {
     try {
       await updateMemoryAutoCapture(checked)
     } catch {
-      toast.error("Could not update automatic memory")
+      notify.error("Could not update automatic memory")
     }
   }
 
@@ -266,14 +266,14 @@ function MemoryManagerSheet({
     try {
       if (editing === "new") {
         await add({ category, content })
-        toast.success("Memory added")
+        notify.success("Memory added")
       } else if (editing) {
         await update(editing.id, { category, content })
-        toast.success("Memory updated")
+        notify.success("Memory updated")
       }
       setEditing(null)
     } catch (saveError) {
-      toast.error(
+      notify.error(
         saveError instanceof Error ? saveError.message : "Could not save memory"
       )
     } finally {
@@ -287,14 +287,14 @@ function MemoryManagerSheet({
     try {
       if (deleteTarget === "all") {
         const count = await clearAll()
-        toast.success(`Deleted ${count} memories`)
+        notify.success(`Deleted ${count} memories`)
       } else {
         await remove(deleteTarget.id)
-        toast.success("Memory deleted")
+        notify.success("Memory deleted")
       }
       setDeleteTarget(null)
     } catch (deleteError) {
-      toast.error(
+      notify.error(
         deleteError instanceof Error
           ? deleteError.message
           : "Could not delete memory"
@@ -446,7 +446,7 @@ function MemoryManagerSheet({
                       onToggle={(active) =>
                         void update(memory.id, { active }).catch(
                           (toggleError) =>
-                            toast.error(
+                            notify.error(
                               toggleError instanceof Error
                                 ? toggleError.message
                                 : "Could not update memory"

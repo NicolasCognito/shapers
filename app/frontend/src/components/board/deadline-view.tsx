@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router"
 import { useTranslation } from "react-i18next"
 import { addDays, differenceInCalendarDays, endOfWeek, format, parseISO, startOfDay } from "date-fns"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -84,7 +84,7 @@ export function DeadlineView({ projectId, onOpenTask }: { projectId?: string | n
       .then(setTasks)
       .catch((e) => {
         setTasks([])
-        toast.error(extractErrorMessage(e, t("board.loadFailed")))
+        notify.error(extractErrorMessage(e, t("board.loadFailed")))
       })
   }, [showDone, t])
 

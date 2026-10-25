@@ -16,7 +16,7 @@ import {
   Tag01Icon,
   UserGroup02Icon,
 } from "@hugeicons/core-free-icons"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 
 import {
   AlertDialog,
@@ -110,9 +110,9 @@ export function ProjectColumn({
       await navigator.clipboard.writeText(
         `Projects:${project.id}:${project.name}`
       )
-      toast.success(t("projectColumn.copied"))
+      notify.success(t("projectColumn.copied"))
     } catch {
-      toast.error(t("projectColumn.copyFailed"))
+      notify.error(t("projectColumn.copyFailed"))
     }
   }
 

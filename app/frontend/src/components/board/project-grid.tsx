@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 import { useTranslation } from "react-i18next"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -120,7 +120,7 @@ export function ProjectGrid({
 
   useEffect(() => {
     load().catch((e) =>
-      toast.error(extractErrorMessage(e, t("board.loadFailed")))
+      notify.error(extractErrorMessage(e, t("board.loadFailed")))
     )
   }, [load, reloadKey])
 
@@ -136,7 +136,7 @@ export function ProjectGrid({
         .collection("board_project_preferences")
         .update(item.prefId, { pinned: !item.pinned })
     } catch (e) {
-      toast.error(extractErrorMessage(e, t("common.couldNotSave")))
+      notify.error(extractErrorMessage(e, t("common.couldNotSave")))
       load()
     }
   }

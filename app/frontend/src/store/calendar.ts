@@ -1,6 +1,6 @@
 import { create } from "zustand"
 import { ClientResponseError, type RecordModel } from "pocketbase"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 
 import { pb } from "@/lib/pocketbase"
 import type {
@@ -236,7 +236,7 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
     } catch (error) {
       const message = errorMessage(error, "Could not load the calendar")
       set({ error: message })
-      toast.error(message)
+      notify.error(message)
     } finally {
       set({ loading: false })
     }
@@ -259,7 +259,7 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
       set((state) => ({ events: upsert(state.events, toEvent(record)) }))
     } catch (error) {
       const message = errorMessage(error, "Could not create the event")
-      toast.error(message)
+      notify.error(message)
       throw error
     }
   },
@@ -272,7 +272,7 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
       set((state) => ({ events: upsert(state.events, toEvent(record)) }))
     } catch (error) {
       const message = errorMessage(error, "Could not update the event")
-      toast.error(message)
+      notify.error(message)
       throw error
     }
   },
@@ -285,7 +285,7 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
       }))
     } catch (error) {
       const message = errorMessage(error, "Could not delete the event")
-      toast.error(message)
+      notify.error(message)
       throw error
     }
   },

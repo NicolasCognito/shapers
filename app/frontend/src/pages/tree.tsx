@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { DropletIcon, HelpCircleIcon } from "@hugeicons/core-free-icons"
 
@@ -63,7 +63,7 @@ export function TreePage() {
       const next = await pb.send<Tree>("/api/team/tree/water", { method: "POST" })
       setTimeout(() => useTree.setState({ tree: next }), 650)
     } catch (e) {
-      toast.error((e as Error).message)
+      notify.error((e as Error).message)
     } finally {
       setTimeout(() => setWatering(false), 1300)
     }
@@ -74,7 +74,7 @@ export function TreePage() {
       const next = await pb.send<Tree>(`/api/team/tree/demo/${action}`, { method: "POST" })
       useTree.setState({ tree: next })
     } catch (e) {
-      toast.error((e as Error).message)
+      notify.error((e as Error).message)
     }
   }
 

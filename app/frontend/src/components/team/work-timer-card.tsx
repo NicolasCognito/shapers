@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 import { format } from "date-fns"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { PauseIcon, PlayIcon, StopIcon } from "@hugeicons/core-free-icons"
@@ -49,7 +49,7 @@ export function WorkTimerCard() {
     try {
       await fn()
     } catch (e) {
-      toast.error(String((e as Error)?.message ?? e))
+      notify.error(String((e as Error)?.message ?? e))
     } finally {
       setBusy(false)
     }

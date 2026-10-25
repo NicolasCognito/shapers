@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { UserAdd01Icon } from "@hugeicons/core-free-icons"
 
@@ -90,7 +90,7 @@ export function AddMemberButton({ members, onAdded }: { members: MemberSummary[]
       setDone({ email: email.trim().toLowerCase(), password, meetings: r.meetings })
       onAdded()
     } catch (e) {
-      toast.error(extractErrorMessage(e, t("common.couldNotSave")))
+      notify.error(extractErrorMessage(e, t("common.couldNotSave")))
     } finally {
       setBusy(false)
     }
@@ -129,7 +129,7 @@ export function AddMemberButton({ members, onAdded }: { members: MemberSummary[]
                   onClick={() =>
                     void navigator.clipboard
                       ?.writeText(credentials)
-                      .then(() => toast.success(t("addMember.copied")))
+                      .then(() => notify.success(t("addMember.copied")))
                       .catch(() => {})
                   }
                 >

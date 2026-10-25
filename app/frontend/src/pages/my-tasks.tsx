@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { differenceInCalendarDays, format, parseISO } from "date-fns"
 import { Link } from "react-router"
 import { useTranslation } from "react-i18next"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -70,7 +70,7 @@ export function MyTasksPage() {
 
   useEffect(() => {
     load().catch((e) =>
-      toast.error(extractErrorMessage(e, tr("myTasks.loadFailed")))
+      notify.error(extractErrorMessage(e, tr("myTasks.loadFailed")))
     )
     pb.collection("users")
       .getFullList<UserRec>({
@@ -88,10 +88,10 @@ export function MyTasksPage() {
     )
     try {
       await pb.collection("board_tasks").update(t.id, patch)
-      if (msg) toast.success(msg)
+      if (msg) notify.success(msg)
       if (patch.state || patch.assignees) load()
     } catch (e) {
-      toast.error(extractErrorMessage(e, tr("myTasks.updateFailed")))
+      notify.error(extractErrorMessage(e, tr("myTasks.updateFailed")))
       load()
     }
   }
@@ -239,10 +239,10 @@ export function MyTasksPage() {
                   if (!to) return
                   try {
                     await requestsApi.handoff(t.id, to.id)
-                    toast.success(tr("myTasks.handedTo", { name: to.name }))
+                    notify.success(tr("myTasks.handedTo", { name: to.name }))
                     load()
                   } catch (err) {
-                    toast.error(
+                    notify.error(
                       extractErrorMessage(err, tr("myTasks.handoverFailed"))
                     )
                   }

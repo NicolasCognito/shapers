@@ -1,6 +1,6 @@
 import { create } from "zustand"
 import { ClientResponseError } from "pocketbase"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 
 import { pb } from "@/lib/pocketbase"
 
@@ -102,7 +102,7 @@ export const useLlmSettingsStore = create<LlmSettingsState>((set, get) => ({
           "Could not load model configurations"
         )
         set({ error: message, initialized: false })
-        toast.error(message)
+        notify.error(message)
       } finally {
         set({ loading: false })
       }
@@ -132,7 +132,7 @@ export const useLlmSettingsStore = create<LlmSettingsState>((set, get) => ({
         "Could not add model configuration"
       )
       set({ error: message })
-      toast.error(message)
+      notify.error(message)
       throw new Error(message, { cause: error })
     }
   },
@@ -156,7 +156,7 @@ export const useLlmSettingsStore = create<LlmSettingsState>((set, get) => ({
         "Could not update model configuration"
       )
       set({ error: message })
-      toast.error(message)
+      notify.error(message)
       throw new Error(message, { cause: error })
     }
   },
@@ -172,7 +172,7 @@ export const useLlmSettingsStore = create<LlmSettingsState>((set, get) => ({
         "Could not delete model configuration"
       )
       set({ error: message })
-      toast.error(message)
+      notify.error(message)
       throw new Error(message, { cause: error })
     }
   },
@@ -194,7 +194,7 @@ export const useLlmSettingsStore = create<LlmSettingsState>((set, get) => ({
     } catch (error) {
       const message = messageFromError(error, "Could not set the default model")
       set({ error: message })
-      toast.error(message)
+      notify.error(message)
       throw new Error(message, { cause: error })
     }
   },
@@ -210,7 +210,7 @@ export const useLlmSettingsStore = create<LlmSettingsState>((set, get) => ({
     } catch (error) {
       const message = messageFromError(error, "Could not load users")
       set({ error: message })
-      toast.error(message)
+      notify.error(message)
       throw new Error(message, { cause: error })
     }
   },
@@ -229,7 +229,7 @@ export const useLlmSettingsStore = create<LlmSettingsState>((set, get) => ({
         "Could not share model configuration"
       )
       set({ error: message })
-      toast.error(message)
+      notify.error(message)
       throw new Error(message, { cause: error })
     }
   },

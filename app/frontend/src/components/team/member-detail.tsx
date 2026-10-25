@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { format, parseISO } from "date-fns"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
@@ -55,10 +55,10 @@ export function MemberDetailView({
   const restoreTask = async (id: string) => {
     try {
       await requestsApi.restoreTask(id)
-      toast.success(t("memberDetail.restored"))
+      notify.success(t("memberDetail.restored"))
       onChanged()
     } catch (e) {
-      toast.error(extractErrorMessage(e, t("memberDetail.restoreFailed")))
+      notify.error(extractErrorMessage(e, t("memberDetail.restoreFailed")))
     }
   }
   const cancelTask = async (id: string, title: string) => {
@@ -66,10 +66,10 @@ export function MemberDetailView({
     if (!reason?.trim()) return
     try {
       await requestsApi.cancelTask(id, reason.trim())
-      toast.success(t("memberDetail.cancelled"))
+      notify.success(t("memberDetail.cancelled"))
       onChanged()
     } catch (e) {
-      toast.error(extractErrorMessage(e, t("memberDetail.cancelFailed")))
+      notify.error(extractErrorMessage(e, t("memberDetail.cancelFailed")))
     }
   }
   const s = detail.summary
@@ -353,7 +353,7 @@ function QuickLog({
     try {
       if (asRequest) {
         await requestsApi.hours(date, h, note.trim())
-        toast.success(t("memberDetail.requestSent"))
+        notify.success(t("memberDetail.requestSent"))
         setHours("")
         setNote("")
         return
@@ -364,12 +364,12 @@ function QuickLog({
         h,
         note.trim()
       )
-      toast.success(t("memberDetail.logged", { hours: fmtHours(h) }))
+      notify.success(t("memberDetail.logged", { hours: fmtHours(h) }))
       setHours("")
       setNote("")
       onLogged()
     } catch (e) {
-      toast.error(extractErrorMessage(e, t("common.somethingWrong")))
+      notify.error(extractErrorMessage(e, t("common.somethingWrong")))
     } finally {
       setBusy(false)
     }
@@ -495,7 +495,7 @@ function RecentLogs({
                     setTick((t) => t + 1)
                     onChanged()
                   } catch (e) {
-                    toast.error(extractErrorMessage(e, t("memberDetail.deleteFailed")))
+                    notify.error(extractErrorMessage(e, t("memberDetail.deleteFailed")))
                   }
                 }}
               >
@@ -538,10 +538,10 @@ function AbsenceAction({
     setBusy(true)
     try {
       await fn()
-      if (ok) toast.success(ok)
+      if (ok) notify.success(ok)
       onDone()
     } catch (e) {
-      toast.error(extractErrorMessage(e, t("common.somethingWrong")))
+      notify.error(extractErrorMessage(e, t("common.somethingWrong")))
     } finally {
       setBusy(false)
     }
@@ -572,8 +572,8 @@ function AbsenceAction({
     if (!reason?.trim()) return
     void run(async () => {
       const res = await teamApi.absence(m.id, reason.trim())
-      if (res.notice_late) toast.warning(t("rules.lateToast", { hours }))
-      else toast.success(t("rules.noticeSent"))
+      if (res.notice_late) notify.warning(t("rules.lateToast", { hours }))
+      else notify.success(t("rules.noticeSent"))
     })
   }
   return (
@@ -616,15 +616,15 @@ function RulesCard({
     try {
       if (canManage) {
         await teamApi.setPause(s.id, from, to, note.trim())
-        toast.success(t("rules.pauseSet"))
+        notify.success(t("rules.pauseSet"))
       } else {
         await requestsApi.pause(from, to, note.trim())
-        toast.success(t("rules.pauseRequested"))
+        notify.success(t("rules.pauseRequested"))
       }
       setNote("")
       onChanged()
     } catch (e) {
-      toast.error(extractErrorMessage(e, t("common.somethingWrong")))
+      notify.error(extractErrorMessage(e, t("common.somethingWrong")))
     } finally {
       setBusy(false)
     }
@@ -635,7 +635,7 @@ function RulesCard({
       await teamApi.deletePause(id)
       onChanged()
     } catch (e) {
-      toast.error(extractErrorMessage(e, t("common.somethingWrong")))
+      notify.error(extractErrorMessage(e, t("common.somethingWrong")))
     }
   }
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { useNavigate, useSearchParams } from "react-router"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 
 import { HugeiconsIcon } from "@hugeicons/react"
 import { ContactBookIcon } from "@hugeicons/core-free-icons"
@@ -38,7 +38,7 @@ export function ContactsPage() {
       return
     const contact = contacts.find((item) => item.id === requestedContactId)
     if (!contact) {
-      toast.error("Could not open contact.")
+      notify.error("Could not open contact.")
       navigate("/contacts", { replace: true })
       return
     }

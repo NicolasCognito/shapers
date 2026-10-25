@@ -8,7 +8,7 @@ import {
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import type { RecordModel } from "pocketbase"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 
 import {
   AlertDialog,
@@ -80,7 +80,7 @@ export function ArchivedProjectsDialog({
       .then(load)
       .catch((error) => {
         if (isRequestAbort(error)) return
-        toast.error(
+        notify.error(
           extractErrorMessage(error, t("archivedProjects.loadFailed"))
         )
       })
@@ -93,9 +93,9 @@ export function ArchivedProjectsDialog({
         method: "POST",
       })
       await Promise.all([load(), onChanged()])
-      toast.success(t("archivedProjects.restored"))
+      notify.success(t("archivedProjects.restored"))
     } catch (error) {
-      toast.error(extractErrorMessage(error, t("archivedProjects.restoreFailed")))
+      notify.error(extractErrorMessage(error, t("archivedProjects.restoreFailed")))
     }
   }
 
@@ -105,9 +105,9 @@ export function ArchivedProjectsDialog({
       await pb.collection("board_projects").delete(deleteTarget.id)
       setDeleteTarget(null)
       await Promise.all([load(), onChanged()])
-      toast.success(t("archivedProjects.deleted"))
+      notify.success(t("archivedProjects.deleted"))
     } catch (error) {
-      toast.error(extractErrorMessage(error, t("archivedProjects.deleteFailed")))
+      notify.error(extractErrorMessage(error, t("archivedProjects.deleteFailed")))
     }
   }
 

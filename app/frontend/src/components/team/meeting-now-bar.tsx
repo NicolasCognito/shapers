@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react"
 import { useNavigate } from "react-router"
 import { useTranslation } from "react-i18next"
 import { format, formatDistanceToNowStrict, parseISO } from "date-fns"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Cancel01Icon, QrCodeIcon, UserGroupIcon } from "@hugeicons/core-free-icons"
 
@@ -71,10 +71,10 @@ export function MeetingNowBar() {
     setBusy(m.id)
     try {
       await teamApi.checkin(m.id, remote)
-      toast.success(remote ? t("memberDetail.joinedRemote") : t("memberDetail.youreIn"))
+      notify.success(remote ? t("memberDetail.joinedRemote") : t("memberDetail.youreIn"))
       window.dispatchEvent(new Event("hours-changed")) // My week reloads too
     } catch (e) {
-      toast.error(extractErrorMessage(e, t("common.somethingWrong")))
+      notify.error(extractErrorMessage(e, t("common.somethingWrong")))
     } finally {
       setBusy(null)
     }

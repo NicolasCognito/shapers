@@ -38,7 +38,7 @@ import {
 } from "@blocknote/react"
 import { BlockNoteView } from "@blocknote/shadcn"
 import "@blocknote/shadcn/style.css"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 
 import { useMarkdownBlockTypeItems } from "@/components/docs/doc-editor-block-types"
 import { promoteDocAttachmentLinks } from "@/components/docs/doc-attachment-inline"
@@ -232,7 +232,7 @@ function RichTextArea({
       )
       editor.focus()
     } catch (error) {
-      toast.error(extractErrorMessage(error, "Could not attach the file."))
+      notify.error(extractErrorMessage(error, "Could not attach the file."))
     }
   }
 
@@ -309,7 +309,7 @@ function OpenDocAssetButton({ url }: { url: string }) {
 function openProtectedDocAsset(href: string) {
   void openDocAssetDownload(href)
     .catch((error) => {
-      toast.error(extractErrorMessage(error, "Could not download the file."))
+      notify.error(extractErrorMessage(error, "Could not download the file."))
     })
 }
 

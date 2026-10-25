@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -106,9 +106,9 @@ function mcpConfigSnippet(key: string) {
 async function copyText(text: string, message: string) {
   try {
     await navigator.clipboard.writeText(text)
-    toast.success(message)
+    notify.success(message)
   } catch {
-    toast.error("Could not copy to clipboard")
+    notify.error("Could not copy to clipboard")
   }
 }
 
@@ -145,9 +145,9 @@ export function ApiKeysCard() {
       await pb.collection("api_keys").delete(deleteKey.id)
       setKeys((current) => current.filter((key) => key.id !== deleteKey.id))
       setDeleteKey(null)
-      toast.success("API key revoked")
+      notify.success("API key revoked")
     } catch {
-      toast.error("Could not delete the API key")
+      notify.error("Could not delete the API key")
     } finally {
       setDeleting(false)
     }
@@ -334,7 +334,7 @@ function CreateKeyDialog({
   const handleCreate = async () => {
     const trimmed = name.trim()
     if (!trimmed) {
-      toast.error("Give the key a name")
+      notify.error("Give the key a name")
       return
     }
     const days = EXPIRY_OPTIONS.find((option) => option.value === expiry)?.days
@@ -353,7 +353,7 @@ function CreateKeyDialog({
       setCreated(response)
       onCreated()
     } catch {
-      toast.error("Could not create the API key")
+      notify.error("Could not create the API key")
     } finally {
       setCreating(false)
     }

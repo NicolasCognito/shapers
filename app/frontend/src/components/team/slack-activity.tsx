@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 import { create } from "zustand"
 
 import { pb } from "@/lib/pocketbase"
@@ -99,10 +99,10 @@ export function MemberSlack({ memberId }: { memberId: string }) {
   const link = async (slackId: string) => {
     try {
       await pb.send("/api/team/slack/link", { method: "POST", body: { member: memberId, slack_id: slackId } })
-      toast.success(slackId ? t("slack.linked") : t("slack.unlinked"))
+      notify.success(slackId ? t("slack.linked") : t("slack.unlinked"))
       await load()
     } catch (e) {
-      toast.error((e as Error).message)
+      notify.error((e as Error).message)
     }
   }
 
