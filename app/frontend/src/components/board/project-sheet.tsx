@@ -124,7 +124,7 @@ function templateToDrafts(
   }
 }
 
-type UserOption = { id: string; name: string; avatar?: string }
+type UserOption = { id: string; name: string; avatar?: string; admin?: boolean }
 
 function OwnerSection({
   project,
@@ -429,7 +429,7 @@ export function ProjectSheet({
             onTransferred={() => onOpenChange(false)}
           />
 
-          <Tabs defaultValue="states" className="gap-3">
+          <Tabs defaultValue={isEdit ? "states" : "members"} className="gap-3">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="states">{t("projectSheet.states")}</TabsTrigger>
               <TabsTrigger value="labels">{t("common.labels")}</TabsTrigger>
@@ -1279,9 +1279,23 @@ function MembersAddSection({
   }, [])
 
   const memberUserIds = new Set(drafts.map((m) => m.userId))
+  // Admins join every project automatically, so they aren't offered here.
   const availableUsers = userOptions.filter(
-    (u) => u.id !== ownerId && !memberUserIds.has(u.id)
+    (u) => u.id !== ownerId && !u.admin && !memberUserIds.has(u.id)
   )
+
+  const handleAddEveryone = () => {
+    setDrafts([
+      ...drafts,
+      ...availableUsers.map((u) => ({
+        id: `draft-member-${u.id}`,
+        userId: u.id,
+        name: u.name,
+        avatar: u.avatar,
+        role: "member" as MemberRole,
+      })),
+    ])
+  }
 
   const handleAdd = () => {
     if (!selectedUserId) return
@@ -1311,7 +1325,15 @@ function MembersAddSection({
 
   return (
     <div className="flex flex-col gap-2">
-      <FieldLabel>{t("common.members")}</FieldLabel>
+      <div className="flex items-center justify-between gap-2">
+        <FieldLabel>{t("common.members")}</FieldLabel>
+        {availableUsers.length > 0 && (
+          <Button type="button" size="sm" variant="outline" onClick={handleAddEveryone}>
+            {t("projectSheet.addEveryone", { count: availableUsers.length })}
+          </Button>
+        )}
+      </div>
+      <p className="text-xs text-muted-foreground">{t("projectSheet.adminsAlwaysIn")}</p>
       <div className="flex flex-col gap-2">
         {drafts.map((member) => (
           <div
@@ -1441,6 +1463,19 @@ function MembersSection({ project }: { project: Project }) {
     (u) => u.id !== project.ownerId && !memberUserIds.has(u.id)
   )
 
+  const handleAddEveryone = async () => {
+    setSaving(true)
+    try {
+      for (const u of availableUsers) {
+        await addMember(project.id, { userId: u.id, role: "member" })
+      }
+    } catch {
+      // The board error banner displays the server response.
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const handleAdd = async () => {
     if (!selectedUserId) return
     setSaving(true)
@@ -1460,7 +1495,14 @@ function MembersSection({ project }: { project: Project }) {
 
   return (
     <div className="flex flex-col gap-2">
-      <FieldLabel>{t("common.members")}</FieldLabel>
+      <div className="flex items-center justify-between gap-2">
+        <FieldLabel>{t("common.members")}</FieldLabel>
+        {availableUsers.length > 0 && (
+          <Button type="button" size="sm" variant="outline" disabled={saving} onClick={() => void handleAddEveryone()}>
+            {t("projectSheet.addEveryone", { count: availableUsers.length })}
+          </Button>
+        )}
+      </div>
       <div className="flex flex-col gap-2">
         {projectMembers.map((member) => (
           <div
@@ -1562,14 +1604,18 @@ async function loadUsers(setUsers: (users: UserOption[]) => void) {
   try {
     const records = await pb.collection("users").getFullList({
       sort: "name",
-      fields: "id,name,email,avatar,collectionId",
+      fields: "id,name,email,avatar,collectionId,tier,is_admin",
     })
+    // Roster members only (they have a tier).
     setUsers(
-      records.map((r) => ({
-        id: r.id,
-        name: r.name || r.email || i18n.t("common.unknown"),
-        avatar: r.avatar ? pb.files.getURL(r, r.avatar) : undefined,
-      }))
+      records
+        .filter((r) => r.tier)
+        .map((r) => ({
+          id: r.id,
+          name: r.name || r.email || i18n.t("common.unknown"),
+          avatar: r.avatar ? pb.files.getURL(r, r.avatar) : undefined,
+          admin: !!r.is_admin,
+        }))
     )
   } catch {
     setUsers([])

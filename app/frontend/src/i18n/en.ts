@@ -906,6 +906,8 @@ export const en = {
     selectNewOwner: "Select the new owner...",
     selectOwnerFirst: "Select a new owner before continuing.",
     selectUser: "Select a user...",
+    addEveryone: "Add everyone ({{count}})",
+    adminsAlwaysIn: "Admins are in every project automatically. Pick who else works on it.",
     stateColor: "State color",
     stateName: "State name",
     states: "States",

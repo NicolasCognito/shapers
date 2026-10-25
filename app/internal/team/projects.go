@@ -13,9 +13,9 @@ import (
 	"github.com/xusenlin/workavera/internal/board"
 )
 
-// The institute works in the open: every roster member belongs to every
-// project, so admins see all projects on one board and anyone can be assigned.
-// Board roles follow the team role (admins become project admins).
+// Admins belong to every project, so they see all projects on one board.
+// Other members are picked when the project is created ("Add everyone" in the
+// form adds the whole roster). Board roles follow the team role.
 
 func boardRoleFor(u *core.Record) string {
 	if Can(u, PermTeamView) {
@@ -45,7 +45,15 @@ func ensureMember(app core.App, projectID, ownerID string, u *core.Record) error
 }
 
 func addEveryoneToProject(app core.App, project *core.Record) error {
-	users, err := app.FindRecordsByFilter(colUsers, "tier != ''", "", 0, 0)
+	return addToProject(app, project, "tier != ''")
+}
+
+func addAdminsToProject(app core.App, project *core.Record) error {
+	return addToProject(app, project, "tier != '' && is_admin = true")
+}
+
+func addToProject(app core.App, project *core.Record, filter string) error {
+	users, err := app.FindRecordsByFilter(colUsers, filter, "", 0, 0)
 	if err != nil {
 		return err
 	}
@@ -72,12 +80,16 @@ func addUserToAllProjects(app core.App, u *core.Record) error {
 
 func registerProjectHooks(app core.App) {
 	app.OnRecordAfterCreateSuccess("board_projects").BindFunc(func(e *core.RecordEvent) error {
-		if err := addEveryoneToProject(e.App, e.Record); err != nil {
+		if err := addAdminsToProject(e.App, e.Record); err != nil {
 			slog.Warn("team: add members to project", "error", err)
 		}
 		return e.Next()
 	})
+	// New admins join every project; new members are added to projects by hand.
 	app.OnRecordAfterCreateSuccess(colUsers).BindFunc(func(e *core.RecordEvent) error {
+		if !e.Record.GetBool("is_admin") {
+			return e.Next()
+		}
 		if err := addUserToAllProjects(e.App, e.Record); err != nil {
 			slog.Warn("team: add user to projects", "error", err)
 		}

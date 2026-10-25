@@ -918,6 +918,8 @@ export const sl = {
     selectNewOwner: "Izberite novega lastnika ...",
     selectOwnerFirst: "Pred nadaljevanjem izberite novega lastnika.",
     selectUser: "Izberite uporabnika ...",
+    addEveryone: "Dodaj vse ({{count}})",
+    adminsAlwaysIn: "Skrbniki so samodejno v vseh projektih. Izberite, kdo še dela na njem.",
     stateColor: "Barva statusa",
     stateName: "Ime statusa",
     states: "Statusi",
